@@ -59,14 +59,19 @@ export default function MapView() {
     return map;
   }, [departureRecords, durationRecords, mode]);
 
+  // Initialize chart and update when data changes
   useEffect(() => {
     let disposed = false;
+    let chart: echarts.ECharts | undefined;
+
     const init = async () => {
       const geoJson = await loadChinaGeoJSON();
       if (disposed || !elRef.current) return;
+
       echarts.registerMap('china-footprint', geoJson as any);
-      const chart = echarts.init(elRef.current);
+      chart = echarts.init(elRef.current);
       chartRef.current = chart;
+
       chart.on('mousedown', (params) => {
         const event = params.event?.event as MouseEvent | undefined;
         if (event) lastPointer.current = { x: event.clientX, y: event.clientY, time: Date.now() };
@@ -89,48 +94,51 @@ export default function MapView() {
           setPreviewCity(city);
         }
       });
-      window.addEventListener('resize', () => chart.resize());
+      window.addEventListener('resize', () => chart?.resize());
+
+      // Set initial option immediately after init
+      updateChart(chart);
     };
+
+    const updateChart = (c: echarts.ECharts) => {
+      c.setOption({
+        backgroundColor: 'transparent',
+        tooltip: {
+          trigger: 'item',
+          formatter: (params: { name: string }) => {
+            const data = provinceData.get(params.name);
+            if (!data?.lit) return `${params.name}<br/>未点亮，再点一次添加记录`;
+            return `${params.name}<br/>${data.cities.slice(0, 6).join('<br/>')}`;
+          },
+        },
+        series: [{
+          name: '城市足迹',
+          type: 'map',
+          map: 'china-footprint',
+          roam: true,
+          zoom: 1.1,
+          selectedMode: false,
+          emphasis: { label: { show: true, color: '#131B2E' }, itemStyle: { areaColor: '#B7D4FF' } },
+          label: { show: true, fontSize: 11, color: '#424656' },
+          itemStyle: { areaColor: '#F0F0F0', borderColor: '#FFFFFF', borderWidth: 1 },
+          data: Array.from(provinceData.entries()).map(([name, data]) => ({
+            name,
+            value: data.value,
+            itemStyle: { areaColor: previewCity && provinceAlias[previewCity.province] === name ? '#FFD166' : data.color },
+          })),
+        }],
+      }, true);
+      if (previewCity) {
+        c.dispatchAction({ type: 'highlight', seriesIndex: 0, name: provinceAlias[previewCity.province] });
+      }
+    };
+
     void init();
+
     return () => {
       disposed = true;
-      chartRef.current?.dispose();
+      chart?.dispose();
     };
-  }, []);
-
-  useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart) return;
-    chart.setOption({
-      backgroundColor: 'transparent',
-      tooltip: {
-        trigger: 'item',
-        formatter: (params: { name: string }) => {
-          const data = provinceData.get(params.name);
-          if (!data?.lit) return `${params.name}<br/>未点亮，再点一次添加记录`;
-          return `${params.name}<br/>${data.cities.slice(0, 6).join('<br/>')}`;
-        },
-      },
-      series: [{
-        name: '城市足迹',
-        type: 'map',
-        map: 'china-footprint',
-        roam: true,
-        zoom: 1.1,
-        selectedMode: false,
-        emphasis: { label: { show: true, color: '#131B2E' }, itemStyle: { areaColor: '#B7D4FF' } },
-        label: { show: true, fontSize: 11, color: '#424656' },
-        itemStyle: { areaColor: '#F0F0F0', borderColor: '#FFFFFF', borderWidth: 1 },
-        data: Array.from(provinceData.entries()).map(([name, data]) => ({
-          name,
-          value: data.value,
-          itemStyle: { areaColor: previewCity && provinceAlias[previewCity.province] === name ? '#FFD166' : data.color },
-        })),
-      }],
-    }, true);
-    if (previewCity) {
-      chart.dispatchAction({ type: 'highlight', seriesIndex: 0, name: provinceAlias[previewCity.province] });
-    }
   }, [mode, provinceData, previewCity]);
 
   return (
