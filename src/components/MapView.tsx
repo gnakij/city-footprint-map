@@ -64,7 +64,7 @@ export default function MapView() {
     const init = async () => {
       const geoJson = await loadChinaGeoJSON();
       if (disposed || !elRef.current) return;
-      echarts.registerMap('china-footprint', geoJson);
+      echarts.registerMap('china-footprint', geoJson as any);
       const chart = echarts.init(elRef.current);
       chartRef.current = chart;
       chart.on('mousedown', (params) => {
