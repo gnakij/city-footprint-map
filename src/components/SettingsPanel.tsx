@@ -48,13 +48,6 @@ export default function SettingsPanel() {
               <option value="dark">深色</option>
             </select>
           </label>
-          <label>
-            <span className="label-sm">默认模式</span>
-            <select className="input" value={settings.defaultMode} onChange={(event) => void updateSettings({ ...settings, defaultMode: event.target.value as typeof settings.defaultMode })}>
-              <option value="duration">停留时长</option>
-              <option value="departure">最后离开</option>
-            </select>
-          </label>
         </div>
         <div className="settings-section">
           <div className="actions">
@@ -67,7 +60,7 @@ export default function SettingsPanel() {
         <div className="settings-section">
           <strong>关于</strong>
           <p style={{ margin: 0, color: 'var(--color-on-surface-variant)', lineHeight: 1.7 }}>
-            城市足迹地图用于记录你在中国城市的停留时长与最后离开日期。数据保存在本机浏览器 IndexedDB 中。
+            城市足迹地图用于记录你在中国城市的多次访问、停留天数与备注。数据保存在本机浏览器 IndexedDB 中。
           </p>
         </div>
       </section>

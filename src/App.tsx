@@ -1,11 +1,15 @@
-import { Component, type ReactNode, useEffect, useState } from 'react';
+import { Component, type ReactNode, useEffect } from 'react';
+import AdminPanel from './components/AdminPanel';
 import CityDrawer from './components/CityDrawer';
+import DrillDownStats from './components/DrillDownStats';
+import LoginPage from './components/LoginPage';
 import MapView from './components/MapView';
 import PosterGenerator from './components/PosterGenerator';
 import SettingsPanel from './components/SettingsPanel';
 import StatsPanel from './components/StatsPanel';
 import Toast from './components/Toast';
 import TopBar from './components/TopBar';
+import VisitList from './components/VisitList';
 import { useStore } from './store/useStore';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -20,38 +24,18 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   }
 
   render() {
-    if (this.state.hasError) return <WelcomeScreen />;
+    if (this.state.hasError) return <div className="empty-state">应用渲染失败，请刷新重试。</div>;
     return this.props.children;
   }
 }
 
-function WelcomeScreen() {
-  const createUserAndSwitch = useStore((state) => state.createUserAndSwitch);
-  const [nameInput, setNameInput] = useState('');
-
+function Loading() {
   return (
-    <div style={{ display: 'grid', placeItems: 'center', height: '100vh', fontFamily: 'Inter', background: '#FAF8FF' }}>
-      <div style={{ textAlign: 'center', maxWidth: 360, width: '100%', padding: 32 }}>
-        <div style={{ fontSize: 64 }}>🗺️</div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0050CB', margin: '16px 0 8px' }}>城市足迹地图</h1>
-        <p style={{ color: '#727687', marginBottom: 24 }}>欢迎！输入你的昵称开始记录足迹</p>
-        <input
-          className="input"
-          value={nameInput}
-          onChange={(e) => setNameInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && nameInput.trim()) { void createUserAndSwitch(nameInput.trim()); } }}
-          placeholder="你的昵称"
-          autoFocus
-          style={{ marginBottom: 16, textAlign: 'center' }}
-        />
-        <button
-          className="btn-primary"
-          disabled={!nameInput.trim()}
-          onClick={() => void createUserAndSwitch(nameInput.trim())}
-          style={{ width: '100%' }}
-        >
-          开始
-        </button>
+    <div className="login-page">
+      <div className="login-card card">
+        <div className="brand-mark">城</div>
+        <h1>城市足迹地图</h1>
+        <p>加载中...</p>
       </div>
     </div>
   );
@@ -60,42 +44,28 @@ function WelcomeScreen() {
 function AppContent() {
   const load = useStore((state) => state.load);
   const hydrated = useStore((state) => state.hydrated);
-  const users = useStore((state) => state.users);
+  const currentUser = useStore((state) => state.currentUser);
   const selectedCity = useStore((state) => state.selectedCity);
   const drawerOpen = useStore((state) => state.drawerOpen);
   const settingsOpen = useStore((state) => state.settingsOpen);
   const posterOpen = useStore((state) => state.posterOpen);
+  const visitsOpen = useStore((state) => state.visitsOpen);
+  const adminOpen = useStore((state) => state.adminOpen);
+  const statsOpen = useStore((state) => state.statsOpen);
 
   useEffect(() => {
-    let cancelled = false;
-    const fallback = window.setTimeout(() => {
-      if (!cancelled && !useStore.getState().hydrated) {
-        useStore.setState({ users: [], currentUser: null, hydrated: true, toast: { icon: '!', message: '数据加载超时，请刷新重试' } });
-      }
-    }, 5000);
-
-    void load().finally(() => window.clearTimeout(fallback));
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(fallback);
-    };
+    void load();
   }, [load]);
 
-  if (!hydrated) {
-    return (
-      <div style={{ display: 'grid', placeItems: 'center', height: '100vh', fontFamily: 'Inter' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 48 }}>🗺️</div>
-          <p style={{ fontSize: 18, fontWeight: 700, color: '#0050CB' }}>城市足迹地图</p>
-          <p style={{ color: '#727687' }}>加载中...</p>
-        </div>
-      </div>
-    );
-  }
+  if (!hydrated) return <Loading />;
 
-  if (users.length === 0) {
-    return <WelcomeScreen />;
+  if (!currentUser) {
+    return (
+      <>
+        <LoginPage />
+        <Toast />
+      </>
+    );
   }
 
   return (
@@ -106,6 +76,9 @@ function AppContent() {
       </main>
       <StatsPanel />
       {drawerOpen && selectedCity && <CityDrawer city={selectedCity} />}
+      {visitsOpen && <VisitList />}
+      {statsOpen && <DrillDownStats />}
+      {adminOpen && currentUser.is_admin && <AdminPanel />}
       {settingsOpen && <SettingsPanel />}
       {posterOpen && <PosterGenerator />}
       <Toast />

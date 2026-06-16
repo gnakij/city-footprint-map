@@ -1,4 +1,5 @@
 import type { Achievement } from '../types';
+import { visitDays } from '../utils/date';
 
 const uniqueCities = (records: { city_id: string }[]) => new Set(records.map((record) => record.city_id));
 
@@ -39,7 +40,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     name: '长居达人',
     description: '任意城市停留超过一年',
     icon: '🏠',
-    check: (records) => records.some((record) => 'days' in record && record.days > 365),
+    check: (records) => records.some((record) => visitDays(record) > 365),
   },
   {
     id: 'all_cities',

@@ -1,28 +1,12 @@
-import type { AppSettings, DurationRecord, ExportData } from '../types';
-
-export function exportData(
-  records: DurationRecord[],
-  achievements: string[],
-  settings: AppSettings,
-  departureRecords = [],
-): ExportData {
-  return {
-    version: '1.0.0',
-    exported_at: new Date().toISOString(),
-    duration_records: records,
-    departure_records: departureRecords,
-    achievements,
-    settings,
-  };
-}
+import type { ExportData } from '../types';
 
 export function importData(jsonString: string): { success: boolean; data?: ExportData; error?: string } {
   try {
     const data = JSON.parse(jsonString) as ExportData;
-    if (!data || !Array.isArray(data.duration_records) || !Array.isArray(data.departure_records)) {
+    if (!data || !Array.isArray(data.visits)) {
       return { success: false, error: '备份文件格式不正确' };
     }
-    if (!Array.isArray(data.achievements) || !data.settings?.theme || !data.settings?.defaultMode) {
+    if (!Array.isArray(data.achievements) || !data.settings?.theme) {
       return { success: false, error: '备份文件缺少必要字段' };
     }
     return { success: true, data };

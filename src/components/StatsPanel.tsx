@@ -5,6 +5,7 @@ import AchievementBadge from './AchievementBadge';
 export default function StatsPanel() {
   const getStats = useStore((state) => state.getStats);
   const achievements = useStore((state) => state.achievements);
+  const setStatsOpen = useStore((state) => state.setStatsOpen);
   const stats = getStats();
 
   return (
@@ -16,7 +17,7 @@ export default function StatsPanel() {
       <div className="stats-grid">
         <div className="stat"><span className="label-sm">已点亮</span><strong>{stats.litCount}/{stats.totalCities}</strong></div>
         <div className="stat"><span className="label-sm">覆盖省份</span><strong>{stats.provinceCount}</strong></div>
-        <div className="stat"><span className="label-sm">累计天数</span><strong>{stats.totalDays}</strong></div>
+        <button className="stat stat-button" onClick={() => setStatsOpen(true)}><span className="label-sm">累计天数</span><strong>{stats.totalDays}</strong></button>
         <div className="stat"><span className="label-sm">覆盖率</span><strong>{stats.coverage}%</strong></div>
       </div>
       <div className="progress" aria-label="城市覆盖率">

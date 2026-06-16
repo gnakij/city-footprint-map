@@ -1,37 +1,42 @@
 import { useMemo, useState } from 'react';
-import type { CityData } from '../types';
+import type { CityData, VisitRecord } from '../types';
 import { useStore } from '../store/useStore';
+import { visitDays } from '../utils/date';
+
+const today = () => new Date().toISOString().slice(0, 10);
 
 export default function CityDrawer({ city }: { city: CityData }) {
-  const mode = useStore((state) => state.mode);
-  const durationRecords = useStore((state) => state.durationRecords);
-  const departureRecords = useStore((state) => state.departureRecords);
-  const saveDuration = useStore((state) => state.saveDuration);
-  const saveDeparture = useStore((state) => state.saveDeparture);
-  const deleteCityRecord = useStore((state) => state.deleteCityRecord);
+  const visits = useStore((state) => state.visits);
+  const saveVisit = useStore((state) => state.saveVisit);
+  const deleteVisit = useStore((state) => state.deleteVisit);
   const setDrawerOpen = useStore((state) => state.setDrawerOpen);
   const showToast = useStore((state) => state.showToast);
-  const today = new Date().toISOString().slice(0, 10);
-  const duration = durationRecords.find((record) => record.city_id === city.city_id);
-  const departure = departureRecords.find((record) => record.city_id === city.city_id);
-  const [days, setDays] = useState(duration?.days ?? 1);
-  const [date, setDate] = useState(departure?.departure_date ?? today);
-  const hasRecord = useMemo(() => mode === 'duration' ? Boolean(duration) : Boolean(departure), [departure, duration, mode]);
+  const cityVisits = useMemo(() => visits.filter((record) => record.city_id === city.city_id).sort((a, b) => b.arrival_date.localeCompare(a.arrival_date)), [city.city_id, visits]);
+  const [editing, setEditing] = useState<VisitRecord | null>(null);
+  const [arrival, setArrival] = useState(today());
+  const [departure, setDeparture] = useState(today());
+  const [notes, setNotes] = useState('');
+
+  const startEdit = (record: VisitRecord) => {
+    setEditing(record);
+    setArrival(record.arrival_date);
+    setDeparture(record.departure_date);
+    setNotes(record.notes ?? '');
+  };
+
+  const resetForm = () => {
+    setEditing(null);
+    setArrival(today());
+    setDeparture(today());
+    setNotes('');
+  };
 
   const save = () => {
-    if (mode === 'duration') {
-      if (!Number.isFinite(days) || days < 1) {
-        showToast({ icon: '!', message: '停留天数至少为1天' });
-        return;
-      }
-      void saveDuration(city, Math.floor(days));
+    if (!arrival || !departure || departure < arrival) {
+      showToast({ icon: '!', message: '请检查到达和离开日期' });
       return;
     }
-    if (!date || date > today) {
-      showToast({ icon: '!', message: '离开日期不能晚于今天' });
-      return;
-    }
-    void saveDeparture(city, date);
+    void saveVisit(city, { id: editing?.id, arrival_date: arrival, departure_date: departure, notes });
   };
 
   return (
@@ -45,22 +50,44 @@ export default function CityDrawer({ city }: { city: CityData }) {
       </div>
       <h2>{city.city_name}</h2>
       <p className="label-sm">{city.province} · {city.region}</p>
-      <span className="badge">{mode === 'duration' ? '停留时长' : '最后离开'}</span>
-      {mode === 'duration' ? (
+      <span className="badge">累计 {cityVisits.reduce((sum, record) => sum + visitDays(record), 0)} 天 · {cityVisits.length} 次访问</span>
+
+      <div className="visit-form">
+        <div className="form-grid-2">
+          <label className="form-row">
+            <span className="label-sm">到达日期</span>
+            <input className="input" type="date" value={arrival} onChange={(event) => setArrival(event.target.value)} />
+          </label>
+          <label className="form-row">
+            <span className="label-sm">离开日期</span>
+            <input className="input" type="date" value={departure} onChange={(event) => setDeparture(event.target.value)} />
+          </label>
+        </div>
         <label className="form-row">
-          <span className="label-sm">停留天数</span>
-          <input className="input" type="number" min={1} value={days} onChange={(event) => setDays(Number(event.target.value))} />
+          <span className="label-sm">备注</span>
+          <textarea className="input textarea" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="可选" />
         </label>
-      ) : (
-        <label className="form-row">
-          <span className="label-sm">最后离开日期</span>
-          <input className="input" type="date" max={today} value={date} onChange={(event) => setDate(event.target.value)} />
-        </label>
-      )}
-      <div className="actions">
-        <button className="btn-primary" onClick={save}>保存</button>
-        <button className="btn-outline" onClick={() => setDrawerOpen(false)}>取消</button>
-        {hasRecord && <button className="btn-danger" onClick={() => void deleteCityRecord(city)}>清除</button>}
+        <div className="label-sm">停留天数：{visitDays({ arrival_date: arrival, departure_date: departure }) || '-'}</div>
+        <div className="actions">
+          <button className="btn-primary" onClick={save}>{editing ? '保存修改' : '新增访问'}</button>
+          {editing && <button className="btn-outline" onClick={resetForm}>取消编辑</button>}
+        </div>
+      </div>
+
+      <div className="visit-stack">
+        {cityVisits.map((record) => (
+          <div className="visit-card" key={record.id}>
+            <div>
+              <strong>{record.arrival_date} 至 {record.departure_date}</strong>
+              <div className="label-sm">{visitDays(record)} 天{record.notes ? ` · ${record.notes}` : ''}</div>
+            </div>
+            <div className="mini-actions">
+              <button className="btn-outline" onClick={() => startEdit(record)}>编辑</button>
+              <button className="btn-danger" onClick={() => void deleteVisit(record.id)}>删除</button>
+            </div>
+          </div>
+        ))}
+        {cityVisits.length === 0 && <p className="empty-state">暂无访问记录</p>}
       </div>
     </aside>
   );
