@@ -1,0 +1,6 @@
+[2026-06-16T07:13:10.329495+00:00] [INFO] [init] Pipeline initialized. Deploy: manual, Test: unknown
+[2026-06-16T07:14:04.438008+00:00] [INFO] [init] Starting stage: init
+[2026-06-16T07:14:11.365039+00:00] [INFO] [analyze] Starting stage: analyze
+[2026-06-16T07:14:11.365727+00:00] [INFO] [analyze] Spec loaded: 6392 chars
+[2026-06-16T07:14:11.462306+00:00] [INFO] [code] Starting stage: code
+[2026-06-16T07:14:11.465050+00:00] [INFO] [code] No code found - needs Codex MCP generation
