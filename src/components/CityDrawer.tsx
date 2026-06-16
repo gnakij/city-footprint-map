@@ -37,12 +37,14 @@ export default function CityDrawer({ city }: { city: CityData }) {
   return (
     <aside className="drawer city-drawer">
       <div className="drawer-head">
-        <div>
-          <h2>{city.city_name}</h2>
-          <p className="label-sm">{city.province} · {city.region}</p>
-        </div>
+        <button className="back-btn" onClick={() => setDrawerOpen(false)} aria-label="返回">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+          返回
+        </button>
         <button className="icon-btn" onClick={() => setDrawerOpen(false)}>×</button>
       </div>
+      <h2>{city.city_name}</h2>
+      <p className="label-sm">{city.province} · {city.region}</p>
       <span className="badge">{mode === 'duration' ? '停留时长' : '最后离开'}</span>
       {mode === 'duration' ? (
         <label className="form-row">

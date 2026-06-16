@@ -10,6 +10,7 @@ import { useStore } from './store/useStore';
 
 export default function App() {
   const load = useStore((state) => state.load);
+  const hydrated = useStore((state) => state.hydrated);
   const selectedCity = useStore((state) => state.selectedCity);
   const drawerOpen = useStore((state) => state.drawerOpen);
   const settingsOpen = useStore((state) => state.settingsOpen);
@@ -18,6 +19,18 @@ export default function App() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  if (!hydrated) {
+    return (
+      <div style={{ display: 'grid', placeItems: 'center', height: '100vh', fontFamily: 'Inter' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 48 }}>🗺️</div>
+          <p style={{ fontSize: 18, fontWeight: 700, color: '#0050CB' }}>城市足迹地图</p>
+          <p style={{ color: '#727687' }}>加载中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
