@@ -57,3 +57,5 @@ export interface Stats {
   totalDays: number;
   coverage: number;
 }
+
+export interface User { id: string; name: string; created_at: string; }

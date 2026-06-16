@@ -56,7 +56,17 @@ button { cursor: pointer; }
 .input:focus { border-color: var(--color-primary-container); box-shadow: 0 0 0 3px rgba(0,102,255,.12); }
 .label-sm { font-size: var(--font-xs); color: var(--color-on-surface-variant); font-weight: 700; }
 
-.topbar { position: fixed; inset: 12px 12px auto; z-index: 20; height: 56px; border-radius: var(--radius-lg); display: grid; grid-template-columns: auto minmax(120px, 420px) auto auto; align-items: center; gap: 12px; padding: 0 12px; }
+.user-switcher { position: relative; }
+.user-trigger { border: 0; background: transparent; color: var(--color-on-surface); font-weight: 700; font-size: 14px; padding: 6px 10px; border-radius: var(--radius-sm); white-space: nowrap; }
+.user-trigger:hover { background: var(--color-surface-container-low); }
+.user-dropdown { position: absolute; top: 44px; left: 0; min-width: 180px; padding: 8px; z-index: 35; }
+.user-row { display: flex; align-items: center; justify-content: space-between; }
+.user-name { flex: 1; text-align: left; border: 0; background: transparent; padding: 8px 10px; font-weight: 600; color: var(--color-on-surface); border-radius: var(--radius-sm); font-size: 14px; }
+.user-name:hover { background: var(--color-surface-container); }
+.user-del { border: 0; background: transparent; color: var(--color-error); font-size: 18px; padding: 4px 8px; border-radius: var(--radius-sm); cursor: pointer; }
+.user-del:hover { background: var(--color-surface-container); }
+
+.topbar { position: fixed; inset: 12px 12px auto; z-index: 20; height: 56px; border-radius: var(--radius-lg); display: grid; grid-template-columns: auto auto minmax(120px, 420px) auto auto; align-items: center; gap: 12px; padding: 0 12px; }
 .logo { font-weight: 800; white-space: nowrap; font-size: 18px; }
 .mode-pill { display: flex; border-radius: var(--radius-full); background: var(--color-surface-container-low); padding: 4px; }
 .mode-pill button { border: 0; border-radius: var(--radius-full); background: transparent; color: var(--color-on-surface-variant); padding: 8px 12px; font-size: 13px; font-weight: 800; }
@@ -94,6 +104,7 @@ button { cursor: pointer; }
 
 .modal-backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(19,27,46,.42); display: grid; place-items: center; padding: 18px; }
 .modal { width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: 22px; border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-on-surface); }
+.welcome-modal { width: min(420px, 100%); }
 .modal-wide { width: min(900px, 100%); }
 .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .settings-section { border-top: 1px solid var(--color-outline-variant); padding-top: 16px; margin-top: 16px; display: grid; gap: 12px; }
@@ -107,6 +118,8 @@ button { cursor: pointer; }
 @media (max-width: 767px) {
   :root { --topbar-height: 132px; }
   .topbar { height: auto; grid-template-columns: 1fr auto; align-items: center; padding: 10px; border-radius: var(--radius-md); }
+  .user-switcher { min-width: 0; }
+  .user-dropdown { left: auto; right: 0; width: min(320px, calc(100vw - 36px)); }
   .search { grid-column: 1 / -1; order: 3; }
   .mode-pill { grid-column: 1 / -1; order: 4; }
   .mode-pill button { flex: 1; }
