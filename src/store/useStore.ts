@@ -67,11 +67,6 @@ function allRecords(state: Pick<StoreState, 'durationRecords' | 'departureRecord
   return [...state.durationRecords, ...state.departureRecords];
 }
 
-function uid(state: StoreState) {
-  if (!state.currentUser) throw new Error('no user');
-  return state.currentUser.id;
-}
-
 async function checkAchievements(uid: string, records: Array<DurationRecord | DepartureRecord>, unlocked: string[]) {
   const next = new Set(unlocked);
   const newly: string[] = [];
@@ -91,12 +86,18 @@ export const useStore = create<StoreState>((set, get) => ({
   currentUser: null, users: [],
 
   load: async () => {
-    const users = await getUsers();
-    if (users.length === 0) { set({ users, hydrated: true }); return; }
-    const user = users[0];
-    const [dur, dep, ach, setts] = await Promise.all([getAllDuration(user.id), getAllDeparture(user.id), getAchievements(user.id), getSettings(user.id)]);
-    document.documentElement.dataset.theme = setts.theme;
-    set({ currentUser: user, users, durationRecords: dur, departureRecords: dep, achievements: ach.map(i => i.id), settings: setts, mode: setts.defaultMode, hydrated: true });
+    try {
+      const users = await getUsers();
+      if (users.length === 0) { set({ users, currentUser: null, durationRecords: [], departureRecords: [], achievements: [], hydrated: true }); return; }
+      const user = users[0];
+      const [dur, dep, ach, setts] = await Promise.all([getAllDuration(user.id), getAllDeparture(user.id), getAchievements(user.id), getSettings(user.id)]);
+      document.documentElement.dataset.theme = setts.theme;
+      set({ currentUser: user, users, durationRecords: dur, departureRecords: dep, achievements: ach.map(i => i.id), settings: setts, mode: setts.defaultMode, hydrated: true });
+    } catch (error) {
+      console.error('Failed to load app data', error);
+      document.documentElement.dataset.theme = 'light';
+      set({ users: [], currentUser: null, durationRecords: [], departureRecords: [], achievements: [], settings: { theme: 'light', defaultMode: 'duration' }, mode: 'duration', hydrated: true, toast: { icon: '!', message: '数据加载失败，请新建用户或刷新重试' } });
+    }
   },
 
   createUserAndSwitch: async (name) => {
