@@ -4,6 +4,7 @@ import { adminExportVisits, adminImportVisits, createUser, getUsers } from '../a
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import FuzzySelect from './ui/FuzzySelect';
+import { ShadcnFuzzySelect } from '@/components/shadcn';
 import type { ImportVisitRow } from '../types';
 import type { AdminVisitExportRow } from '../api';
 
@@ -388,7 +389,8 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
               />
             </div>
             <div style={{ width: 120 }}>
-              <FuzzySelect
+              // 新代码：省份筛选（shadcn/ui 风格）
+              <ShadcnFuzzySelect
                 options={provinceOptionsList}
                 searchKeys={PROVINCE_PINYIN}
                 value={filterProvince}
