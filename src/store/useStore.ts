@@ -6,7 +6,9 @@ import type { AppSettings, CityData, ExportData, Stats, User, VisitRecord } from
 import { visitDays } from '../utils/date';
 import {
   bulkSaveVisits,
+  changePassword,
   clearAllData,
+  clearToken,
   createUser,
   deleteUser,
   deleteVisit as dbDeleteVisit,
@@ -14,14 +16,21 @@ import {
   getAchievements,
   getAllVisits,
   getSettings,
+  getCurrentUser,
+  hasToken,
   getUsers,
-  hashPassword,
   importAll,
   saveSettings,
   saveVisit as dbSaveVisit,
   unlockAchievement,
   updateUser,
-} from './db';
+  updateMe,
+  verifyAdmin,
+  verifyUser,
+  getSystemStats as apiGetSystemStats,
+} from './api';
+
+type ProfileTab = 'profile' | 'visits' | 'admin' | 'settings';
 
 interface ToastState { message: string; icon?: string; }
 
@@ -38,14 +47,18 @@ interface StoreState {
   visitsOpen: boolean;
   adminOpen: boolean;
   statsOpen: boolean;
+  profileOpen: boolean;
   toast?: ToastState;
   hydrated: boolean;
   currentUser: User | null;
   users: User[];
   adminSetupRequired: boolean;
+  statsCollapsed: boolean;
+  profileTab: ProfileTab;
   load: () => Promise<void>;
   setupAdmin: (username: string, password: string) => Promise<void>;
   loginAdmin: (username: string, password: string) => Promise<boolean>;
+  loginUser: (username: string, password: string) => Promise<boolean>;
   switchUser: (user: User) => Promise<void>;
   logout: () => void;
   createRegularUser: (name: string) => Promise<User>;
@@ -60,10 +73,14 @@ interface StoreState {
   setVisitsOpen: (open: boolean) => void;
   setAdminOpen: (open: boolean) => void;
   setStatsOpen: (open: boolean) => void;
+  setProfileOpen: (open: boolean, tab?: ProfileTab) => void;
+  toggleStatsCollapsed: () => void;
   showToast: (toast: ToastState) => void;
   hideToast: () => void;
-  saveVisit: (city: CityData, input: Pick<VisitRecord, 'arrival_date' | 'departure_date' | 'notes'> & { id?: string }) => Promise<void>;
-  bulkCreateVisits: (records: Array<Pick<VisitRecord, 'city_id' | 'arrival_date' | 'departure_date' | 'notes'>>) => Promise<void>;
+  updateUserName: (name: string) => void;
+  updateAnyUserName: (userId: string, name: string) => Promise<void>;
+  saveVisit: (city: CityData, input: Pick<VisitRecord, 'duration_days' | 'last_stay_date' | 'notes'> & { id?: string }) => Promise<void>;
+  bulkCreateVisits: (records: Array<Pick<VisitRecord, 'city_id' | 'duration_days' | 'last_stay_date' | 'notes'>>) => Promise<void>;
   deleteVisit: (id: string) => Promise<void>;
   updateSettings: (settings: AppSettings) => Promise<void>;
   exportBackup: () => Promise<string>;
@@ -74,6 +91,9 @@ interface StoreState {
 }
 
 const nowIso = () => new Date().toISOString();
+
+/** 同一记录列表的排序键：按最后停留日期倒序，不再依赖到达日期 */
+const byLastStayDesc = (a: VisitRecord, b: VisitRecord) => b.last_stay_date.localeCompare(a.last_stay_date);
 
 async function loadUserData(user: User) {
   const [visits, ach, setts] = await Promise.all([getAllVisits(user.id), getAchievements(user.id), getSettings(user.id)]);
@@ -95,42 +115,63 @@ async function checkAchievements(uid: string, records: VisitRecord[], unlocked: 
 }
 
 export const useStore = create<StoreState>((set, get) => ({
-  visits: [], achievements: [], settings: { theme: 'light' },
-  drawerOpen: false, searchQuery: '', posterOpen: false, settingsOpen: false, visitsOpen: false, adminOpen: false, statsOpen: false,
-  hydrated: false, currentUser: null, users: [], adminSetupRequired: false,
+  visits: [], achievements: [], settings: { theme: 'rose' },
+  drawerOpen: false, searchQuery: '', posterOpen: false, settingsOpen: false, visitsOpen: false, adminOpen: false, statsOpen: false, profileOpen: false,
+  hydrated: false, currentUser: null, users: [], adminSetupRequired: false, statsCollapsed: false, profileTab: 'profile',
 
   load: async () => {
     try {
-      const users = await getUsers();
-      const adminSetupRequired = !users.some((user) => user.is_admin);
-      document.documentElement.dataset.theme = 'light';
-      set({ users, adminSetupRequired, currentUser: null, visits: [], achievements: [], hydrated: true });
+      document.documentElement.dataset.theme = 'rose';
+      if (!hasToken()) {
+        set({ users: [], adminSetupRequired: false, currentUser: null, visits: [], achievements: [], hydrated: true });
+        return;
+      }
+      const currentUser = await getCurrentUser();
+      const data = await loadUserData(currentUser);
+      const users = currentUser.is_admin ? await getUsers() : [];
+      set({ users, adminSetupRequired: false, currentUser, hydrated: true, ...data });
     } catch (error) {
       console.error('Failed to load app data', error);
-      set({ users: [], currentUser: null, visits: [], achievements: [], settings: { theme: 'light' }, hydrated: true, adminSetupRequired: true, toast: { icon: '!', message: '数据加载失败，请刷新重试' } });
+      clearToken();
+      set({ users: [], currentUser: null, visits: [], achievements: [], settings: { theme: 'rose' }, hydrated: true, adminSetupRequired: false, toast: { icon: '!', message: '数据加载失败，请重新登录' } });
     }
   },
 
   setupAdmin: async (username, password) => {
-    if (!username.trim() || password.length < 4) {
-      set({ toast: { icon: '!', message: '管理员用户名和密码不能为空，密码至少4位' } });
+    if (!username.trim() || password.length < 6) {
+      set({ toast: { icon: '!', message: '管理员用户名和密码不能为空，密码至少6位' } });
       return;
     }
-    const admin = await createUser('管理员', { username, password, is_admin: true });
+    await createUser('管理员', { username, password, is_admin: true });
+    const admin = await verifyAdmin(username, password);
+    if (!admin) {
+      set({ toast: { icon: '!', message: '管理员创建后登录失败' } });
+      return;
+    }
     const data = await loadUserData(admin);
     set({ currentUser: admin, users: await getUsers(), adminSetupRequired: false, adminOpen: true, ...data, toast: { icon: '✓', message: '管理员已创建' } });
   },
 
   loginAdmin: async (username, password) => {
-    const users = await getUsers();
-    const hash = await hashPassword(password);
-    const admin = users.find((user) => user.is_admin && user.username === username.trim() && user.password_hash === hash);
+    const admin = await verifyAdmin(username, password);
     if (!admin) {
       set({ toast: { icon: '!', message: '管理员账号或密码错误' } });
       return false;
     }
+    const users = await getUsers();
     const data = await loadUserData(admin);
     set({ currentUser: admin, users, adminOpen: true, ...data, toast: { icon: '✓', message: '已登录管理员' } });
+    return true;
+  },
+
+  loginUser: async (username, password) => {
+    const user = await verifyUser(username, password);
+    if (!user) {
+      set({ toast: { icon: '!', message: '用户名或密码错误' } });
+      return false;
+    }
+    await get().switchUser(user);
+    set({ toast: { icon: '✓', message: '已登录' } });
     return true;
   },
 
@@ -140,8 +181,9 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   logout: () => {
-    document.documentElement.dataset.theme = 'light';
-    set({ currentUser: null, visits: [], achievements: [], selectedCity: undefined, previewCity: undefined, drawerOpen: false, adminOpen: false, visitsOpen: false, settingsOpen: false, posterOpen: false });
+    clearToken();
+    document.documentElement.dataset.theme = 'rose';
+    set({ currentUser: null, visits: [], achievements: [], selectedCity: undefined, previewCity: undefined, drawerOpen: false, adminOpen: false, visitsOpen: false, settingsOpen: false, posterOpen: false, profileOpen: false });
   },
 
   createRegularUser: async (name) => {
@@ -164,15 +206,19 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   resetUserPassword: async (id, password) => {
-    if (password.length < 4) {
-      set({ toast: { icon: '!', message: '密码至少4位' } });
+    if (password.length < 6) {
+      set({ toast: { icon: '!', message: '密码至少6位' } });
       return;
     }
     const user = get().users.find((item) => item.id === id);
     if (!user) return;
-    const next = { ...user, password_hash: await hashPassword(password) };
-    await updateUser(next);
-    set({ users: await getUsers(), currentUser: get().currentUser?.id === id ? next : get().currentUser, toast: { icon: '✓', message: '密码已更新' } });
+    try {
+      const next = await changePassword(id, password);
+      set({ users: await getUsers(), currentUser: get().currentUser?.id === id ? next : get().currentUser, toast: { icon: '✓', message: '密码已更新' } });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '密码更新失败';
+      set({ toast: { icon: '!', message: msg } });
+    }
   },
 
   setSelectedCity: (selectedCity) => set({ selectedCity, drawerOpen: Boolean(selectedCity) }),
@@ -184,26 +230,62 @@ export const useStore = create<StoreState>((set, get) => ({
   setVisitsOpen: (visitsOpen) => set({ visitsOpen }),
   setAdminOpen: (adminOpen) => set({ adminOpen }),
   setStatsOpen: (statsOpen) => set({ statsOpen }),
+  setProfileOpen: (profileOpen, tab) => set({ profileOpen, ...(tab ? { profileTab: tab } : {}) }),
+  toggleStatsCollapsed: () => set((s) => ({ statsCollapsed: !s.statsCollapsed })),
   showToast: (toast) => set({ toast }),
   hideToast: () => set({ toast: undefined }),
+  updateUserName: (name) => {
+    const user = get().currentUser;
+    if (!user) return;
+    const updated = { ...user, name };
+    updateMe({ name });
+    set({ currentUser: updated, toast: { icon: '✓', message: '名称已更新' } });
+  },
 
+  updateAnyUserName: async (userId, name) => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      set({ toast: { icon: '!', message: '名称不能为空' } });
+      return;
+    }
+    const user = get().users.find((item) => item.id === userId);
+    if (!user) return;
+    const updated = { ...user, name: trimmed };
+    await updateUser(updated);
+    const users = await getUsers();
+    set({
+      users,
+      currentUser: get().currentUser?.id === userId ? updated : get().currentUser,
+      toast: { icon: '✓', message: '名称已更新' },
+    });
+  },
+
+  /**
+   * 保存一条停留记录（粗粒度模型）。
+   * 不再校验「时间区间是否重叠」——同一城市允许多条独立记录，
+   * 例如老家记一条、大学城市记一条，互不冲突。
+   */
   saveVisit: async (city, input) => {
     const state = get();
     if (!state.currentUser) { set({ toast: { icon: '!', message: '请先登录或选择用户' } }); return; }
-    if (visitDays(input) < 1) { set({ toast: { icon: '!', message: '离开日期不能早于到达日期' } }); return; }
+    if (!input.last_stay_date) { set({ toast: { icon: '!', message: '请填写最后停留日期' } }); return; }
+    if (!Number.isFinite(input.duration_days) || input.duration_days < 1) {
+      set({ toast: { icon: '!', message: '停留天数至少为 1 天' } });
+      return;
+    }
     const existing = input.id ? state.visits.find((record) => record.id === input.id) : undefined;
     const now = nowIso();
     const record: VisitRecord = {
       id: input.id ?? uuid(),
       city_id: city.city_id,
-      arrival_date: input.arrival_date,
-      departure_date: input.departure_date,
+      duration_days: Math.floor(input.duration_days),
+      last_stay_date: input.last_stay_date,
       notes: input.notes?.trim() || undefined,
       created_at: existing?.created_at ?? now,
       updated_at: now,
     };
-    await dbSaveVisit(state.currentUser.id, record);
-    const visits = [record, ...state.visits.filter((item) => item.id !== record.id)].sort((a, b) => b.arrival_date.localeCompare(a.arrival_date));
+    const saved = await dbSaveVisit(state.currentUser.id, record);
+    const visits = [saved, ...state.visits.filter((item) => item.id !== input.id && item.id !== saved.id)].sort(byLastStayDesc);
     const checked = await checkAchievements(state.currentUser.id, visits, state.achievements);
     const unlocked = checked.newly[0] ? ACHIEVEMENTS.find((item) => item.id === checked.newly[0]) : undefined;
     set({ visits, achievements: checked.achievements, drawerOpen: false, selectedCity: undefined, previewCity: undefined, toast: unlocked ? { icon: unlocked.icon, message: `解锁成就：${unlocked.name}` } : { icon: '✓', message: '访问记录已保存' } });
@@ -214,8 +296,8 @@ export const useStore = create<StoreState>((set, get) => ({
     if (!state.currentUser) { set({ toast: { icon: '!', message: '请先登录或选择用户' } }); return; }
     const now = nowIso();
     const visits: VisitRecord[] = records.map((record) => ({ id: uuid(), created_at: now, updated_at: now, ...record, notes: record.notes?.trim() || undefined }));
-    await bulkSaveVisits(state.currentUser.id, visits);
-    const next = [...visits, ...state.visits].sort((a, b) => b.arrival_date.localeCompare(a.arrival_date));
+    const saved = await bulkSaveVisits(state.currentUser.id, visits);
+    const next = [...saved, ...state.visits].sort(byLastStayDesc);
     const checked = await checkAchievements(state.currentUser.id, next, state.achievements);
     set({ visits: next, achievements: checked.achievements, toast: { icon: '✓', message: `已导入 ${visits.length} 条访问记录` } });
   },
@@ -265,8 +347,6 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   getSystemStats: async () => {
-    const users = await getUsers();
-    const perUser = await Promise.all(users.map((user) => getAllVisits(user.id).catch(() => [])));
-    return { totalUsers: users.length, totalVisits: perUser.reduce((sum, records) => sum + records.length, 0), adminUsers: users.filter((user) => user.is_admin).length };
+    return apiGetSystemStats();
   },
 }));

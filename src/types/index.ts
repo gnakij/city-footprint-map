@@ -1,4 +1,4 @@
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode = 'linear' | 'stripe' | 'rose';
 export type SortMode = 'days' | 'name';
 
 export interface CityData {
@@ -8,13 +8,19 @@ export interface CityData {
   region: '华北' | '华东' | '华南' | '华中' | '西南' | '西北' | '东北';
   pinyin: string;
   level: 'province' | 'prefecture';
+  adcode?: number;
 }
 
+/**
+ * 停留记录：粗粒度模型，不要求精确的到达/离开日期。
+ * 用户只需估算「停留了多少天」+「最后一次在那里是什么时候」。
+ * 同一城市允许有多条记录（例如老家+大学城市分开记），互不校验重叠。
+ */
 export interface VisitRecord {
   id: string;
   city_id: string;
-  arrival_date: string;
-  departure_date: string;
+  duration_days: number;
+  last_stay_date: string;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -54,7 +60,6 @@ export interface User {
   id: string;
   name: string;
   username?: string;
-  password_hash?: string;
   is_admin: boolean;
   created_at: string;
 }
@@ -62,8 +67,8 @@ export interface User {
 export interface ImportVisitRow {
   province: string;
   city: string;
-  arrival_date: string;
-  departure_date: string;
+  duration_days: number;
+  last_stay_date: string;
   notes?: string;
   city_id?: string;
   error?: string;

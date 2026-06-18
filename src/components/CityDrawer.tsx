@@ -1,94 +1,112 @@
 import { useMemo, useState } from 'react';
+import DateInput from './ui/DateInput';
 import type { CityData, VisitRecord } from '../types';
 import { useStore } from '../store/useStore';
 import { visitDays } from '../utils/date';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export default function CityDrawer({ city }: { city: CityData }) {
   const visits = useStore((state) => state.visits);
   const saveVisit = useStore((state) => state.saveVisit);
   const deleteVisit = useStore((state) => state.deleteVisit);
   const setDrawerOpen = useStore((state) => state.setDrawerOpen);
-  const showToast = useStore((state) => state.showToast);
-  const cityVisits = useMemo(() => visits.filter((record) => record.city_id === city.city_id).sort((a, b) => b.arrival_date.localeCompare(a.arrival_date)), [city.city_id, visits]);
+  const cityVisits = useMemo(() => visits.filter((record) => record.city_id === city.city_id), [city.city_id, visits]);
+  const totalDays = useMemo(() => cityVisits.reduce((sum, record) => sum + visitDays(record), 0), [cityVisits]);
   const [editing, setEditing] = useState<VisitRecord | null>(null);
-  const [arrival, setArrival] = useState(today());
-  const [departure, setDeparture] = useState(today());
+  const [showForm, setShowForm] = useState(false);
+  const [duration, setDuration] = useState('');
+  const [lastStay, setLastStay] = useState(todayStr());
   const [notes, setNotes] = useState('');
 
   const startEdit = (record: VisitRecord) => {
     setEditing(record);
-    setArrival(record.arrival_date);
-    setDeparture(record.departure_date);
+    setShowForm(true);
+    setDuration(String(record.duration_days));
+    setLastStay(record.last_stay_date);
     setNotes(record.notes ?? '');
   };
 
   const resetForm = () => {
     setEditing(null);
-    setArrival(today());
-    setDeparture(today());
+    setShowForm(false);
+    setDuration('');
+    setLastStay(todayStr());
     setNotes('');
   };
 
-  const save = () => {
-    if (!arrival || !departure || departure < arrival) {
-      showToast({ icon: '!', message: '请检查到达和离开日期' });
-      return;
+  const submit = async () => {
+    const days = Number(duration);
+    if (!days || days < 1) return;
+    if (!lastStay) return;
+    await saveVisit(city, { id: editing?.id, duration_days: Math.floor(days), last_stay_date: lastStay, notes });
+    const nowVisits = useStore.getState().visits;
+    if (nowVisits.length > visits.length || editing) {
+      resetForm();
     }
-    void saveVisit(city, { id: editing?.id, arrival_date: arrival, departure_date: departure, notes });
   };
 
   return (
     <aside className="drawer city-drawer">
       <div className="drawer-head">
-        <button className="back-btn" onClick={() => setDrawerOpen(false)} aria-label="返回">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
-          返回
-        </button>
+        <button className="back-btn" onClick={() => setDrawerOpen(false)} aria-label="返回">← 返回</button>
         <button className="icon-btn" onClick={() => setDrawerOpen(false)}>×</button>
       </div>
       <h2>{city.city_name}</h2>
       <p className="label-sm">{city.province} · {city.region}</p>
-      <span className="badge">累计 {cityVisits.reduce((sum, record) => sum + visitDays(record), 0)} 天 · {cityVisits.length} 次访问</span>
+      <span className="badge">{cityVisits.length ? `共 ${totalDays} 天 · ${cityVisits.length} 条记录` : '未记录'}</span>
 
-      <div className="visit-form">
-        <div className="form-grid-2">
-          <label className="form-row">
-            <span className="label-sm">到达日期</span>
-            <input className="input" type="date" value={arrival} onChange={(event) => setArrival(event.target.value)} />
-          </label>
-          <label className="form-row">
-            <span className="label-sm">离开日期</span>
-            <input className="input" type="date" value={departure} onChange={(event) => setDeparture(event.target.value)} />
-          </label>
-        </div>
-        <label className="form-row">
-          <span className="label-sm">备注</span>
-          <textarea className="input textarea" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="可选" />
-        </label>
-        <div className="label-sm">停留天数：{visitDays({ arrival_date: arrival, departure_date: departure }) || '-'}</div>
-        <div className="actions">
-          <button className="btn-primary" onClick={save}>{editing ? '保存修改' : '新增访问'}</button>
-          {editing && <button className="btn-outline" onClick={resetForm}>取消编辑</button>}
-        </div>
-      </div>
-
-      <div className="visit-stack">
+      {/* 访问记录列表 */}
+      <div className="drawer-list">
         {cityVisits.map((record) => (
-          <div className="visit-card" key={record.id}>
+          <div key={record.id} className="visit-card">
             <div>
-              <strong>{record.arrival_date} 至 {record.departure_date}</strong>
-              <div className="label-sm">{visitDays(record)} 天{record.notes ? ` · ${record.notes}` : ''}</div>
+              <strong>{visitDays(record)} 天</strong>
+              <p className="muted">最后停留 {record.last_stay_date}{record.notes ? ` · ${record.notes}` : ''}</p>
             </div>
-            <div className="mini-actions">
-              <button className="btn-outline" onClick={() => startEdit(record)}>编辑</button>
-              <button className="btn-danger" onClick={() => void deleteVisit(record.id)}>删除</button>
+            <div className="row-actions">
+              <button className="btn-outline small" onClick={() => startEdit(record)}>编辑</button>
+              <button className="btn-danger small" onClick={() => void deleteVisit(record.id)}>删除</button>
             </div>
           </div>
         ))}
-        {cityVisits.length === 0 && <p className="empty-state">暂无访问记录</p>}
+        {cityVisits.length === 0 && !showForm && <p className="muted">还没有访问记录，点击下方按钮添加。</p>}
       </div>
+
+      {/* 添加访问按钮 / 表单 */}
+      {!showForm ? (
+        <button className="btn-primary" style={{ marginTop: 16, width: '100%' }} onClick={() => setShowForm(true)}>
+          ＋ 添加访问
+        </button>
+      ) : (
+        <div className="visit-form" style={{ marginTop: 16 }}>
+          <label className="form-row">
+            <span className="label-sm">停留天数</span>
+            <input
+              className="input"
+              type="number"
+              min={1}
+              step={1}
+              inputMode="numeric"
+              value={duration}
+              onChange={(event) => setDuration(event.target.value)}
+              placeholder="例如 30，无需精确，估算即可"
+            />
+          </label>
+          <label className="form-row">
+            <span className="label-sm">最后停留日期</span>
+            <DateInput value={lastStay} onChange={setLastStay} />
+          </label>
+          <label className="form-row">
+            <span className="label-sm">备注</span>
+            <textarea className="input textarea" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="可选，例如：大学期间 / 老家" />
+          </label>
+          <div className="actions">
+            <button className="btn-primary" onClick={submit}>{editing ? '保存修改' : '添加访问'}</button>
+            <button className="btn-outline" onClick={resetForm}>取消</button>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

@@ -1,12 +1,15 @@
-import { ChangeEvent, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, lazy, Suspense, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
-import AdminPanel from './AdminPanel';
+import DateInput from './ui/DateInput';
+import FuzzySelect from './ui/FuzzySelect';
 import DrillDownStats from './DrillDownStats';
+
+// 仅管理员可见，按需加载，避免普通用户打开个人资料时也下载这部分代码
+const AdminPanel = lazy(() => import('./AdminPanel'));
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import { updateMe } from '../store/api';
 import type { ImportVisitRow, VisitRecord } from '../types';
-import { fuzzySearch } from '../utils/search';
 import { visitDays } from '../utils/date';
 
 type ProfileTab = 'profile' | 'visits' | 'admin' | 'settings';
@@ -64,14 +67,14 @@ export default function UserProfile() {
   const setProfileOpen = useStore((s) => s.setProfileOpen);
   const showToast = useStore((s) => s.showToast);
   const fileRef = useRef<HTMLInputElement>(null);
-  const lastStayRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<ProfileTab>(profileTab);
   const [name, setName] = useState(currentUser?.name ?? '');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
 
   const [showForm, setShowForm] = useState(false);
-  const [citySearch, setCitySearch] = useState('');
+  const [citySearchText, setCitySearchText] = useState('');
+  const [citySearchLabel, setCitySearchLabel] = useState('');
   const [cityId, setCityId] = useState('');
   const [duration, setDuration] = useState('');
   const [lastStay, setLastStay] = useState(todayStr());
@@ -82,11 +85,10 @@ export default function UserProfile() {
   const [editingPassword, setEditingPassword] = useState(false);
   const [preview, setPreview] = useState<ImportVisitRow[]>([]);
 
-  const searchResults = useMemo(() => {
-    const query = citySearch.trim();
-    if (!query) return [];
-    return fuzzySearch(query, CITIES).slice(0, 12);
-  }, [citySearch]);
+  // 城市映射：值/标签分离，供 FuzzySelect 使用
+  const CITY_LABELS = useMemo(() => Object.fromEntries(CITIES.map((c) => [c.city_id, `${c.province} · ${c.city_name}`])), []);
+  const CITY_PINYINS = useMemo(() => Object.fromEntries(CITIES.map((c) => [c.city_id, c.pinyin])), []);
+  const CITY_IDS = useMemo(() => CITIES.map((c) => c.city_id), []);
 
   const selectedCityName = useMemo(() => {
     if (!cityId) return '';
@@ -102,9 +104,9 @@ export default function UserProfile() {
 
   const pickCity = (id: string) => {
     setCityId(id);
-    setCitySearch('');
-    const c = CITIES.find((item) => item.city_id === id);
-    if (c) setCitySearch(`${c.province} · ${c.city_name}`);
+    const label = CITY_LABELS[id] ?? id;
+    setCitySearchText('');
+    setCitySearchLabel(label);
   };
 
   const startEdit = (visit: VisitRecord) => {
@@ -115,14 +117,17 @@ export default function UserProfile() {
     setLastStay(visit.last_stay_date);
     setNotes(visit.notes ?? '');
     const c = CITIES.find((item) => item.city_id === visit.city_id);
-    setCitySearch(c ? `${c.province} · ${c.city_name}` : '');
+    const label = c ? `${c.province} · ${c.city_name}` : '';
+    setCitySearchLabel(label);
+    setCitySearchText(label);
   };
 
   const resetForm = () => {
     setEditingVisit(null);
     setShowForm(false);
     setCityId('');
-    setCitySearch('');
+    setCitySearchText('');
+    setCitySearchLabel('');
     setDuration('');
     setLastStay(todayStr());
     setNotes('');
@@ -231,8 +236,8 @@ export default function UserProfile() {
   const tabs: Array<{ id: ProfileTab; label: string }> = [
     { id: 'profile', label: '个人信息' },
     { id: 'visits', label: '访问记录' },
-    ...(currentUser.is_admin ? [{ id: 'admin' as ProfileTab, label: '用户管理' }] : []),
-    { id: 'settings', label: '设置' },
+    ...(currentUser.is_admin ? [{ id: 'admin' as ProfileTab, label: '系统管理' }] : []),
+    { id: 'settings', label: '系统设置' },
   ];
 
   return (
@@ -375,29 +380,21 @@ export default function UserProfile() {
               <div className="card" style={{ marginTop: 12, padding: 16 }}>
                 <div className="form-row">
                   <span className="label-sm">搜索并选择城市</span>
-                  <input
-                    className="input"
-                    value={citySearch}
-                    onChange={(e) => {
-                      setCitySearch(e.target.value);
+                  <FuzzySelect
+                    options={CITY_IDS}
+                    optionLabels={CITY_LABELS}
+                    searchKeys={CITY_PINYINS}
+                    value={citySearchText}
+                    selectedLabel={citySearchLabel}
+                    onChange={(text) => {
+                      setCitySearchText(text);
+                      setCitySearchLabel('');
                       if (cityId) setCityId('');
                     }}
-                    placeholder="输入城市名搜索…"
+                    onSelect={(id) => pickCity(id)}
+                    placeholder="搜索选择城市"
+                    maxResults={12}
                   />
-                  {searchResults.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                      {searchResults.map((c) => (
-                        <button
-                          key={c.city_id}
-                          className="btn-outline small"
-                          onClick={() => pickCity(c.city_id)}
-                          style={{ fontWeight: cityId === c.city_id ? 700 : 400 }}
-                        >
-                          {c.province} · {c.city_name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                   {selectedCityName && cityId && (
                     <p className="muted" style={{ marginTop: 6 }}>已选：{selectedCityName}</p>
                   )}
@@ -419,7 +416,7 @@ export default function UserProfile() {
                   </div>
                   <div className="form-row">
                     <span className="label-sm">最后停留日期</span>
-                    <input className="input" ref={lastStayRef} type="date" value={lastStay} onChange={(e) => setLastStay(e.target.value)} onClick={() => lastStayRef.current?.showPicker?.()} />
+                    <DateInput value={lastStay} onChange={setLastStay} />
                   </div>
                   <div className="form-row">
                     <span className="label-sm">备注</span>
@@ -447,7 +444,9 @@ export default function UserProfile() {
 
         {tab === 'admin' && (
           <div className="stack">
-            <AdminPanel embedded />
+            <Suspense fallback={<p className="muted">加载管理面板…</p>}>
+              <AdminPanel embedded />
+            </Suspense>
           </div>
         )}
 

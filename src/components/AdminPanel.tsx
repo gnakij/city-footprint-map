@@ -3,8 +3,47 @@ import * as XLSX from 'xlsx';
 import { adminExportVisits, adminImportVisits, createUser, getUsers } from '../api';
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
+import FuzzySelect from './ui/FuzzySelect';
 import type { ImportVisitRow } from '../types';
 import type { AdminVisitExportRow } from '../api';
+
+const LEDGER_PAGE_SIZE = 10;
+const PROVINCE_PINYIN: Record<string, string> = {
+  北京: 'beijing',
+  天津: 'tianjin',
+  河北: 'hebei',
+  山西: 'shanxi',
+  内蒙古: 'neimenggu',
+  辽宁: 'liaoning',
+  吉林: 'jilin',
+  黑龙江: 'heilongjiang',
+  上海: 'shanghai',
+  江苏: 'jiangsu',
+  浙江: 'zhejiang',
+  安徽: 'anhui',
+  福建: 'fujian',
+  江西: 'jiangxi',
+  山东: 'shandong',
+  河南: 'henan',
+  湖北: 'hubei',
+  湖南: 'hunan',
+  广东: 'guangdong',
+  广西: 'guangxi',
+  海南: 'hainan',
+  重庆: 'chongqing',
+  四川: 'sichuan',
+  贵州: 'guizhou',
+  云南: 'yunnan',
+  西藏: 'xizang',
+  陕西: 'shaanxi',
+  甘肃: 'gansu',
+  青海: 'qinghai',
+  宁夏: 'ningxia',
+  新疆: 'xinjiang',
+  台湾: 'taiwan',
+  香港: 'xianggang',
+  澳门: 'aomen',
+};
 
 function normalize(value: unknown) {
   return String(value ?? '').trim();
@@ -38,7 +77,7 @@ function findCity(province: string, city: string) {
 }
 
 function writeAdminWorkbook(filename: string, rows: Array<Record<string, string | number | undefined>>) {
-  const worksheet = XLSX.utils.json_to_sheet(rows, { header: ['用户名', '省份', '城市', '停留天数', '最后停留日期', '备注'] });
+  const worksheet = XLSX.utils.json_to_sheet(rows, { header: ['用户名', '昵称', '省份', '城市', '停留天数', '最后停留日期', '备注', '更新时间'] });
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, '访问记录');
   XLSX.writeFile(workbook, filename);
@@ -62,8 +101,17 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [adminTab, setAdminTab] = useState<'users' | 'data'>('users');
   const [allVisits, setAllVisits] = useState<AdminVisitExportRow[]>([]);
-  const [userSearch, setUserSearch] = useState('');
-  const [selectedUserId, setSelectedUserId] = useState('');
+  const [filterUsername, setFilterUsername] = useState('');
+  const [filterName, setFilterName] = useState('');
+  const [filterProvince, setFilterProvince] = useState('');
+  const [filterCity, setFilterCity] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState({
+    username: '',
+    name: '',
+    province: '',
+    city: '',
+  });
+  const [ledgerPage, setLedgerPage] = useState(1);
   const [showImportTools, setShowImportTools] = useState(false);
   const [targetUserId, setTargetUserId] = useState(users[0]?.id ?? '');
   const [importPreview, setImportPreview] = useState<ImportVisitRow[]>([]);
@@ -71,24 +119,51 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
 
   const cityById = useMemo(() => new Map(CITIES.map((city) => [city.city_id, city])), []);
   const targetUser = users.find((user) => user.id === targetUserId);
-  const filteredUserOptions = useMemo(() => {
-    const query = userSearch.trim().toLowerCase();
-    if (!query) return users;
-    return users.filter((user) => {
-      const username = (user.username ?? '').toLowerCase();
-      const name = user.name.toLowerCase();
-      return username.includes(query) || name.includes(query);
-    });
-  }, [userSearch, users]);
+  const usernameOptions = useMemo(() => {
+    return Array.from(new Set(allVisits.map((visit) => visit.username).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+  }, [allVisits]);
+  const nameOptions = useMemo(() => {
+    return Array.from(new Set(allVisits.map((visit) => visit.name).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+  }, [allVisits]);
+  const provinceOptionsList = useMemo(() => {
+    return Array.from(new Set(CITIES.map((city) => city.province))).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+  }, []);
+  const cityOptionsList = useMemo(() => {
+    const selectedProvince = CITIES.some((city) => city.province === filterProvince) ? filterProvince : '';
+    return CITIES
+      .filter((city) => !selectedProvince || city.province === selectedProvince)
+      .map((city) => city.city_name)
+      .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+  }, [filterProvince]);
   const ledgerVisits = useMemo(() => {
+    const usernameQuery = appliedFilters.username.trim().toLowerCase();
+    const nameQuery = appliedFilters.name.trim().toLowerCase();
+    const provinceQuery = appliedFilters.province.trim();
+    const cityQuery = appliedFilters.city.trim();
     return allVisits
-      .filter((visit) => !selectedUserId || visit.user_id === selectedUserId)
+      .filter((visit) => {
+        const city = cityById.get(visit.city_id);
+        if (usernameQuery && !(visit.username ?? '').toLowerCase().includes(usernameQuery)) return false;
+        if (nameQuery && !(visit.name ?? '').toLowerCase().includes(nameQuery)) return false;
+        if (provinceQuery && city?.province !== provinceQuery) return false;
+        if (cityQuery && city?.city_name !== cityQuery) return false;
+        return true;
+      })
       .sort((a, b) => {
-        const usernameCompare = (a.username || a.name).localeCompare(b.username || b.name, 'zh-CN');
-        if (usernameCompare !== 0) return usernameCompare;
-        return b.last_stay_date.localeCompare(a.last_stay_date);
+        return b.updated_at.localeCompare(a.updated_at);
       });
-  }, [allVisits, selectedUserId]);
+  }, [allVisits, appliedFilters, cityById]);
+  const totalLedgerPages = Math.max(1, Math.ceil(ledgerVisits.length / LEDGER_PAGE_SIZE));
+  const pagedVisits = useMemo(() => {
+    const start = (ledgerPage - 1) * LEDGER_PAGE_SIZE;
+    return ledgerVisits.slice(start, start + LEDGER_PAGE_SIZE);
+  }, [ledgerPage, ledgerVisits]);
+
+  useEffect(() => {
+    setLedgerPage(1);
+  }, [appliedFilters]);
 
   useEffect(() => {
     void getSystemStats().then(setStats);
@@ -101,7 +176,6 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
   useEffect(() => {
     if (!targetUserId && users[0]) setTargetUserId(users[0].id);
     if (targetUserId && !users.some((user) => user.id === targetUserId)) setTargetUserId(users[0]?.id ?? '');
-    if (selectedUserId && !users.some((user) => user.id === selectedUserId)) setSelectedUserId('');
   }, [targetUserId, users]);
 
   useEffect(() => {
@@ -159,11 +233,13 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       const city = cityById.get(visit.city_id);
       return {
         用户名: visit.username,
+        昵称: visit.name,
         省份: city?.province ?? '',
         城市: city?.city_name ?? visit.city_id,
         停留天数: visit.duration_days,
         最后停留日期: visit.last_stay_date,
         备注: visit.notes ?? '',
+        更新时间: visit.updated_at.slice(0, 10),
       };
     }));
     useStore.getState().showToast({ icon: '✓', message: `已导出 ${ledgerVisits.length} 条访问记录` });
@@ -172,6 +248,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
   const downloadAdminTemplate = () => {
     writeAdminWorkbook('城市足迹导入模板.xlsx', [{
       用户名: targetUser?.username ?? '',
+      昵称: targetUser?.name ?? '',
       省份: '广东',
       城市: '广州',
       停留天数: 365,
@@ -290,36 +367,58 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       )}
 
       {adminTab === 'data' && (
-        <div className="stack">
-          <div className="panel-title">
-            <strong>数据管理</strong>
-            <span className="muted">所有用户访问记录台账</span>
-          </div>
-
-          <div className="form-row">
-            <span className="label-sm">用户名筛选</span>
-            <input
-              className="input"
-              value={userSearch}
-              onChange={(event) => setUserSearch(event.target.value)}
-              placeholder="搜索用户名…"
-            />
-            <div className="actions" style={{ marginTop: 8, flexWrap: 'wrap' }}>
-              <button className="btn-outline small" onClick={() => { setSelectedUserId(''); setUserSearch(''); }}>全部</button>
-              {filteredUserOptions.map((user) => (
-                <button
-                  key={user.id}
-                  className="btn-outline small"
-                  onClick={() => setSelectedUserId(user.id)}
-                  style={{ fontWeight: selectedUserId === user.id ? 700 : 400 }}
-                >
-                  {user.username || user.name}{user.username ? ` · ${user.name}` : ''}
-                </button>
-              ))}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+            <div style={{ width: 120 }}>
+              <FuzzySelect
+                options={usernameOptions}
+                value={filterUsername}
+                onChange={setFilterUsername}
+                onSelect={setFilterUsername}
+                placeholder="搜索选择用户名"
+              />
+            </div>
+            <div style={{ width: 120 }}>
+              <FuzzySelect
+                options={nameOptions}
+                value={filterName}
+                onChange={setFilterName}
+                onSelect={setFilterName}
+                placeholder="搜索选择昵称"
+              />
+            </div>
+            <div style={{ width: 120 }}>
+              <FuzzySelect
+                options={provinceOptionsList}
+                searchKeys={PROVINCE_PINYIN}
+                value={filterProvince}
+                onChange={setFilterProvince}
+                onSelect={setFilterProvince}
+                placeholder="搜索选择省份"
+              />
+            </div>
+            <div style={{ width: 150 }}>
+              <FuzzySelect
+                options={cityOptionsList}
+                value={filterCity}
+                onChange={setFilterCity}
+                onSelect={setFilterCity}
+                placeholder="搜索选择城市"
+              />
             </div>
           </div>
-
-          <div className="actions">
+          <div className="actions" style={{ flexWrap: 'wrap', marginBottom: 12 }}>
+            <button
+              className="btn-primary"
+              onClick={() => setAppliedFilters({
+                username: filterUsername,
+                name: filterName,
+                province: filterProvince,
+                city: filterCity,
+              })}
+            >
+              🔍 查询
+            </button>
             <button className="btn-primary" onClick={downloadCurrentLedger}>📤 导出当前视图</button>
             <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}>📥 导入数据</button>
             <button className="btn-outline" onClick={downloadAdminTemplate}>📥 下载模板</button>
@@ -380,27 +479,53 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
           )}
 
           <div className="table-wrap">
-            <table className="data-table">
-              <thead><tr><th>用户名</th><th>省份</th><th>城市</th><th>停留天数</th><th>最后停留日期</th><th>备注</th></tr></thead>
+            <table className="data-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+              <thead><tr><th style={{ width: '12%' }}>用户名</th><th style={{ width: '10%' }}>昵称</th><th style={{ width: '10%' }}>省份</th><th style={{ width: '12%' }}>城市</th><th style={{ width: '8%' }}>停留天数</th><th style={{ width: '13%' }}>最后停留</th><th style={{ width: '20%' }}>备注</th><th style={{ width: '15%' }}>更新时间</th></tr></thead>
               <tbody>
                 {ledgerVisits.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32 }} className="muted">暂无访问记录</td></tr>
-                ) : ledgerVisits.map((visit) => {
+                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32 }} className="muted">暂无访问记录</td></tr>
+                ) : pagedVisits.map((visit) => {
                   const city = cityById.get(visit.city_id);
                   return (
                     <tr key={`${visit.user_id}-${visit.id}`}>
                       <td>{visit.username || visit.name}</td>
+                      <td>{visit.name}</td>
                       <td>{city?.province ?? '-'}</td>
                       <td>{city?.city_name ?? visit.city_id}</td>
                       <td>{visit.duration_days}</td>
                       <td>{visit.last_stay_date}</td>
                       <td>{visit.notes || '-'}</td>
+                      <td>{visit.updated_at.slice(0, 10)}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
+
+          {ledgerVisits.length > 0 && (
+            <div className="actions" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+              <span className="muted">
+                共 {ledgerVisits.length} 条，当前第 {ledgerPage} / {totalLedgerPages} 页
+              </span>
+              <div className="actions">
+                <button
+                  className="btn-outline small"
+                  disabled={ledgerPage <= 1}
+                  onClick={() => setLedgerPage((page) => Math.max(1, page - 1))}
+                >
+                  上一页
+                </button>
+                <button
+                  className="btn-outline small"
+                  disabled={ledgerPage >= totalLedgerPages}
+                  onClick={() => setLedgerPage((page) => Math.min(totalLedgerPages, page + 1))}
+                >
+                  下一页
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -455,7 +580,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true">
-      <section className="modal modal-wide">
+      <section className="modal" style={{ width: 'min(1280px, calc(100vw - 32px))', maxWidth: 'none' }}>
         <div className="modal-head">
           <h2>管理员面板</h2>
           <button className="icon-btn" onClick={() => setAdminOpen(false)}>×</button>

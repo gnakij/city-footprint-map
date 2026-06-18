@@ -33,6 +33,10 @@ export default function SettingsPanel() {
     await importBackup(parsed.data);
   };
 
+  const confirmClear = () => {
+    if (window.confirm('确定清空所有数据？此操作不可恢复。')) void clearData();
+  };
+
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true">
       <section className="modal">
@@ -44,8 +48,9 @@ export default function SettingsPanel() {
           <label>
             <span className="label-sm">主题</span>
             <select className="input" value={settings.theme} onChange={(event) => void updateSettings({ ...settings, theme: event.target.value as typeof settings.theme })}>
-              <option value="light">浅色</option>
-              <option value="dark">深色</option>
+              <option value="linear">Linear · 暗黑</option>
+              <option value="stripe">Stripe · 白紫</option>
+              <option value="rose">Rose · 樱花</option>
             </select>
           </label>
         </div>
@@ -53,7 +58,7 @@ export default function SettingsPanel() {
           <div className="actions">
             <button className="btn-primary" onClick={() => void download()}>导出数据</button>
             <button className="btn-outline" onClick={() => fileRef.current?.click()}>导入数据</button>
-            <button className="btn-danger" onClick={() => void clearData()}>清空数据</button>
+            <button className="btn-danger" onClick={confirmClear}>清空数据</button>
           </div>
           <input ref={fileRef} type="file" accept="application/json" hidden onChange={onFile} />
         </div>

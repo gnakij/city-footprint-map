@@ -1,8 +1,11 @@
 import type { VisitRecord } from '../types';
 
-export function visitDays(record: Pick<VisitRecord, 'arrival_date' | 'departure_date'>) {
-  const start = new Date(`${record.arrival_date}T00:00:00`).getTime();
-  const end = new Date(`${record.departure_date}T00:00:00`).getTime();
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return 0;
-  return Math.floor((end - start) / 86400000) + 1;
+/**
+ * 返回一条记录的停留天数。新模型下天数是用户直接填写的整数，
+ * 不再通过到达/离开日期计算区间。
+ */
+export function visitDays(record: Pick<VisitRecord, 'duration_days'>) {
+  const days = record.duration_days;
+  if (!Number.isFinite(days) || days < 1) return 0;
+  return Math.floor(days);
 }
