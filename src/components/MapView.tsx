@@ -4,8 +4,8 @@ import { loadChinaCitiesGeoJSON, loadChinaGeoJSON, loadProvinceGeoJSON, loadProv
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import type { CityData } from '../types';
-import { getDurationColor } from '../utils/colors';
-import { visitDays } from '../utils/date';
+import { getDurationColor, getLastDepartureColor } from '../utils/colors';
+import { daysSinceDate, visitDays } from '../utils/date';
 
 const provinceAlias: Record<string, string> = {
   北京: '北京市', 天津: '天津市', 上海: '上海市', 重庆: '重庆市', 河北: '河北省', 山西: '山西省',
@@ -65,6 +65,47 @@ const DRAG_THRESHOLD = 6;
 const LABEL_COLOR_LIT = '#8C2540';     // 已点亮：更深更明显
 const LABEL_COLOR_UNLIT = '#B7A2AA';   // 未点亮：更淡
 
+// 全国视图省名标注：使用 GeoJSON 几何中心（centroid）而非行政中心，
+// 这样不规则省份（黑龙江、甘肃、内蒙古等）的标签也在视觉中心。
+// 坐标是地图经纬度，会随缩放自动调整位置。
+// 对于几何中心落在省界外或太偏的省份（内蒙古、甘肃等），手动调整到视觉中心。
+const PROVINCE_CENTROIDS: Record<string, [number, number]> = {
+  北京: [116.4199, 40.188],
+  天津: [117.3508, 39.2852],
+  上海: [121.438, 31.0711],
+  重庆: [107.8796, 30.055],
+  香港: [114.1328, 22.3788],
+  澳门: [113.5656, 22.1619],
+  河北: [116.142, 39.5452],
+  山西: [112.2954, 37.5724],
+  内蒙古: [108, 40.2],  // 巴彦淖尔与鄂尔多斯市界
+  辽宁: [122.6009, 41.2808],
+  吉林: [126.1947, 43.6704],
+  黑龙江: [127.7743, 47.8637],
+  江苏: [119.4942, 32.9643],
+  浙江: [120.1089, 29.1694],
+  安徽: [117.2315, 31.8239],
+  福建: [118.0034, 26.056],
+  江西: [115.7274, 27.6116],
+  山东: [118.1802, 36.3604],
+  河南: [113.62, 33.8815],
+  湖北: [112.2755, 30.974],
+  湖南: [111.714, 27.6066],
+  广东: [113.4216, 23.3213],
+  广西: [108.7925, 23.8188],
+  海南: [109.7541, 19.1874],
+  四川: [102.695, 30.6265],
+  贵州: [106.8779, 26.8125],
+  云南: [101.488, 24.9723],
+  西藏: [88.4436, 31.4891],
+  陕西: [108.8741, 35.1911],
+  甘肃: [101.5, 38.5],  // 几何中心在东南角，手动调到中部偏北（张掖附近）
+  青海: [96.0412, 35.6699],
+  宁夏: [106.1682, 37.2734],
+  新疆: [85.1932, 41.1171],
+  台湾: [120.9697, 23.7421],
+};
+
 // 全国视图下参与 geoRoam 同步的 series 下标：
 // 0 = 主图层（市级色块），1 = 省界轮廓层（粗边框+省名标注）。
 // 两者的 GeoJSON 几何来源相同（省界图是市级图按省份 union 而来，bbox 完全一致），
@@ -84,6 +125,11 @@ export default function MapView() {
   // 是否发生了拖拽：在 pointerdown 时清零，pointermove/touchmove 真实位移超过阈值时置位
   // ECharts click 回调里直接读这个布尔值，不再依赖时间戳/距离的事后计算（避免误判）
   const didDragRef = useRef(false);
+  // 是否正处于触摸交互中：移动端浏览器会把 touch 滑动模拟成 mouseover/mousemove 事件，
+  // 这会触发 ECharts 的 hover 高亮 + tooltip + setPreviewCity（进而引发组件重渲染和
+  // 完整的 setOption 重绘），这条路径与 pinch/拖拽手势本身无关，但同样会拖慢移动端体验。
+  // 用这个标志位在触摸期间临时屏蔽 hover 预览，鼠标场景（包括触屏笔记本用鼠标操作）不受影响。
+  const isTouchingRef = useRef(false);
   // 自维护当前 zoom，避免依赖 ECharts 内部 API 读取
   const currentZoomRef = useRef(ZOOM_INIT);
   // 追踪省份是否切换（用于决定是否重置 zoom）
@@ -95,12 +141,46 @@ export default function MapView() {
   const setPreviewCity = useStore(s => s.setPreviewCity);
   const setSelectedCity = useStore(s => s.setSelectedCity);
   const showToast = useStore(s => s.showToast);
+  const colorMode = useStore(s => s.colorMode);
+  const setColorMode = useStore(s => s.setColorMode);
 
   const cityDays = useMemo(() => {
     const map = new Map<string, number>();
     for (const v of visits) map.set(v.city_id, (map.get(v.city_id) ?? 0) + visitDays(v));
     return map;
   }, [visits]);
+
+  const cityLastDepartureDays = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const visit of visits) {
+      const daysAgo = daysSinceDate(visit.last_stay_date);
+      const current = map.get(visit.city_id);
+      if (current === undefined || daysAgo < current) map.set(visit.city_id, daysAgo);
+    }
+    return map;
+  }, [visits]);
+
+  const cityFillColor = useCallback((city?: CityData) => {
+    if (!city) return '#F0F0F0';
+    if (colorMode === 'lastDeparture') {
+      const daysAgo = cityLastDepartureDays.get(city.city_id);
+      return daysAgo === undefined ? '#F0F0F0' : getLastDepartureColor(daysAgo);
+    }
+    const days = cityDays.get(city.city_id) ?? 0;
+    return days > 0 ? getDurationColor(days) : '#F0F0F0';
+  }, [cityDays, cityLastDepartureDays, colorMode]);
+
+  const cityTooltipText = useCallback((city?: CityData, emptyText = '点击添加访问记录') => {
+    if (!city) return emptyText;
+    const days = cityDays.get(city.city_id) ?? 0;
+    if (days <= 0) return emptyText;
+    if (colorMode === 'lastDeparture') {
+      const daysAgo = cityLastDepartureDays.get(city.city_id);
+      const lastText = daysAgo === undefined ? '暂无最后离开时间' : daysAgo === 0 ? '今天离开' : `最后离开 ${daysAgo} 天前`;
+      return `${lastText}<br/>累计${days}天`;
+    }
+    return `累计${days}天`;
+  }, [cityDays, cityLastDepartureDays, colorMode]);
 
   // 每个省份是否至少有一座点亮的城市（用于全国视图下省名标注的颜色区分）
   const litProvinces = useMemo(() => {
@@ -201,7 +281,7 @@ export default function MapView() {
           itemStyle: {
             areaColor: previewCity?.city_id === city?.city_id
               ? '#FFD166'
-              : lit ? getDurationColor(value) : '#F0F0F0',
+              : cityFillColor(city),
           },
           label: { color: lit ? LABEL_COLOR_LIT : LABEL_COLOR_UNLIT },
         };
@@ -212,12 +292,11 @@ export default function MapView() {
         const adcode = f.properties.adcode;
         const city = CITIES.find(c => c.adcode === adcode);
         const value = city ? cityDays.get(city.city_id) ?? 0 : 0;
-        const lit = value > 0;
         return {
           name: f.properties.name,
           value,
           itemStyle: {
-            areaColor: previewCity?.city_id === city?.city_id ? '#FFD166' : lit ? getDurationColor(value) : '#F0F0F0',
+            areaColor: previewCity?.city_id === city?.city_id ? '#FFD166' : cityFillColor(city),
           },
         };
       });
@@ -228,20 +307,19 @@ export default function MapView() {
     // 只画粗边框不填色，承载省名 markPoint 标注（点亮/未点亮颜色区分）。
     let provinceOutlineData: Array<{ name: string; value: number }> = [];
     let provinceMarkPoints: Array<{ name: string; coord: [number, number]; itemStyle: { color: string } }> = [];
-    if (!activeProvince && provinceOutlineGeoRef.current?.features && chinaGeoRef.current?.features) {
-      const centerByAdcode = new Map(
-        chinaGeoRef.current.features
-          .filter(f => f.properties.center)
-          .map(f => [f.properties.adcode, f.properties.center as [number, number]]),
-      );
+    if (!activeProvince && provinceOutlineGeoRef.current?.features) {
       provinceOutlineData = provinceOutlineGeoRef.current.features.map(f => ({ name: f.properties.name, value: 0 }));
       provinceMarkPoints = provinceOutlineGeoRef.current.features
         .map(f => {
-          const center = centerByAdcode.get(f.properties.adcode);
-          if (!center) return null;
           const short = shortName(f.properties.name);
+          const centroid = PROVINCE_CENTROIDS[short];
+          if (!centroid) return null;
           const lit = litProvinces.has(short);
-          return { name: short, coord: center, itemStyle: { color: lit ? LABEL_COLOR_LIT : LABEL_COLOR_UNLIT } };
+          return {
+            name: short,
+            coord: centroid,
+            itemStyle: { color: lit ? LABEL_COLOR_LIT : LABEL_COLOR_UNLIT },
+          };
         })
         .filter((p): p is { name: string; coord: [number, number]; itemStyle: { color: string } } => p !== null);
     }
@@ -256,12 +334,10 @@ export default function MapView() {
           if (params.seriesIndex === 1) return params.name; // 省界轮廓层，不需要额外信息
           if (activeProvince) {
             const city = findCityForFeature(activeProvince.short, params.name);
-            const days = city ? cityDays.get(city.city_id) ?? 0 : 0;
-            return `${params.name}<br/>${days > 0 ? `累计${days}天` : '点击添加访问记录'}`;
+            return `${params.name}<br/>${cityTooltipText(city)}`;
           }
           const city = CITIES.find(c => c.city_name === params.name || `${c.city_name}市` === params.name);
-          const days = city ? cityDays.get(city.city_id) ?? 0 : 0;
-          return `${params.name}<br/>${days > 0 ? `累计${days}天` : '点击进入省份'}`;
+          return `${params.name}<br/>${cityTooltipText(city, '点击进入省份')}`;
         },
       },
       series: [
@@ -303,7 +379,7 @@ export default function MapView() {
           // 从这一刻起两层产生实际差异且持续累积——这正是"放大到一定程度才分离"的根因。
           scaleLimit: { min: 0.5, max: 12 },
           ...(provinceChanged ? { zoom: 1.1, center: undefined as never } : {}),
-          itemStyle: { areaColor: 'transparent', borderColor: '#B98A98', borderWidth: 1.8 },
+          itemStyle: { areaColor: 'transparent', borderColor: '#666666', borderWidth: 0.5 },
           emphasis: { disabled: true },
           label: { show: false },
           data: provinceOutlineData,
@@ -314,17 +390,21 @@ export default function MapView() {
               show: true,
               position: 'inside',
               formatter: '{b}',
-              fontSize: 12,
-              fontWeight: 700,
+              fontSize: 10,
+              fontWeight: 400,
               textShadowColor: 'rgba(255,255,255,.85)',
               textShadowBlur: 3,
             },
-            data: provinceMarkPoints.map(p => ({ name: p.name, coord: p.coord, label: { color: p.itemStyle.color } })),
+            data: provinceMarkPoints.map(p => ({
+              name: p.name,
+              coord: p.coord,
+              label: { color: p.itemStyle.color },
+            })),
           },
         }]),
       ],
     }, provinceChanged);  // 省份切换时才全量替换，preview 变化时 merge 保留 zoom
-  }, [activeProvince, cityDays, litProvinces, previewCity, showToast]);
+  }, [activeProvince, cityDays, cityFillColor, cityTooltipText, litProvinces, previewCity, showToast]);
 
   // ── 绑定原生手势事件 ────────────────────────────────────────────────────
   useEffect(() => {
@@ -348,7 +428,12 @@ export default function MapView() {
       echarts.registerMap('china-cities-footprint', citiesGeoJson as never);
       // 注册省界轮廓图（33 个省级行政区合并轮廓，用于叠加粗边框强调省界）
       echarts.registerMap('china-provinces-outline', outlineGeoJson as never);
-      const chart = echarts.init(elRef.current);
+      // devicePixelRatio 钳到 2：高清屏（iPhone 等普遍 3x）下，369 个城市色块
+      // 按 3x 像素渲染的像素总量是 2x 的 2.25 倍，缩放时每帧重绘成本显著增加，
+      // 但视觉上 2x 已经足够清晰，肉眼几乎无法分辨与 3x 的差异
+      const chart = echarts.init(elRef.current, null, {
+        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+      });
       chartRef.current = chart;
       const dom = chart.getDom();
 
@@ -413,6 +498,10 @@ export default function MapView() {
         setSelectedCity(city);
       });
       chart.on('mouseover', 'series', (params) => {
+        // 移动端浏览器会把手指滑动模拟成 mouseover 事件触发这里——这不是用户想要的
+        // "悬浮预览"交互，而是触屏滑动的副作用，且每次触发都会引起一次完整重绘，
+        // 在 pinch/拖拽过程中尤其明显。触摸交互期间直接跳过。
+        if (isTouchingRef.current) return;
         if (params.seriesType !== 'map' || params.seriesIndex !== 0) return;
         const name = String(params.name ?? '');
         const cur = activeProvinceRef.current;
@@ -485,18 +574,61 @@ export default function MapView() {
       // ── 触摸手势 ─────────────────────────────────────────────────────────
       let prevTouches: { x: number; y: number }[] = [];
       let prevDist = 0;
+      // 用 rAF 合并同一帧内的多次 touchmove：只保留最新手势量，到下一帧才真正 dispatch，
+      // 避免触屏事件频率超过渲染帧率时主线程被连续打断（卡顿/反应不及时的根因）
+      let rafId = 0;
+      let pendingPan: { dx: number; dy: number } | null = null;
+      const flushPending = () => {
+        rafId = 0;
+        if (pendingPan) {
+          dispatchPan(pendingPan.dx, pendingPan.dy);
+          pendingPan = null;
+        }
+      };
+      const scheduleFlush = () => {
+        if (!rafId) rafId = requestAnimationFrame(flushPending);
+      };
+
+      // ── CSS transform 临时缩放（移动端优化）────────────────────────────
+      // pinch 时用 CSS transform 缩放容器（GPU 加速，不触发 ECharts 重绘），
+      // touchend 时再同步给 ECharts，避免每帧重绘 369 个城市的 path
+      let cssZoomAccumulator = 1; // CSS transform 累积的缩放因子
+      let cssPanX = 0; // CSS transform 累积的平移 X
+      let cssPanY = 0; // CSS transform 累积的平移 Y
+      let pinchStartZoom = 1; // pinch 开始时的 ECharts zoom
+      let transformOriginX = 0;
+      let transformOriginY = 0;
+      
+      const applyCssTransform = (scale: number, panX: number, panY: number, originX: number, originY: number) => {
+        dom.style.transformOrigin = `${originX}px ${originY}px`;
+        dom.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+      };
+      
+      const clearCssTransform = () => {
+        dom.style.transform = '';
+        dom.style.transformOrigin = '';
+      };
 
       const getTouches = (list: TouchList) =>
         Array.from(list).map(t => ({ x: t.clientX, y: t.clientY }));
 
       const onTouchStart = (e: TouchEvent) => {
         // 不 preventDefault，让 ECharts 的 click 事件仍能触发
+        isTouchingRef.current = true;
         prevTouches = getTouches(e.touches);
         if (e.touches.length === 2) {
           prevDist = Math.hypot(
             e.touches[0].clientX - e.touches[1].clientX,
             e.touches[0].clientY - e.touches[1].clientY,
           );
+          // 记录 pinch 开始时的状态，用于 CSS transform 缩放
+          const rect = dom.getBoundingClientRect();
+          transformOriginX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+          transformOriginY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+          cssZoomAccumulator = 1;
+          cssPanX = 0;
+          cssPanY = 0;
+          pinchStartZoom = currentZoomRef.current;
         }
       };
 
@@ -518,7 +650,8 @@ export default function MapView() {
           const dx = cur[0].x - prevTouches[0].x;
           const dy = cur[0].y - prevTouches[0].y;
           if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-            dispatchPan(dx, dy);
+            pendingPan = pendingPan ? { dx: pendingPan.dx + dx, dy: pendingPan.dy + dy } : { dx, dy };
+            scheduleFlush();
           }
         } else if (e.touches.length === 2) {
           const newDist = Math.hypot(cur[0].x - cur[1].x, cur[0].y - cur[1].y);
@@ -526,10 +659,13 @@ export default function MapView() {
           const midY = (cur[0].y + cur[1].y) / 2 - rect.top;
 
           if (prevDist > 0 && newDist > 0) {
-            // 帧间增量：dispatchAction，轻量无卡顿
+            // 帧间增量
             const rawFactor = newDist / prevDist;
             const factor = 1 + (rawFactor - 1) * 1.0;
-            dispatchZoom(factor, midX, midY);
+            // 累积 CSS 缩放因子
+            cssZoomAccumulator *= factor;
+            // 用 CSS transform 缩放（GPU 加速，不触发 ECharts 重绘）
+            applyCssTransform(cssZoomAccumulator, cssPanX, cssPanY, transformOriginX, transformOriginY);
           }
 
           // 双指平移
@@ -537,7 +673,12 @@ export default function MapView() {
           const prevMidY = (prevTouches[0].y + prevTouches[1].y) / 2;
           const dx = (cur[0].x + cur[1].x) / 2 - prevMidX;
           const dy = (cur[0].y + cur[1].y) / 2 - prevMidY;
-          if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) dispatchPan(dx, dy);
+          // 双指平移也用 CSS transform，避免触发 ECharts 重绘
+          if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+            cssPanX += dx;
+            cssPanY += dy;
+            applyCssTransform(cssZoomAccumulator, cssPanX, cssPanY, transformOriginX, transformOriginY);
+          }
 
           prevDist = newDist;
         }
@@ -547,7 +688,38 @@ export default function MapView() {
 
       const onTouchEnd = (e: TouchEvent) => {
         // 手指抬起时重置 prevDist
-        if (e.touches.length < 2) { prevDist = 0; }
+        if (e.touches.length < 2) {
+          prevDist = 0;
+          // 如果之前有 CSS transform 缩放和/或平移，清除并一次性同步给 ECharts。
+          // 注意：必须同时判断 cssPanX/cssPanY，否则「几乎不缩放、纯双指平移」的手势
+          // （cssZoomAccumulator 始终为 1）会被整个跳过，平移量丢失，松手后地图回跳。
+          if (cssZoomAccumulator !== 1 || cssPanX !== 0 || cssPanY !== 0) {
+            clearCssTransform();
+            // 计算最终 zoom 并同步给 ECharts
+            const finalZoom = pinchStartZoom * cssZoomAccumulator;
+            const clampedZoom = Math.min(12, Math.max(0.5, finalZoom));
+            currentZoomRef.current = clampedZoom;
+            const seriesIndices = activeProvinceRef.current ? [0] : NATIONAL_VIEW_SERIES_INDICES;
+            for (const seriesIndex of seriesIndices) {
+              chart.dispatchAction({
+                type: 'geoRoam',
+                seriesIndex,
+                zoom: clampedZoom / pinchStartZoom, // 增量缩放
+                dx: cssPanX,
+                dy: cssPanY,
+                originX: transformOriginX,
+                originY: transformOriginY,
+                animation: { duration: 0 },
+              } as GeoRoamAction);
+            }
+            cssZoomAccumulator = 1;
+            cssPanX = 0;
+            cssPanY = 0;
+          }
+        }
+        // 所有手指都已离开屏幕，恢复 hover 预览（鼠标场景不受影响，
+        // 用户接下来若用鼠标操作，mouseover 逻辑正常生效）
+        if (e.touches.length === 0) isTouchingRef.current = false;
         prevTouches = getTouches(e.touches);
         if (e.touches.length === 2) {
           prevDist = Math.hypot(
@@ -565,6 +737,7 @@ export default function MapView() {
         dom.removeEventListener('touchstart', onTouchStart);
         dom.removeEventListener('touchmove', onTouchMove);
         dom.removeEventListener('touchend', onTouchEnd);
+        if (rafId) cancelAnimationFrame(rafId);
       });
 
       resizeHandler = () => chart.resize();
@@ -613,6 +786,22 @@ export default function MapView() {
       </div>
       <div className="map-level card">
         {activeProvince ? `${activeProvince.short} · 城市` : '全国 · 城市'}
+      </div>
+      <div className="map-color-mode mode-pill card" role="group" aria-label="地图上色模式">
+        <button
+          className={colorMode === 'duration' ? 'active' : ''}
+          onClick={() => setColorMode('duration')}
+          aria-pressed={colorMode === 'duration'}
+        >
+          按停留时间
+        </button>
+        <button
+          className={colorMode === 'lastDeparture' ? 'active' : ''}
+          onClick={() => setColorMode('lastDeparture')}
+          aria-pressed={colorMode === 'lastDeparture'}
+        >
+          按最后离开时间
+        </button>
       </div>
       <div className="china-map" ref={elRef} />
     </div>

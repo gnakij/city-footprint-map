@@ -1,5 +1,6 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
+import { pinyin } from 'pinyin-pro';
 import { adminExportVisits, adminImportVisits, createUser, getUsers } from '../api';
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
@@ -7,6 +8,20 @@ import FuzzySelect from './ui/FuzzySelect';
 import { ShadcnFuzzySelect } from '@/components/shadcn';
 import type { ImportVisitRow } from '../types';
 import type { AdminVisitExportRow } from '../api';
+
+/** 把中文文本转成不带空格的全拼，供拼音模糊匹配使用 */
+function toPinyinKey(text: string): string {
+  return pinyin(text, { toneType: 'none' }).replace(/\s+/g, '');
+}
+
+/** 给一组候选字符串批量生成 "自身 -> 全拼" 的映射字典 */
+function buildPinyinMap(options: string[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const option of options) {
+    map[option] = toPinyinKey(option);
+  }
+  return map;
+}
 
 const LEDGER_PAGE_SIZE = 10;
 const PROVINCE_PINYIN: Record<string, string> = {
@@ -124,10 +139,12 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
     return Array.from(new Set(allVisits.map((visit) => visit.username).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
   }, [allVisits]);
+  const usernamePinyinMap = useMemo(() => buildPinyinMap(usernameOptions), [usernameOptions]);
   const nameOptions = useMemo(() => {
     return Array.from(new Set(allVisits.map((visit) => visit.name).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
   }, [allVisits]);
+  const namePinyinMap = useMemo(() => buildPinyinMap(nameOptions), [nameOptions]);
   const provinceOptionsList = useMemo(() => {
     return Array.from(new Set(CITIES.map((city) => city.province))).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
   }, []);
@@ -138,6 +155,13 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       .map((city) => city.city_name)
       .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
   }, [filterProvince]);
+  const cityPinyinMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const city of CITIES) {
+      map[city.city_name] = city.pinyin;
+    }
+    return map;
+  }, []);
   const ledgerVisits = useMemo(() => {
     const usernameQuery = appliedFilters.username.trim().toLowerCase();
     const nameQuery = appliedFilters.name.trim().toLowerCase();
@@ -373,6 +397,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             <div style={{ width: 120 }}>
               <FuzzySelect
                 options={usernameOptions}
+                searchKeys={usernamePinyinMap}
                 value={filterUsername}
                 onChange={setFilterUsername}
                 onSelect={setFilterUsername}
@@ -382,6 +407,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             <div style={{ width: 120 }}>
               <FuzzySelect
                 options={nameOptions}
+                searchKeys={namePinyinMap}
                 value={filterName}
                 onChange={setFilterName}
                 onSelect={setFilterName}
@@ -389,8 +415,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
               />
             </div>
             <div style={{ width: 120 }}>
-              // 新代码：省份筛选（shadcn/ui 风格）
-              <ShadcnFuzzySelect
+              <FuzzySelect
                 options={provinceOptionsList}
                 searchKeys={PROVINCE_PINYIN}
                 value={filterProvince}
@@ -402,6 +427,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             <div style={{ width: 150 }}>
               <FuzzySelect
                 options={cityOptionsList}
+                searchKeys={cityPinyinMap}
                 value={filterCity}
                 onChange={setFilterCity}
                 onSelect={setFilterCity}

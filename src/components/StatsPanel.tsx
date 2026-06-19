@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
-import { visitDays } from '../utils/date';
+import { visitDays, daysSinceDate } from '../utils/date';
 import AchievementBadge from './AchievementBadge';
 
 const RANK_PREVIEW_COUNT = 10;
+const ACHIEVEMENT_PREVIEW_COUNT = 8;
 
 export default function StatsPanel() {
   const getStats = useStore((state) => state.getStats);
@@ -14,22 +15,42 @@ export default function StatsPanel() {
   const setProfileOpen = useStore((state) => state.setProfileOpen);
   const statsCollapsed = useStore((state) => state.statsCollapsed);
   const toggleStatsCollapsed = useStore((state) => state.toggleStatsCollapsed);
+  const colorMode = useStore((state) => state.colorMode);
   const [showAllRanking, setShowAllRanking] = useState(false);
+  const [showAllAchievements, setShowAllAchievements] = useState(false);
   const stats = getStats();
 
   const openDetail = () => setProfileOpen(true, 'visits');
 
-  // 停留时长排行：按城市汇总总天数，倒序排列
+  // 排行：根据 colorMode 切换排序方式
   const ranking = useMemo(() => {
-    const map = new Map<string, number>();
+    // 先计算每个城市的总天数和最后离开时间
+    const daysMap = new Map<string, number>();
+    const lastDateMap = new Map<string, string>();
+    
     for (const visit of visits) {
-      map.set(visit.city_id, (map.get(visit.city_id) ?? 0) + visitDays(visit));
+      daysMap.set(visit.city_id, (daysMap.get(visit.city_id) ?? 0) + visitDays(visit));
+      const current = lastDateMap.get(visit.city_id);
+      if (!current || visit.last_stay_date > current) {
+        lastDateMap.set(visit.city_id, visit.last_stay_date);
+      }
     }
-    return Array.from(map.entries())
-      .map(([cityId, days]) => ({ city: CITIES.find((c) => c.city_id === cityId), days, cityId }))
-      .filter((row) => row.days > 0)
-      .sort((a, b) => b.days - a.days);
-  }, [visits]);
+    
+    const items = Array.from(daysMap.keys()).map((cityId) => ({
+      city: CITIES.find((c) => c.city_id === cityId),
+      days: daysMap.get(cityId) ?? 0,
+      lastDate: lastDateMap.get(cityId) ?? '',
+      cityId,
+    })).filter((row) => row.days > 0 || row.lastDate);
+    
+    if (colorMode === 'lastDeparture') {
+      // 按最后离开时间排序
+      return items.sort((a, b) => b.lastDate.localeCompare(a.lastDate));
+    } else {
+      // 按停留天数排序（默认）
+      return items.sort((a, b) => b.days - a.days);
+    }
+  }, [visits, colorMode]);
 
   const visibleRanking = showAllRanking ? ranking : ranking.slice(0, RANK_PREVIEW_COUNT);
 
@@ -82,23 +103,38 @@ export default function StatsPanel() {
       <hr className="stats-divider" />
 
       <div className="achievement-grid">
-        {ACHIEVEMENTS.map((achievement) => (
-          <AchievementBadge key={achievement.id} achievement={achievement} unlocked={achievements.includes(achievement.id)} />
-        ))}
+        {(showAllAchievements ? ACHIEVEMENTS : ACHIEVEMENTS.slice(0, ACHIEVEMENT_PREVIEW_COUNT))
+          .sort((a, b) => {
+            const aUnlocked = achievements.includes(a.id);
+            const bUnlocked = achievements.includes(b.id);
+            if (aUnlocked && !bUnlocked) return -1;
+            if (!aUnlocked && bUnlocked) return 1;
+            return 0;
+          })
+          .map((achievement, index) => (
+            <AchievementBadge key={achievement.id} achievement={achievement} unlocked={achievements.includes(achievement.id)} position={index % 4} />
+          ))}
       </div>
+      {ACHIEVEMENTS.length > ACHIEVEMENT_PREVIEW_COUNT && (
+        <button className="btn-outline small ranking-toggle" onClick={() => setShowAllAchievements((prev) => !prev)}>
+          {showAllAchievements ? '收起' : `展开全部 (${ACHIEVEMENTS.length})`}
+        </button>
+      )}
 
-      {/* 停留时长排行 */}
+      {/* 排行 */}
       {ranking.length > 0 && (
         <div className="ranking-section">
           <div className="panel-title">
-            <strong>停留时长排行</strong>
+            <strong>{colorMode === 'lastDeparture' ? '最近离开排行' : '停留时长排行'}</strong>
           </div>
           <ol className="ranking-list">
             {visibleRanking.map((row, index) => (
               <li key={row.cityId} className="ranking-row">
                 <span className="ranking-index">{index + 1}</span>
                 <span className="ranking-name">{row.city?.city_name ?? row.cityId}</span>
-                <span className="ranking-days">{row.days} 天</span>
+                <span className="ranking-days">
+                  {colorMode === 'lastDeparture' ? `${daysSinceDate(row.lastDate)} 天前` : `${row.days} 天`}
+                </span>
               </li>
             ))}
           </ol>

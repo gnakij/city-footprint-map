@@ -17,10 +17,9 @@ export function getDurationColor(days: number): string {
   return cssVar('--color-dur-l6', '#0D47A1');
 }
 
-export function getDepartureColor(daysAgo: number): string {
-  if (daysAgo <= 30)  return cssVar('--color-dep-l1', '#FF7043');
-  if (daysAgo <= 90)  return cssVar('--color-dep-l2', '#FF8A65');
-  if (daysAgo <= 180) return cssVar('--color-dep-l3', '#FFAB91');
-  if (daysAgo <= 365) return cssVar('--color-dep-l4', '#FFCCBC');
-  return cssVar('--color-dep-l5', '#FBE9E7');
+export function getLastDepartureColor(daysAgo: number): string {
+  if (daysAgo < 30) return cssVar('--color-dep-l4', '#A82848');
+  if (daysAgo < 365) return cssVar('--color-dep-l3', '#F95D84');
+  if (daysAgo < 3650) return cssVar('--color-dep-l2', '#FFC0CD');
+  return cssVar('--color-dep-l1', '#FDE0E6');
 }

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { v4 as uuid } from 'uuid';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { CITIES } from '../data/cities';
-import type { AppSettings, CityData, ExportData, Stats, User, VisitRecord } from '../types';
+import type { AppSettings, CityData, ColorMode, ExportData, Stats, User, VisitRecord } from '../types';
 import { visitDays } from '../utils/date';
 import {
   bulkSaveVisits,
@@ -55,6 +55,7 @@ interface StoreState {
   adminSetupRequired: boolean;
   statsCollapsed: boolean;
   profileTab: ProfileTab;
+  colorMode: ColorMode;
   load: () => Promise<void>;
   setupAdmin: (username: string, password: string) => Promise<void>;
   loginAdmin: (username: string, password: string) => Promise<boolean>;
@@ -75,6 +76,7 @@ interface StoreState {
   setStatsOpen: (open: boolean) => void;
   setProfileOpen: (open: boolean, tab?: ProfileTab) => void;
   toggleStatsCollapsed: () => void;
+  setColorMode: (mode: ColorMode) => void;
   showToast: (toast: ToastState) => void;
   hideToast: () => void;
   updateUserName: (name: string) => void;
@@ -117,7 +119,7 @@ async function checkAchievements(uid: string, records: VisitRecord[], unlocked: 
 export const useStore = create<StoreState>((set, get) => ({
   visits: [], achievements: [], settings: { theme: 'rose' },
   drawerOpen: false, searchQuery: '', posterOpen: false, settingsOpen: false, visitsOpen: false, adminOpen: false, statsOpen: false, profileOpen: false,
-  hydrated: false, currentUser: null, users: [], adminSetupRequired: false, statsCollapsed: false, profileTab: 'profile',
+  hydrated: false, currentUser: null, users: [], adminSetupRequired: false, statsCollapsed: false, profileTab: 'profile', colorMode: 'duration',
 
   load: async () => {
     try {
@@ -232,6 +234,7 @@ export const useStore = create<StoreState>((set, get) => ({
   setStatsOpen: (statsOpen) => set({ statsOpen }),
   setProfileOpen: (profileOpen, tab) => set({ profileOpen, ...(tab ? { profileTab: tab } : {}) }),
   toggleStatsCollapsed: () => set((s) => ({ statsCollapsed: !s.statsCollapsed })),
+  setColorMode: (colorMode) => set({ colorMode }),
   showToast: (toast) => set({ toast }),
   hideToast: () => set({ toast: undefined }),
   updateUserName: (name) => {

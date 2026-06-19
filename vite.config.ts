@@ -19,6 +19,7 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/cityprint\/api/, '/api'),
       },
     },
+    allowedHosts: ['www.gnakij.top'],
   },
   build: {
     outDir: 'dist',

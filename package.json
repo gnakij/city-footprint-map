@@ -17,6 +17,7 @@
     "echarts-for-react": "^3.0.2",
     "html2canvas": "^1.4.1",
     "lucide-react": "^1.21.0",
+    "pinyin-pro": "^3.28.1",
     "primitives": "github:radix-ui/primitives#main",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

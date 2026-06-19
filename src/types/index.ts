@@ -1,5 +1,6 @@
 export type ThemeMode = 'linear' | 'stripe' | 'rose';
 export type SortMode = 'days' | 'name';
+export type ColorMode = 'duration' | 'lastDeparture';
 
 export interface CityData {
   city_id: string;
