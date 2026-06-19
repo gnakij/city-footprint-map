@@ -5,7 +5,6 @@ import { adminExportVisits, adminImportVisits, createUser, getUsers } from '../a
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import FuzzySelect from './ui/FuzzySelect';
-import { ShadcnFuzzySelect } from '@/components/shadcn';
 import type { ImportVisitRow } from '../types';
 import type { AdminVisitExportRow } from '../api';
 
