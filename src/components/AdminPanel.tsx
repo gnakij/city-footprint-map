@@ -23,6 +23,9 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 }
 
 const LEDGER_PAGE_SIZE = 10;
+const CHANGELOG = [
+  { date: '2026-06-19', items: ['UI规范整理：按钮、页签、列表项样式统一', '颜色变量化：glass效果、阴影、边框等硬编码颜色替换为CSS变量', '间距变量化：4-48px常用尺寸替换为CSS变量', '新增系统升级记录页签'] },
+];
 const PROVINCE_PINYIN: Record<string, string> = {
   北京: 'beijing',
   天津: 'tianjin',
@@ -114,7 +117,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
   const [newPassword, setNewPassword] = useState('');
   const [stats, setStats] = useState({ totalUsers: users.length, totalVisits: 0, adminUsers: 0 });
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [adminTab, setAdminTab] = useState<'users' | 'data'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'data' | 'changelog'>('users');
   const [allVisits, setAllVisits] = useState<AdminVisitExportRow[]>([]);
   const [filterUsername, setFilterUsername] = useState('');
   const [filterName, setFilterName] = useState('');
@@ -341,9 +344,10 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
 
   const content = (
     <>
-      <div className="mode-pill" style={{ marginBottom: 20 }}>
+      <div className="mode-pill mb-20">
         <button className={adminTab === 'users' ? 'active' : ''} onClick={() => setAdminTab('users')}>用户管理</button>
         <button className={adminTab === 'data' ? 'active' : ''} onClick={() => setAdminTab('data')}>数据管理</button>
+        <button className={adminTab === 'changelog' ? 'active' : ''} onClick={() => setAdminTab('changelog')}>系统升级记录</button>
       </div>
 
       {adminTab === 'users' && (
@@ -354,7 +358,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             <div className="stat"><span className="label-sm">总访问</span><strong>{stats.totalVisits}</strong></div>
           </div>
 
-          <div style={{ marginBottom: 16 }}>
+          <div className="mb-16">
             <button className="btn-primary" onClick={() => setShowCreateModal(true)}>+ 新增用户</button>
           </div>
 
@@ -392,8 +396,8 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
 
       {adminTab === 'data' && (
         <div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-            <div style={{ width: 120 }}>
+          <div className="flex-start flex-wrap gap-8 mb-8">
+            <div className="col-username">
               <FuzzySelect
                 options={usernameOptions}
                 searchKeys={usernamePinyinMap}
@@ -403,7 +407,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                 placeholder="搜索选择用户名"
               />
             </div>
-            <div style={{ width: 120 }}>
+            <div className="col-username">
               <FuzzySelect
                 options={nameOptions}
                 searchKeys={namePinyinMap}
@@ -413,7 +417,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                 placeholder="搜索选择昵称"
               />
             </div>
-            <div style={{ width: 120 }}>
+            <div className="col-username">
               <FuzzySelect
                 options={provinceOptionsList}
                 searchKeys={PROVINCE_PINYIN}
@@ -423,7 +427,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                 placeholder="搜索选择省份"
               />
             </div>
-            <div style={{ width: 150 }}>
+            <div className="col-nickname">
               <FuzzySelect
                 options={cityOptionsList}
                 searchKeys={cityPinyinMap}
@@ -434,7 +438,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
               />
             </div>
           </div>
-          <div className="actions" style={{ flexWrap: 'wrap', marginBottom: 12 }}>
+          <div className="actions flex-wrap mb-12">
             <button
               className="btn-primary"
               onClick={() => setAppliedFilters({
@@ -452,7 +456,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
           </div>
 
           {showImportTools && (
-            <div className="card" style={{ padding: 16 }}>
+            <div className="card p-16">
               <div className="form-row">
                 <span className="label-sm">批量导入</span>
                 <div className="form-grid-2">
@@ -498,7 +502,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                   </tbody>
                 </table>
               </div>
-              <div className="actions" style={{ marginTop: 12 }}>
+              <div className="actions mt-12">
                 <button className="btn-primary" disabled={importPreview.every((row) => row.error)} onClick={() => void confirmAdminImport()}>确认导入</button>
                 <button className="btn-outline" onClick={() => setImportPreview([])}>取消</button>
               </div>
@@ -510,7 +514,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
               <thead><tr><th style={{ width: '12%' }}>用户名</th><th style={{ width: '10%' }}>昵称</th><th style={{ width: '10%' }}>省份</th><th style={{ width: '12%' }}>城市</th><th style={{ width: '8%' }}>停留天数</th><th style={{ width: '13%' }}>最后停留</th><th style={{ width: '20%' }}>备注</th><th style={{ width: '15%' }}>更新时间</th></tr></thead>
               <tbody>
                 {ledgerVisits.length === 0 ? (
-                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32 }} className="muted">暂无访问记录</td></tr>
+                  <tr><td colSpan={8} className="muted text-center p-32">暂无访问记录</td></tr>
                 ) : pagedVisits.map((visit) => {
                   const city = cityById.get(visit.city_id);
                   return (
@@ -531,7 +535,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
           </div>
 
           {ledgerVisits.length > 0 && (
-            <div className="actions" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+            <div className="actions flex-between flex-wrap mt-8">
               <span className="muted">
                 共 {ledgerVisits.length} 条，当前第 {ledgerPage} / {totalLedgerPages} 页
               </span>
@@ -556,14 +560,29 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
         </div>
       )}
 
+      {adminTab === 'changelog' && (
+        <div className="changelog-list">
+          {CHANGELOG.map((entry, i) => (
+            <div key={i} className="changelog-entry">
+              <div className="changelog-date">{entry.date}</div>
+              <ul className="changelog-items">
+                {entry.items.map((item, j) => (
+                  <li key={j}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
       {pendingReset && (
         <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <section className="modal" style={{ maxWidth: 380 }}>
+          <section className="modal modal-sm">
             <div className="modal-head">
               <h2>重置密码 · {pendingReset.name}</h2>
               <button className="icon-btn" onClick={() => setPendingReset(null)}>×</button>
             </div>
-            <div className="stack" style={{ gap: 10, marginBottom: 16 }}>
+            <div className="stack gap-10 mb-16">
               <div className="form-row">
                 <span className="label-sm">新密码</span>
                 <input className="input" type="password" autoFocus value={resetPw} onChange={(e) => setResetPw(e.target.value)} placeholder="至少6位" />
@@ -573,7 +592,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                 <input className="input" type="password" value={resetConfirm} onChange={(e) => setResetConfirm(e.target.value)} placeholder="再次输入" onKeyDown={(e) => { if (e.key === 'Enter') void handleResetPassword(); }} />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <div className="flex-end gap-8">
               <button className="btn-outline" onClick={() => setPendingReset(null)}>取消</button>
               <button className="btn-primary" onClick={() => void handleResetPassword()}>确认重置</button>
             </div>
@@ -588,12 +607,12 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
               <h2>新增用户</h2>
               <button className="icon-btn" onClick={() => setShowCreateModal(false)}>×</button>
             </div>
-            <div className="form-grid-2" style={{ marginBottom: 16 }}>
+            <div className="form-grid-2 mb-16">
               <input className="input" value={newUsername} onChange={(event) => setNewUsername(event.target.value)} placeholder="用户名" />
               <input className="input" value={newNickname} onChange={(event) => setNewNickname(event.target.value)} placeholder="昵称" />
               <input className="input" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="密码" />
             </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <div className="flex-end gap-8">
               <button className="btn-outline" onClick={() => { setShowCreateModal(false); setNewUsername(''); setNewNickname(''); setNewPassword(''); }}>取消</button>
               <button className="btn-primary" onClick={() => void handleCreateUser()}>确认创建</button>
             </div>

@@ -248,7 +248,7 @@ export default function UserProfile() {
           <button className="icon-btn" onClick={() => setProfileOpen(false)}>×</button>
         </div>
 
-        <div className="mode-pill profile-tabs" style={{ marginBottom: 20 }}>
+        <div className="mode-pill profile-tabs mb-20">
           {tabs.map((item) => (
             <button key={item.id} className={tab === item.id ? 'active' : ''} onClick={() => { setTab(item.id); setShowStats(false); }}>{item.label}</button>
           ))}
@@ -282,7 +282,7 @@ export default function UserProfile() {
             </div>
 
             {editingPassword && (
-              <div className="card" style={{ padding: 16 }}>
+              <div className="card p-16">
                 <div className="form-row">
                   <span className="label-sm">新密码</span>
                   <input className="input" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="至少6位" />
@@ -312,7 +312,7 @@ export default function UserProfile() {
                 <thead><tr><th>省份</th><th>城市</th><th>天数</th><th>最后停留</th><th>备注</th><th>操作</th></tr></thead>
                 <tbody>
                   {rows.length === 0 ? (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32 }} className="muted">暂无访问记录</td></tr>
+                    <tr><td colSpan={6} className="muted text-center p-32">暂无访问记录</td></tr>
                   ) : rows.map(({ visit, city, days }) => (
                     <tr key={visit.id}>
                       <td>{city?.province ?? '-'}</td>
@@ -331,7 +331,7 @@ export default function UserProfile() {
             </div>
 
             {/* 操作按钮行 */}
-            <div className="actions" style={{ marginTop: 12 }}>
+            <div className="actions mt-12">
               <button className="btn-primary" onClick={() => setShowForm(true)}>＋ 添加访问</button>
               <button className="btn-outline" onClick={() => fileRef.current?.click()}>📥 导入数据</button>
               <button className="btn-primary" onClick={download}>📤 导出数据</button>
@@ -368,7 +368,7 @@ export default function UserProfile() {
                     </tbody>
                   </table>
                 </div>
-                <div className="actions" style={{ marginTop: 12 }}>
+                <div className="actions mt-12">
                   <button className="btn-primary" disabled={preview.every((row) => row.error)} onClick={() => void confirmImport()}>确认导入</button>
                   <button className="btn-outline" onClick={() => setPreview([])}>取消</button>
                 </div>
@@ -377,7 +377,7 @@ export default function UserProfile() {
 
             {/* 添加/编辑表单 */}
             {showForm && (
-              <div className="card" style={{ marginTop: 12, padding: 16 }}>
+              <div className="card mt-12 p-16">
                 <div className="form-row">
                   <span className="label-sm">搜索并选择城市</span>
                   <FuzzySelect
@@ -396,11 +396,11 @@ export default function UserProfile() {
                     maxResults={12}
                   />
                   {selectedCityName && cityId && (
-                    <p className="muted" style={{ marginTop: 6 }}>已选：{selectedCityName}</p>
+                    <p className="muted mt-6">已选：{selectedCityName}</p>
                   )}
                 </div>
 
-                <div className="form-grid-2" style={{ marginTop: 12 }}>
+                <div className="form-grid-2 mt-12">
                   <div className="form-row">
                     <span className="label-sm">停留天数</span>
                     <input
@@ -424,7 +424,7 @@ export default function UserProfile() {
                   </div>
                 </div>
 
-                <div className="actions" style={{ marginTop: 8 }}>
+                <div className="actions mt-8">
                   <button className="btn-primary" onClick={submitVisit}>{editingVisit ? '保存修改' : '添加记录'}</button>
                   <button className="btn-outline" onClick={resetForm}>取消</button>
                 </div>
@@ -437,7 +437,7 @@ export default function UserProfile() {
 
         {tab === 'visits' && showStats && (
           <>
-            <button className="back-btn" onClick={() => setShowStats(false)} style={{ marginBottom: 12 }}>← 返回访问列表</button>
+            <button className="back-btn mb-12" onClick={() => setShowStats(false)}>← 返回访问列表</button>
             <DrillDownStats embedded />
           </>
         )}

@@ -30,7 +30,7 @@ export default class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
       return (
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <div className="p-32 text-center">
           <h2>出错了</h2>
           <p>应用遇到了意外错误。</p>
           <button

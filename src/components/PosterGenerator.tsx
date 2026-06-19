@@ -31,9 +31,9 @@ export default function PosterGenerator() {
           <button className="icon-btn" onClick={() => setPosterOpen(false)}>×</button>
         </div>
         <div className="poster-preview" ref={previewRef}>
-          {image ? <img src={image} alt="城市足迹海报预览" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ padding: 24 }}>正在生成预览...</div>}
+          {image ? <img src={image} alt="城市足迹海报预览" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div className="p-24">正在生成预览...</div>}
         </div>
-        <div className="actions" style={{ justifyContent: 'center', marginTop: 16 }}>
+        <div className="actions flex-center mt-16">
           <button className="btn-primary" onClick={download} disabled={!image}>下载PNG</button>
           <button className="btn-outline" onClick={() => setPosterOpen(false)}>关闭</button>
         </div>

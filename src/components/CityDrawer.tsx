@@ -75,11 +75,11 @@ export default function CityDrawer({ city }: { city: CityData }) {
 
       {/* 添加访问按钮 / 表单 */}
       {!showForm ? (
-        <button className="btn-primary" style={{ marginTop: 16, width: '100%' }} onClick={() => setShowForm(true)}>
+        <button className="btn-primary mt-16 w-full" onClick={() => setShowForm(true)}>
           ＋ 添加访问
         </button>
       ) : (
-        <div className="visit-form" style={{ marginTop: 16 }}>
+        <div className="visit-form mt-16">
           <label className="form-row">
             <span className="label-sm">停留天数</span>
             <input
