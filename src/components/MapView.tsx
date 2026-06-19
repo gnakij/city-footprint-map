@@ -6,37 +6,11 @@ import { useStore } from '../store/useStore';
 import type { CityData } from '../types';
 import { getDurationColor, getLastDepartureColor } from '../utils/colors';
 import { daysSinceDate, visitDays } from '../utils/date';
-
-const provinceAlias: Record<string, string> = {
-  北京: '北京市', 天津: '天津市', 上海: '上海市', 重庆: '重庆市', 河北: '河北省', 山西: '山西省',
-  内蒙古: '内蒙古自治区', 辽宁: '辽宁省', 吉林: '吉林省', 黑龙江: '黑龙江省', 江苏: '江苏省', 浙江: '浙江省',
-  安徽: '安徽省', 福建: '福建省', 江西: '江西省', 山东: '山东省', 河南: '河南省', 湖北: '湖北省',
-  湖南: '湖南省', 广东: '广东省', 广西: '广西壮族自治区', 海南: '海南省', 四川: '四川省', 贵州: '贵州省',
-  云南: '云南省', 西藏: '西藏自治区', 陕西: '陕西省', 甘肃: '甘肃省', 青海: '青海省', 宁夏: '宁夏回族自治区',
-  新疆: '新疆维吾尔自治区', 台湾: '台湾省', 香港: '香港特别行政区', 澳门: '澳门特别行政区',
-};
-
-const municipalities = new Set(['北京', '天津', '上海', '重庆', '香港', '澳门']);
+import { findCityForFeature, municipalities, PROVINCE_CENTROIDS, shortName } from '../utils/mapHelpers';
 
 type ProvinceView = { name: string; short: string; adcode: number };
 type GeoJsonFeature = { properties: { name: string; adcode: number; center?: [number, number]; parent?: { adcode: number } } };
 type GeoJson = { features?: GeoJsonFeature[] };
-
-function shortName(name: string) {
-  return name.replace(/省|市|壮族自治区|回族自治区|维吾尔自治区|维吾尔自治州|族自治州|自治州|族自治县|自治县|族自治旗|自治旗|自治区|特别行政区|地区|盟|县|区/g, '');
-}
-function findCityForFeature(provinceShort: string, featureName: string, featureAdcode?: number) {
-  if (municipalities.has(provinceShort)) return CITIES.find(c => c.province === provinceShort);
-  const provCities = CITIES.filter(c => c.province === provinceShort);
-  // 优先：adcode 精确匹配
-  if (featureAdcode) {
-    const byAdcode = provCities.find(c => c.adcode === featureAdcode);
-    if (byAdcode) return byAdcode;
-  }
-  // 兜底：城市名去"市"后缀匹配
-  const cleanFeature = featureName.replace(/市$/, '');
-  return provCities.find(c => c.city_name === featureName || c.city_name === cleanFeature);
-}
 
 // ECharts dispatchAction geoRoam 的参数格式
 interface GeoRoamAction {
@@ -64,47 +38,6 @@ const DRAG_THRESHOLD = 6;
 // 点亮/未点亮省份的标签颜色
 const LABEL_COLOR_LIT = '#8C2540';     // 已点亮：更深更明显
 const LABEL_COLOR_UNLIT = '#B7A2AA';   // 未点亮：更淡
-
-// 全国视图省名标注：使用 GeoJSON 几何中心（centroid）而非行政中心，
-// 这样不规则省份（黑龙江、甘肃、内蒙古等）的标签也在视觉中心。
-// 坐标是地图经纬度，会随缩放自动调整位置。
-// 对于几何中心落在省界外或太偏的省份（内蒙古、甘肃等），手动调整到视觉中心。
-const PROVINCE_CENTROIDS: Record<string, [number, number]> = {
-  北京: [116.4199, 40.188],
-  天津: [117.3508, 39.2852],
-  上海: [121.438, 31.0711],
-  重庆: [107.8796, 30.055],
-  香港: [114.1328, 22.3788],
-  澳门: [113.5656, 22.1619],
-  河北: [116.142, 39.5452],
-  山西: [112.2954, 37.5724],
-  内蒙古: [108, 40.2],  // 巴彦淖尔与鄂尔多斯市界
-  辽宁: [122.6009, 41.2808],
-  吉林: [126.1947, 43.6704],
-  黑龙江: [127.7743, 47.8637],
-  江苏: [119.4942, 32.9643],
-  浙江: [120.1089, 29.1694],
-  安徽: [117.2315, 31.8239],
-  福建: [118.0034, 26.056],
-  江西: [115.7274, 27.6116],
-  山东: [118.1802, 36.3604],
-  河南: [113.62, 33.8815],
-  湖北: [112.2755, 30.974],
-  湖南: [111.714, 27.6066],
-  广东: [113.4216, 23.3213],
-  广西: [108.7925, 23.8188],
-  海南: [109.7541, 19.1874],
-  四川: [102.695, 30.6265],
-  贵州: [106.8779, 26.8125],
-  云南: [101.488, 24.9723],
-  西藏: [88.4436, 31.4891],
-  陕西: [108.8741, 35.1911],
-  甘肃: [101.5, 38.5],  // 几何中心在东南角，手动调到中部偏北（张掖附近）
-  青海: [96.0412, 35.6699],
-  宁夏: [106.1682, 37.2734],
-  新疆: [85.1932, 41.1171],
-  台湾: [120.9697, 23.7421],
-};
 
 // 全国视图下参与 geoRoam 同步的 series 下标：
 // 0 = 主图层（市级色块），1 = 省界轮廓层（粗边框+省名标注）。

@@ -8,12 +8,15 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, ConfigDict, Field
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parent / "data" / "cityprint.db"
 
@@ -270,9 +273,23 @@ def load_cities() -> list[dict[str, Any]]:
 
 # ── FastAPI App ───────────────────────────────────────────────────────────
 app = FastAPI(title="City Footprint API")
+
+# Rate limiting
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS 配置：生产环境限制为实际域名
+ALLOWED_ORIGINS = os.getenv("CITYPRINT_ALLOWED_ORIGINS", "").split(",") or [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://www.gnakij.top",
+    "https://gnakij.top",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -289,12 +306,14 @@ init_db()
 
 # ── 认证 ──────────────────────────────────────────────────────────────────
 @app.post("/api/auth/register", status_code=status.HTTP_201_CREATED)
-def register(payload: UserCreate) -> dict[str, Any]:
+@limiter.limit("5/minute")
+def register(request: Request, payload: UserCreate) -> dict[str, Any]:
     return create_user_record(payload.username, payload.password, payload.name, payload.is_admin)
 
 
 @app.post("/api/auth/login")
-def login(payload: LoginPayload) -> dict[str, Any]:
+@limiter.limit("10/minute")
+def login(request: Request, payload: LoginPayload) -> dict[str, Any]:
     with get_db() as conn:
         user = conn.execute("SELECT * FROM users WHERE username = ?", (payload.username.strip(),)).fetchone()
     if not user or not pwd_context.verify(payload.password, user["password_hash"]):

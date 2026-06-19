@@ -1,4 +1,5 @@
-import { Component, type ReactNode, lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
+import ErrorBoundary from './components/ErrorBoundary';
 import LoginPage from './components/LoginPage';
 import StatsPanel from './components/StatsPanel';
 import Toast from './components/Toast';
@@ -9,16 +10,6 @@ import { useStore } from './store/useStore';
 const MapView = lazy(() => import('./components/MapView'));
 const CityDrawer = lazy(() => import('./components/CityDrawer'));
 const UserProfile = lazy(() => import('./components/UserProfile'));
-
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
-  static getDerivedStateFromError() { return { hasError: true }; }
-  componentDidCatch(error: unknown) { console.error('App render failed', error); }
-  render() {
-    if (this.state.hasError) return <div className="empty-state">应用渲染失败，请刷新重试。</div>;
-    return this.props.children;
-  }
-}
 
 function Loading() {
   return (
