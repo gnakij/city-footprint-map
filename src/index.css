@@ -36,6 +36,24 @@
   --shadow-color: rgba(19,27,46,1);
   --color-card-border: rgba(194,198,216,.6);
   --color-focus-ring: rgba(0,102,255,.12);
+
+  /* 圆角语义层：按视觉层级命名，而非按数值大小命名。
+     卡片/面板统一用 --radius-panel，避免 .card 和 .modal 各用各的、互不呼应。 */
+  --radius-panel: 12px;                  /* 卡片/面板，按 CLAUDE.md 规范 */
+  --radius-control: var(--radius-sm);    /* 输入框、小型控件，沿用原 8px */
+  --radius-pill: var(--radius-full);     /* 按钮、徽章、页签的胶囊形 */
+
+  /* 过渡：统一时长 + 缓动曲线，所有 transition 应引用这些变量而非手写数值 */
+  --duration-instant: 0.1s;
+  --duration-fast: 0.15s;
+  --ease-standard: ease;
+  --transition-interactive: opacity var(--duration-fast) var(--ease-standard), transform var(--duration-instant) var(--ease-standard), background var(--duration-fast) var(--ease-standard);
+  --transition-color: color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+
+  /* 交互状态强度：hover/active/disabled 的视觉反馈程度统一管理 */
+  --state-hover-opacity: 0.88;
+  --state-active-scale: 0.97;
+  --state-disabled-opacity: 0.45;
 }
 
 /* ═══════ Rose (pink) ─ default ═══════ */
@@ -118,18 +136,18 @@ button { cursor: pointer; }
   min-height: var(--size-btn-default); border: 0; border-radius: var(--radius-full); padding: 0 var(--space-3-5); font-weight: 600; font-size: 13px;
   display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
   white-space: nowrap;
-  transition: opacity 0.15s, transform 0.1s;
+  transition: var(--transition-interactive);
 }
 .btn-primary { background: var(--color-primary); color: var(--color-on-primary); box-shadow: var(--shadow-glow); }
 .btn-outline { background: transparent; color: var(--color-on-surface); border: var(--space-xs) solid var(--color-outline-variant); }
 .btn-danger { background: var(--color-error); color: var(--color-on-primary); }
-.btn-primary:not(:disabled):hover, .btn-outline:not(:disabled):hover, .btn-danger:not(:disabled):hover { opacity: 0.88; }
-.btn-primary:not(:disabled):active, .btn-outline:not(:disabled):active, .btn-danger:not(:disabled):active { transform: scale(0.97); }
-.btn-primary:disabled, .btn-outline:disabled, .btn-danger:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary:not(:disabled):hover, .btn-outline:not(:disabled):hover, .btn-danger:not(:disabled):hover { opacity: var(--state-hover-opacity); }
+.btn-primary:not(:disabled):active, .btn-outline:not(:disabled):active, .btn-danger:not(:disabled):active { transform: scale(var(--state-active-scale)); }
+.btn-primary:disabled, .btn-outline:disabled, .btn-danger:disabled { opacity: var(--state-disabled-opacity); cursor: not-allowed; }
 .back-btn { display: inline-flex; align-items: center; gap: var(--space-1); border: 0; background: transparent; color: var(--color-primary); font-weight: 600; font-size: 14px; padding: var(--space-1) 0; }
-.icon-btn { width: var(--size-btn-default); height: var(--size-btn-default); padding: 0; border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-full); background: var(--color-surface); color: var(--color-on-surface); }
+.icon-btn { width: var(--size-btn-default); height: var(--size-btn-default); padding: 0; border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-full); background: var(--color-surface); color: var(--color-on-surface); font-size: 18px; transition: var(--transition-interactive); }
 .icon-btn:hover { background: var(--color-surface-container-low); }
-.card { background: var(--color-surface); border: var(--space-xs) solid var(--color-card-border); border-radius: var(--radius-sm); box-shadow: var(--shadow-card); }
+.card { background: var(--color-surface); border: var(--space-xs) solid var(--color-card-border); border-radius: var(--radius-panel); box-shadow: var(--shadow-card); }
 .glass { background: var(--glass-bg); backdrop-filter: blur(var(--space-4-5)); border: var(--space-xs) solid var(--glass-border); }
 :root[data-theme="linear"] .glass { background: var(--glass-bg); backdrop-filter: blur(var(--space-4-5)); border: var(--space-xs) solid var(--glass-border); }
 :root[data-theme="stripe"] .glass { background: var(--glass-bg); backdrop-filter: blur(var(--space-4-5)); border: var(--space-xs) solid var(--glass-border); }
@@ -161,7 +179,7 @@ button { cursor: pointer; }
 .login-form { display: grid; gap: var(--space-3-5); }
 .login-btn { width: 100%; min-height: var(--size-input); font-size: 15px; }
 .login-tabs { display: flex; justify-content: center; gap: 0; margin-bottom: var(--space-1); }
-.login-tab { border: 0; background: transparent; color: var(--color-on-surface-variant); font-weight: 600; font-size: 13px; padding: var(--space-1-5) var(--space-4); border-bottom: var(--space-0) solid transparent; cursor: pointer; transition: color .15s, border-color .15s; }
+.login-tab { border: 0; background: transparent; color: var(--color-on-surface-variant); font-weight: 600; font-size: 13px; padding: var(--space-1-5) var(--space-4); border-bottom: var(--space-0) solid transparent; cursor: pointer; transition: var(--transition-color); }
 .login-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); font-weight: 800; }
 .login-link-row { text-align: center; margin-top: var(--space-1); }
 .login-link { border: 0; background: transparent; color: var(--color-primary); font-weight: 700; font-size: 13px; cursor: pointer; padding: var(--space-1) var(--space-2); }
@@ -174,7 +192,7 @@ button { cursor: pointer; }
 .login-divider { display: flex; align-items: center; gap: var(--space-3); color: var(--color-on-surface-variant); font-size: 13px; }
 .login-divider::before, .login-divider::after { content: ''; flex: 1; height: var(--space-xs); background: var(--color-outline-variant); }
 .login-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4-5); }
-.login-section { display: grid; align-content: start; gap: var(--space-3); padding: var(--space-4); border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-sm); }
+.login-section { display: grid; align-content: start; gap: var(--space-3); padding: var(--space-4); border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-panel); }
 .user-list { display: grid; gap: var(--space-2); max-height: 220px; overflow: auto; }
 .user-select { min-height: var(--size-btn-large); border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-sm); background: var(--color-background); color: var(--color-on-surface); font-weight: 700; text-align: left; padding: 0 var(--space-3); }
 .inline-form { display: flex; gap: var(--space-2); align-items: center; }
@@ -214,10 +232,10 @@ button { cursor: pointer; }
 .form-row { margin: var(--space-3) 0; display: grid; gap: var(--space-2); }
 .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2-5); }
 .textarea { min-height: 72px; padding-top: var(--space-2-5); resize: vertical; }
-.actions { display: flex; gap: var(--space-2-5); flex-wrap: wrap; }
+.actions { display: flex; justify-content: flex-end; gap: var(--space-2-5); flex-wrap: wrap; }
 .visit-form { margin-top: var(--space-4); padding-top: var(--space-3-5); border-top: var(--space-xs) solid var(--color-outline-variant); }
 .visit-stack { display: grid; gap: var(--space-2-5); margin-top: var(--space-4); }
-.visit-card { display: grid; gap: var(--space-2-5); padding: var(--space-3); border-radius: var(--radius-sm); background: var(--color-surface-container-low); }
+.visit-card { display: grid; gap: var(--space-2-5); padding: var(--space-3); border-radius: var(--radius-panel); background: var(--color-surface-container-low); }
 .drawer-list { display: grid; gap: var(--space-2-5); margin-top: var(--space-4); max-height: 34vh; overflow: auto; }
 .row-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .small { min-height: var(--size-btn-small); padding: 0 var(--space-2-5); font-size: 12px; }
@@ -299,7 +317,7 @@ button { cursor: pointer; }
 }
 
 .modal-backdrop { position: fixed; inset: 0; z-index: 40; background: color-mix(in srgb, var(--shadow-color) 42%, transparent); display: grid; place-items: center; padding: var(--space-4-5); }
-.modal { width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: 22px; border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-on-surface); }
+.modal { width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: 22px; border-radius: var(--radius-panel); background: var(--color-surface); color: var(--color-on-surface); }
 .welcome-modal { width: min(420px, 100%); }
 .modal-wide { width: min(900px, 100%); }
 .visit-modal { width: min(1120px, 100%); }
@@ -320,7 +338,7 @@ button { cursor: pointer; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 720px; }
 .data-table th, .data-table td { border-bottom: var(--space-xs) solid var(--color-outline-variant); padding: var(--space-2-5); text-align: left; vertical-align: top; font-size: 14px; }
 .data-table th { color: var(--color-on-surface-variant); font-size: 12px; }
-.visit-form { margin: var(--space-3) 0; padding: var(--space-4); background: var(--color-surface-container-low); border-radius: var(--radius-sm); }
+.visit-form { margin: var(--space-3) 0; padding: var(--space-4); background: var(--color-surface-container-low); border-radius: var(--radius-panel); }
 .visit-form .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
 .visit-form .form-row { margin: 0; display: grid; gap: var(--space-1-5); }
 .visit-form .btn-primary { min-width: 120px; }
@@ -333,14 +351,14 @@ button { cursor: pointer; }
 .drill-row small { display: block; color: var(--color-on-surface-variant); margin-top: var(--space-1); }
 .stack { display: grid; gap: var(--space-3); }
 .login-users { border-top: var(--space-xs) solid var(--color-outline-variant); padding-top: var(--space-4-5); display: grid; gap: var(--space-3); }
-.list-button { width: 100%; border: var(--space-xs) solid var(--color-outline-variant); background: var(--color-background); color: var(--color-on-surface); border-radius: var(--space-3); padding: var(--space-3); display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); text-align: left; margin-bottom: var(--space-2); }
+.list-button { width: 100%; border: var(--space-xs) solid var(--color-outline-variant); background: var(--color-background); color: var(--color-on-surface); border-radius: var(--radius-panel); padding: var(--space-3); display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); text-align: left; margin-bottom: var(--space-2); transition: var(--transition-interactive), border-color var(--duration-fast) var(--ease-standard); }
 .list-button:hover { background: var(--color-surface-container-low); border-color: var(--color-primary-container); }
-.list-button span { font-weight: 800; white-space: nowrap; }
-.list-button small { color: var(--color-on-surface-variant); font-weight: 700; white-space: nowrap; }
+.list-button span { font-weight: 600; white-space: nowrap; }
+.list-button small { color: var(--color-on-surface-variant); font-weight: 500; white-space: nowrap; }
 .muted { color: var(--color-on-surface-variant); margin: var(--space-1) 0; line-height: 1.5; }
 .danger-text { color: var(--color-error) !important; }
 .sort-pill { width: max-content; margin-bottom: var(--space-3); }
-.table-wrap { border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-sm); }
+.table-wrap { border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-panel); }
 .table-wrap.compact { max-height: 220px; }
 .data-table th { position: sticky; top: 0; background: var(--color-surface-container-low); }
 
@@ -659,7 +677,7 @@ button { cursor: pointer; }
   .achievement-grid { grid-template-columns: repeat(4, minmax(var(--size-icon-large), 1fr)); overflow-x: auto; gap: var(--space-1-5); }
   .input { min-height: var(--size-icon-large); font-size: 16px; }
   .btn-primary, .btn-outline, .btn-danger { min-height: var(--size-btn-default); font-size: 13px; padding: 0 var(--space-3-5); }
-  .modal { padding: var(--space-4-5) var(--space-3-5); border-radius: var(--radius-md); }
+  .modal { padding: var(--space-4-5) var(--space-3-5); border-radius: var(--radius-panel); }
   .modal h2 { font-size: 20px; }
   .label-sm { font-size: 13px; }
   .login-panel { padding: 28px var(--space-5-5); }

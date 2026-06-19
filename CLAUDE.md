@@ -20,6 +20,22 @@
 
 所有新组件必须遵循以下规范，定义在 `src/index.css` 中。
 
+### 设计 Token 分层（2026-06-19 起）
+
+CSS 变量分两层，新写样式时优先用语义层，不要直接用原始层：
+
+- **原始层**（数值本身，命名按大小关系）：`--radius-sm/md/lg/full`、`--space-1`~`--space-6` 等
+- **语义层**（按用途命名，新组件应优先引用这一层）：
+  - `--radius-panel`（12px）：卡片、模态框、表单容器等"面板"类元素
+  - `--radius-control`（8px，= `--radius-sm`）：输入框等小型控件
+  - `--radius-pill`（9999px，= `--radius-full`）：按钮、徽章、页签
+  - `--transition-interactive`：`opacity` + `transform` + `background` 三属性统一过渡，按钮/列表项/图标按钮等可交互元素的 hover/active 都应该用这条，不要手写 transition 数值
+  - `--transition-color`：`color` + `border-color` 过渡，用于纯文字/边框颜色变化场景（如 tab 切换）
+  - `--state-hover-opacity`（0.88）/ `--state-active-scale`（0.97）/ `--state-disabled-opacity`（0.45）：交互状态强度，按钮类组件统一引用，不要手写数值
+
+新增"面板类"组件（卡片、弹窗、独立信息块）一律用 `--radius-panel`，不要复用 `--radius-sm`——
+后者专属输入框等控件类，二者历史上长期共用同一个变量，已于本次拆开。
+
 ### 字重（font-weight）
 
 | 值 | 用途 |
@@ -40,20 +56,32 @@
 | `.icon-btn` | 36px | 0 | 18px | 9999px | 图标按钮（×、+、−） |
 
 **交互规范**：
-- hover: `opacity: 0.88`
-- active: `transform: scale(0.97)`
-- disabled: `opacity: 0.45; cursor: not-allowed`（保持主色背景，不变灰）
+- hover: `opacity: var(--state-hover-opacity)`（0.88）
+- active: `transform: scale(var(--state-active-scale))`（0.97）
+- disabled: `opacity: var(--state-disabled-opacity)`（0.45）；`cursor: not-allowed`（保持主色背景，不变灰）
+- 过渡统一用 `transition: var(--transition-interactive)`
 - 所有按钮加 `white-space: nowrap` 防折行
 
 ### 列表项按钮
 
 | 属性 | 值 |
 |------|-----|
-| `.list-button` 圆角 | 12px |
+| `.list-button` 圆角 | `var(--radius-panel)`（12px） |
 | padding | 14px 16px |
 | hover 背景 | `var(--color-surface-container-low)` |
 | hover 边框 | `var(--color-primary-container)` |
+| 过渡 | `var(--transition-interactive)` |
+| 主文字字重 | 600 |
+| 辅助小字字重 | 500 |
 | 文字 | `white-space: nowrap` |
+
+### 操作按钮组（`.actions`）
+
+一组操作按钮（如表单底部的"保存/取消"、弹窗底部按钮）统一用 `.actions` 容器，
+默认 `justify-content: flex-end`（靠右对齐）。需要其他对齐方式时叠加修饰类，
+不要另起一套写法：
+- 居中：`.actions.flex-center`
+- 两端对齐（如"统计文字 + 按钮"同行）：`.actions.flex-between`
 
 ### 页签（mode-pill）
 
@@ -83,13 +111,16 @@
 | `--color-success` | 成功色 |
 | `--color-warning` | 警告色 |
 
-**注意**：地图省界市界边框颜色是硬编码的，不跟随主题。
+**注意**：地图省界市界边框颜色是硬编码的，不跟随主题。当前值：省界轮廓
+`borderColor: #666666, borderWidth: 0.5`（细灰色描边，2026-06-19 由原暗紫红
+`#B98A98` / 1.8px 调整而来，原因：移动端反馈省界线"太粗、发黑"）。
 
 ### 设计原则
 
 - 保持温馨旅行日记风格
-- 圆角统一：按钮 9999px（胶囊形），卡片/面板 12px，列表项 12px
-- 过渡动画：`transition: opacity 0.15s, transform 0.1s, background 0.15s`
+- 圆角统一：按钮 9999px（胶囊形，`--radius-pill`），卡片/面板 12px（`--radius-panel`），列表项 12px（`--radius-panel`）
+- 过渡动画：可交互元素统一 `var(--transition-interactive)`（opacity 0.15s + transform 0.1s + background 0.15s）；纯颜色变化用 `var(--transition-color)`
+- 操作按钮组默认靠右对齐（`.actions`），见上方"操作按钮组"
 - 不改字重、地图边框、主题色
 
 ## 部署流程
