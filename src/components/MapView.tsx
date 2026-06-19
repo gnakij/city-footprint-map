@@ -263,6 +263,8 @@ export default function MapView() {
         trigger: 'item',
         enterable: false,
         confine: true,
+        z: 35, // 与 .user-dropdown 同级；必须低于 .modal-backdrop(40)，否则会盖在管理员/弹窗等模态框上方
+               // （ECharts tooltip 默认直接挂载到 document.body，绕开了项目自身的 z-index 体系，必须显式指定）
         formatter: (params: { name: string; seriesIndex?: number }) => {
           if (params.seriesIndex === 1) return params.name; // 省界轮廓层，不需要额外信息
           if (activeProvince) {
