@@ -156,8 +156,10 @@
   /* 2026-06-20: 见:root里--card-tint-pct的注释。Linear的--color-surface
      (#101215)是中性深灰，不带主题蓝紫色调，所以.card容器（统计面板/管理
      面板/各种弹窗）背景跟Rose比起来"看起来没主题色"。从Rose反推出的4%
-     起步试效果。 */
-  --card-tint-pct: 4%;
+     起步试效果，但用户截图反馈4%下账号下拉菜单等悬浮元素跟背景过于接近、
+     层级感丢失，整体感觉比之前"扬"。用真实场景预览（下拉菜单悬浮+统计
+     卡片）对比0/2/4/6%后，用户选定8%。 */
+  --card-tint-pct: 8%;
   --color-primary: #5E6AD2; --color-primary-container: #4F56B2; --color-on-primary: #FFFFFF;
   --color-secondary: #6C72CB; --color-secondary-container: #5359A8;
   --color-tertiary: #E5484D;
@@ -197,8 +199,11 @@
   /* 2026-06-20: 见:root里--card-tint-pct的注释。Stripe的--color-surface
      (#F7F8FA)是中性灰白，不带主题紫色调，所以.card容器（统计面板/管理
      面板/各种弹窗）背景跟Rose比起来"看起来没主题色"（用户截图对比Rose和
-     Stripe两张图确认了这个差异）。从Rose反推出的4%起步试效果。 */
-  --card-tint-pct: 4%;
+     Stripe两张图确认了这个差异）。从Rose反推出的4%起步试效果，但用户截图
+     反馈4%下账号下拉菜单等悬浮元素跟背景过于接近、层级感丢失，整体感觉比
+     之前"扬"。用真实场景预览（下拉菜单悬浮+统计卡片）对比0/2/4/6%后，
+     用户选定8%。 */
+  --card-tint-pct: 8%;
   /* 2026-06-20: 见:root里--topbar-tint-pct的注释——本主题--color-background
      是纯灰度白(#FFFFFF, HSL饱和度0%)，跟紫色主色完全不同色系，玻璃透明叠加
      后视觉效果会被纯白背景明显冲淡，需要比Rose/Linear更高的混入比例才能让
