@@ -217,9 +217,17 @@ button { cursor: pointer; }
 .input:focus { border-color: var(--color-primary-container); box-shadow: 0 0 0 3px var(--color-focus-ring); }
 .label-sm { font-size: var(--font-xs); color: var(--color-on-surface-variant); font-weight: 500; }
 
-.user-switcher { position: relative; }
-.user-trigger { border: 0; background: transparent; color: var(--color-on-surface); font-weight: 700; font-size: var(--font-base); padding: var(--space-1-5) var(--space-2-5); border-radius: var(--radius-sm); white-space: nowrap; }
-.user-trigger:hover { background: var(--color-surface-container-low); }
+.account-menu { position: relative; }
+.account-trigger { display: flex; align-items: center; gap: var(--space-1); border: 0; background: transparent; color: var(--color-on-surface); font-weight: 700; font-size: var(--font-base); padding: var(--space-1-5) var(--space-2-5); border-radius: var(--radius-sm); white-space: nowrap; transition: var(--transition-interactive); }
+.account-trigger:hover { background: var(--color-surface-container-low); }
+.account-trigger:active { transform: scale(var(--state-active-scale)); }
+.account-trigger-arrow { color: var(--color-on-surface-variant); transition: var(--transition-interactive); }
+.account-trigger-arrow.is-open { transform: rotate(180deg); }
+.account-dropdown { position: absolute; top: calc(var(--size-input) + var(--space-1)); right: 0; min-width: 168px; padding: var(--space-1-5); z-index: var(--z-flyout); display: grid; gap: var(--space-1); }
+.account-dropdown-item { display: flex; align-items: center; gap: var(--space-2); width: 100%; border: 0; background: transparent; color: var(--color-on-surface); font-weight: 600; font-size: var(--font-base); padding: var(--space-2) var(--space-2-5); border-radius: var(--radius-sm); white-space: nowrap; text-align: left; transition: var(--transition-interactive); }
+.account-dropdown-item:hover { background: var(--color-surface-container-low); }
+.account-dropdown-item:active { transform: scale(var(--state-active-scale)); }
+.account-dropdown-item.is-danger { color: var(--color-error); }
 .user-dropdown { position: absolute; top: var(--size-input); left: 0; min-width: 180px; padding: var(--space-2); z-index: var(--z-flyout); }
 .user-row { display: flex; align-items: center; justify-content: space-between; }
 .user-name { flex: 1; text-align: left; border: 0; background: transparent; padding: var(--space-2) var(--space-2-5); font-weight: 600; color: var(--color-on-surface); border-radius: var(--radius-sm); font-size: var(--font-base); }
@@ -279,7 +287,7 @@ button { cursor: pointer; }
 .mode-pill button { border: 0; border-radius: var(--radius-pill-segment); background: transparent; color: var(--color-on-surface-variant); padding: var(--space-2-5) var(--space-4); font-size: var(--font-sm); font-weight: 700; white-space: nowrap; }
 .mode-pill button.active { background: var(--color-primary); color: var(--color-on-primary); }
 .profile-tabs { overflow-x: auto; }
-.embedded-panel { display: grid; gap: var(--space-3); }
+.embedded-panel { display: grid; gap: var(--space-3); min-width: 0; }
 .embedded-head { margin-bottom: var(--space-1); }
 .admin-create { margin-bottom: var(--space-4); align-items: stretch; }
 .admin-create .input { flex: 1; }
@@ -314,8 +322,9 @@ button { cursor: pointer; }
 .btn-outline.small, .btn-danger.small { min-height: var(--size-btn-small); padding: 0 var(--space-2-5); font-size: var(--font-xs); white-space: nowrap; }
 .mini-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .mini-actions .btn-outline, .mini-actions .btn-danger { min-height: var(--size-btn-small); padding: 0 var(--space-2-5); font-size: var(--font-xs); white-space: nowrap; }
-.stats-panel { position: fixed; right: var(--space-4-5); bottom: var(--space-4-5); z-index: var(--z-map-controls); width: 280px; padding: var(--space-3-5); }
+.stats-panel { --stats-panel-pad-x: var(--space-3-5); --stats-panel-pad-y: var(--space-3-5); position: fixed; right: var(--space-4-5); bottom: var(--space-4-5); z-index: var(--z-map-controls); width: 280px; padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x); max-height: min(640px, calc(100vh - var(--topbar-height) - var(--space-9))); overflow: auto; }
 .stats-panel { cursor: default; }
+.stats-panel > .panel-title { position: sticky; top: calc(-1 * var(--stats-panel-pad-y)); margin: calc(-1 * var(--stats-panel-pad-y)) calc(-1 * var(--stats-panel-pad-x)) var(--space-2); padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x) var(--space-2); background: var(--color-surface); z-index: 1; }
 .stats-collapsed-pill {
   position: fixed;
   left: 50%;
@@ -394,7 +403,7 @@ button { cursor: pointer; }
    覆盖（内联样式优先级天生高于外部样式表，没有 !important 不会生效）。
    与 .user-dropdown 同级（--z-flyout），低于 --z-modal，不会盖住管理员面板等弹窗。 */
 .map-tooltip { z-index: var(--z-flyout) !important; }
-.modal { width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: var(--space-5-5); border-radius: var(--radius-panel); background: var(--color-surface); color: var(--color-on-surface); }
+.modal { width: min(560px, 100%); min-width: 0; max-height: 90vh; overflow: auto; padding: var(--space-5-5); border-radius: var(--radius-panel); background: var(--color-surface); color: var(--color-on-surface); }
 .welcome-modal { width: min(420px, 100%); }
 .modal-wide { width: min(900px, 100%); }
 .visit-modal { width: min(1120px, 100%); }
@@ -437,7 +446,7 @@ button { cursor: pointer; }
 .drill-list { display: grid; gap: var(--space-2); max-height: 62vh; overflow: auto; }
 .drill-row { width: 100%; min-height: 50px; display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); border: var(--space-xs) solid var(--color-outline-variant); background: var(--color-background); color: var(--color-on-surface); border-radius: var(--radius-sm); padding: var(--space-2-5) var(--space-3); text-align: left; }
 .drill-row small { display: block; color: var(--color-on-surface-variant); margin-top: var(--space-1); }
-.stack { display: grid; gap: var(--space-3); }
+.stack { display: grid; gap: var(--space-3); min-width: 0; }
 .login-users { border-top: var(--space-xs) solid var(--color-outline-variant); padding-top: var(--space-4-5); display: grid; gap: var(--space-3); }
 .list-button { width: 100%; border: var(--space-xs) solid var(--color-outline-variant); background: var(--color-background); color: var(--color-on-surface); border-radius: var(--radius-panel); padding: var(--space-3); display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); text-align: left; margin-bottom: var(--space-2); transition: var(--transition-interactive), border-color var(--duration-fast) var(--ease-standard); }
 .list-button:hover { background: var(--color-surface-container-low); border-color: var(--color-primary-container); }
@@ -643,7 +652,7 @@ button { cursor: pointer; }
   .topbar .current-user { gap: var(--space-1-5); }
   .topbar .btn-outline { min-height: var(--size-btn-default); padding: 0 var(--space-3-5); font-size: var(--font-sm); }
   .login-grid { grid-template-columns: 1fr; }
-  .user-switcher { min-width: 0; }
+  .account-menu { min-width: 0; }
   .user-dropdown { left: auto; right: 0; width: min(320px, calc(100vw - 36px)); }
   .search { grid-column: 1 / -1; order: 3; }
   .topbar-actions, .top-actions { grid-column: 1 / -1; order: 4; justify-content: flex-start; overflow-x: auto; }
@@ -721,7 +730,7 @@ button { cursor: pointer; }
   .visit-form .form-grid-2, .form-grid-2, .admin-stats { grid-template-columns: 1fr; }
   .visit-editor { grid-template-columns: 1fr; }
   .inline-form { align-items: stretch; flex-direction: column; }
-  .stats-panel { left: var(--space-2); right: var(--space-2); bottom: var(--space-2); width: auto; max-height: 42vh; overflow: auto; padding: var(--space-2-5) var(--space-3); }
+  .stats-panel { --stats-panel-pad-x: var(--space-3); --stats-panel-pad-y: var(--space-2-5); left: var(--space-2); right: var(--space-2); bottom: var(--space-2); width: auto; max-height: 42vh; overflow: auto; padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x); }
   .stats-panel::before { display: none; }
   .stats-panel .stats-grid { gap: var(--space-1-5); }
   .stats-panel .stat { padding: var(--space-2) var(--space-2-5); }

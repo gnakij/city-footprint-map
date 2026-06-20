@@ -25,6 +25,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
+  { date: '2026-06-20', items: ['解决4项遗留UI一致性问题（待办列表中需要设计判断的项目）：①顶部用户名改为下拉菜单（个人资料/退出登录），替代原来"用户名无边框+退出按钮有描边"两种视觉语言混用的写法；②统计面板标题不再随内容滚走：桌面端补上面板级滚动容器（此前完全没有，内容多时面板会被无限撑高甚至超出视口），标题用sticky手法固定，桌面/移动端两套padding值通过CSS变量统一管理避免错位；③管理员面板"导出当前视图"按钮从实心改为描边，与"导入数据/下载模板"视觉权重一致，"查询"成为这组操作里唯一的实心主操作；④修复"用户管理"切换"数据管理"页签时弹窗整体宽度跳变的问题：根因是.data-table的720px固有最小宽度，经由.modal→.stack→.embedded-panel三层grid容器（均未设置min-width:0）一路向上传导撑大了弹窗本身，而不是表格自身的横向滚动没生效——已在三层补齐min-width:0切断传导链'] },
   { date: '2026-06-20', items: ['顶部导航栏Logo新增图标和slogan：图标采用🗺️（与登录页brand-mark保持一致），文案统一为“记录你走过的每一座城”（登录页/顶部导航栏三处同步），移动端窄屏隐藏slogan只保留图标和标题，避免和右侧用户区域挤在一起'] },
   { date: '2026-06-20', items: ['地图城市标签弹窗边框颜色不再跟随城市的染色梯度变化，改为固定使用当前主题的品牌主色', '地图"点亮/未点亮"城市与省份标签颜色不再固定写死，已点亮统一改为当前主题的品牌主色，未点亮改为次要文字色，三主题各自配专属值', '修复管理员/个人面板切换时整体高度忽上忽下的问题：根因是弹窗容器只设置了最大高度没有最小高度，不同页签内容量差异很大', '调整管理表格表头字号：从12px调到13px（与页签同字号），并加粗为700字重，解决"列表内容字体比表头还大"的问题', '修复统计面板边框"隐隐发红"的问题：根因是.card统一阴影里硬编码了旧主色的RGB分量，已同步更新为新主色RGB', '地图悬停预览色不再固定为黄色，改为复用--color-warning变量，三主题各自配专属色值', 'Rose主题主色微调：--color-primary 由 #F95D84 改为 #E0083E，修复主按钮白色文字对比度不达标的问题（3.03:1→4.91:1，达到WCAG AA标准）', '同步更新设计系统文档里的色彩系统主表，用脚本逐项核对替换为真实色值'] },
   { date: '2026-06-20', items: ['复核设计系统文档与代码实际状态的一致性（不改变用户可见功能）：修正“组件尺寸”表四个数值错误（输入框/大按钮/图标/大图标尺寸，文档与 index.css 实际定义不一致）；用 WCAG 标准公式重新计算颜色对比度表格，原数值经核实为估算而非实算（三套主题多处填了完全相同的数字，这在数学上不可能，是没有真算的明显信号），现已标注每个变量是否真的被组件引用，区分“不达标且在用、需要处理”和“不达标但未使用、暂无风险”两类问题', '补充文档此前完全遗漏的“地图染色梯度”章节（--color-dur-l*/--color-dep-l*，是地图色块染色的核心实现）；纠正“全局状态规范”一节表述，原称 empty-state/loading/error-state 三个class“已实现”，复核后确认目前未被任何组件引用，应为“已定义、待采用”；顺手修复 index.css 中 .empty-state 被重复定义两次的隐藏隐患（合并为一份）'] },
@@ -472,7 +473,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             >
               <Icon name="search" /> 查询
             </button>
-            <button className="btn-primary" onClick={downloadCurrentLedger}><Icon name="upload" /> 导出当前视图</button>
+            <button className="btn-outline" onClick={downloadCurrentLedger}><Icon name="upload" /> 导出当前视图</button>
             <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
             <button className="btn-outline" onClick={downloadAdminTemplate}><Icon name="download" /> 下载模板</button>
           </div>

@@ -392,11 +392,27 @@ cd /var/www/cityprint/assets && while read f; do rm -f "$f"; done < /tmp/to_dele
   slogan候选"...每一座城市"不完全一致，确认是笔误，统一为不带"市"字的
   版本，三处（登录页两处+顶部导航栏）保持一致。
 
-**讨论过但需要用户先做设计判断、本次未动**：
-- "管理员"按钮（`.user-trigger`，无边框透明背景）与旁边"退出"按钮
-  （`.btn-outline`，有描边）视觉语言不统一。
-- 统计面板标题"足迹统计"（`.panel-title`）没有sticky定位，内容超出可视
-  高度产生滚动时标题会被滚走。
+**已处理（2026-06-20，用户做完设计判断后落地）**：
+- "管理员"入口与"退出"按钮视觉语言不统一：改造成账号下拉菜单（`TopBar.tsx`
+  的`.account-menu`/`.account-trigger`/`.account-dropdown`），用户名点击展开，
+  菜单内"个人资料""退出登录"两项统一无边框风格，退出登录用`--color-error`
+  文字色区分而非边框。新增`Icon.tsx`的`logout`图标（项目已有的SVG图标系统里
+  补的标准登出符号，不是新引入风格）。原`.user-trigger`/`.user-switcher`类已
+  删除，确认过`.user-dropdown`（另一个"切换用户列表"场景在用的类名）未受影响，
+  是两套独立的下拉样式。
+- 统计面板标题sticky：桌面端`.stats-panel`原本完全没有`max-height`/`overflow`
+  （移动端早就有`max-height: 42vh; overflow: auto`，是桌面端漏配），内容多时
+  面板会被撑高甚至超出视口，不是简单加`position: sticky`能解决的，根因是缺
+  一层滚动容器。修复：桌面端补上`max-height: min(640px, calc(100vh -
+  var(--topbar-height) - var(--space-9)))` + `overflow: auto`，标题用
+  `position: sticky` + 负margin手法贴住滚动容器顶部（而非贴在有padding的
+  外层，否则顶部会露出空隙）。**用了`--stats-panel-pad-x`/`--stats-panel-pad-y`
+  两个局部变量统一桌面端与移动端的padding值**——因为两个断点的padding本身
+  不一样（桌面`--space-3-5`，移动端`--space-2-5`/`--space-3`左右不对称），
+  sticky标题的负margin/padding如果硬编码某一断点的值，会在另一断点跟实际
+  padding错位，露出缝隙或遮挡不全。只对`.stats-panel`的**直接子元素**
+  `.panel-title`生效（用`>`子选择器），不影响面板中部"排行"小标题（同一
+  class名但语义不同，不应该sticky）。
 - ~~管理员面板"个人信息/访问记录/系统管理/系统设置"四个tab内容结构、内容量
   完全不同，没有统一的容器最小高度，切换tab时页面高度跳动~~
   **[已处理 2026-06-20]** `.modal-xl` 加了 `min-height: 560px`（移动端
@@ -406,10 +422,25 @@ cd /var/www/cityprint/assets && while read f; do rm -f "$f"; done < /tmp/to_dele
 - ~~`.data-table th`(表头,12px) 字号小于 `.data-table td`(内容,14px)~~
   **[已处理 2026-06-20]** 表头改为13px(`--font-sm`，与页签同字号)+700字重，
   需要用户实测确认协调度。
-- 管理员面板"导出当前视图"用`.btn-primary`(实心)，"导入数据"用
-  `.btn-outline`(描边)——这是项目按钮规范本身"主操作/次操作"的语义区分，
-  用户认为这两个操作同等重要，是否要打破现有规范让二者视觉一致，需要
-  用户决定（这涉及是否要调整"组件规范"里按钮的分类逻辑本身）。
-- 管理员面板"用户管理"和"数据管理"两个tab切换时，整个面板宽度发生变化——
-  因为两个tab渲染的内容（用户表格 vs 数据管理工具）本身宽度不同，没有
-  统一容器宽度约束。
+- ~~管理员面板"导出当前视图"用`.btn-primary`(实心)，"导入数据"用
+  `.btn-outline`(描边)~~ **[已处理 2026-06-20]** 复核后发现这一行实际是
+  四个按钮（查询/导出当前视图=实心，导入数据/下载模板=描边），不是只有
+  导出导入两个。用户确认设计判断：导出/导入/下载模板本质上是同类的
+  "数据搬运辅助工具"，不该因为方向不同（出/进）就主次有别；"查询"才是
+  这组操作里真正驱动页面状态变化的主操作。改动：`downloadCurrentLedger`
+  按钮从`btn-primary`改为`btn-outline`，"查询"仍保持`btn-primary`不变，
+  不需要打破项目"主操作/次操作"的按钮规范本身。
+- ~~管理员面板"用户管理"和"数据管理"两个tab切换时，整个面板宽度发生变化~~
+  **[已处理 2026-06-20]** 根因不是"两个tab内容宽度不同"这么简单——
+  `.data-table`设了`min-width: 720px`，这个固有最小宽度通过`.modal`→
+  `.stack`→`.embedded-panel`三层**全部是`display: grid`且都未设置
+  `min-width: 0`**的容器一路向上传导，最终撑大了`.modal-xl`本身（固定
+  `width: min(1180px, 100%)`本该是不变的，但grid item默认`min-width: auto`
+  会被内容固有宽度突破这个声明）。不是`.table-wrap`的`overflow: auto`没
+  生效，是传导链在它生效之前就已经把外层撑大了。修复：在`.modal`、
+  `.stack`、`.embedded-panel`三层都补上`min-width: 0`切断传导，让
+  `.table-wrap`的内部横向滚动真正发挥作用，外层弹窗宽度不再受表格内容
+  影响。**这类"容器被内容意外撑大"的问题如果以后再出现，优先检查链路上
+  每一层grid/flex容器是否漏设`min-width: 0`（或flex item漏设`min-width: 0`/
+  `flex-shrink`），而不是只看最内层有没有`overflow: auto`——`overflow`生效
+  的前提是容器尺寸已经定下来，如果容器本身先被撑大了，overflow无法挽回。**
