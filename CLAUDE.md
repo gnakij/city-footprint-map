@@ -132,9 +132,19 @@ npm run build             # 构建
 rsync -a dist/ /var/www/cityprint/        # 部署前端（不用 --delete，保留 docs 目录）
 cp -r docs /var/www/cityprint/            # 同步文档
 chmod 644 /var/www/cityprint/docs/*.md    # 确保文档可读
+
+# 清理 assets/ 里的旧版本 hash 文件（assets/ 强缓存 immutable，从不自动清理，
+# 每次构建都会新增一批新 hash 文件，旧文件不会被覆盖，需手动清理，
+# 但不能对整个目录用 rsync --delete，见上方注意事项）
+ls /var/www/cityprint/assets/ | sort > /tmp/live_assets.txt
+ls dist/assets/ | sort > /tmp/needed_assets.txt
+comm -23 /tmp/live_assets.txt /tmp/needed_assets.txt > /tmp/to_delete.txt
+cd /var/www/cityprint/assets && while read f; do rm -f "$f"; done < /tmp/to_delete.txt
 ```
 
-**注意**：不要用 `rsync --delete`，会删掉 `/var/www/cityprint/docs/` 目录（docs 不在 dist 里）。
+**注意**：
+- 不要用 `rsync --delete`，会删掉 `/var/www/cityprint/docs/` 目录（docs 不在 dist 里）。
+- `assets/` 目录需要单独清理旧 hash 文件（见上方清理步骤），否则会无限堆积废弃的历史版本 JS/CSS。
 
 线上地址：https://www.gnakij.top/cityprint/
 后端服务：`cityprint-api.service`（127.0.0.1:8001）
