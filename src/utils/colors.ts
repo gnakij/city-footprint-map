@@ -62,3 +62,17 @@ export function getUnlitLabelColor(): string {
 export function getTooltipBorderColor(): string {
   return cssVar('--color-primary', '#8C2540');
 }
+
+/**
+ * 省名标注文字的光晕(halo)颜色。2026-06-20 新增：之前省名文字固定用白色
+ * textShadow 当作可读性保险（textShadowColor: rgba(255,255,255,.85)），
+ * 在 Linear 暗色主题下白色光晕糊在暗背景上效果很差（用户反馈"像一团雾"），
+ * 且不跟随主题切换。改为复用 --color-background（三主题各自的页面背景色），
+ * 让光晕色本身跟主题协调；配合 getLitLabelColor() 作为文字色，两者对比度
+ * 经验证三主题下均 >= 4.2（rose 4.79 / linear 4.24 / stripe 6.19），不随
+ * 省名标注下方实际色块深浅变化——halo 的对比度只取决于"文字色 vs halo色"
+ * 这两个固定值的关系，不需要再去判断标注下方那一小块地图的真实底色。
+ */
+export function getHaloColor(): string {
+  return cssVar('--color-background', '#FFFBFC');
+}

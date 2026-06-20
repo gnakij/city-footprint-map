@@ -11,7 +11,7 @@ import { loadChinaCitiesGeoJSON, loadChinaGeoJSON, loadProvinceGeoJSON, loadProv
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import type { CityData } from '../types';
-import { getDurationColor, getLastDepartureColor, getPreviewColor, getLitLabelColor, getUnlitLabelColor, getTooltipBorderColor } from '../utils/colors';
+import { getDurationColor, getLastDepartureColor, getPreviewColor, getLitLabelColor, getUnlitLabelColor, getTooltipBorderColor, getHaloColor } from '../utils/colors';
 import { daysSinceDate, visitDays } from '../utils/date';
 import { findCityForFeature, municipalities, PROVINCE_CENTROIDS, shortName } from '../utils/mapHelpers';
 import Icon from './Icon';
@@ -92,6 +92,14 @@ export default function MapView() {
   const showToast = useStore(s => s.showToast);
   const colorMode = useStore(s => s.colorMode);
   const setColorMode = useStore(s => s.setColorMode);
+  // 2026-06-20: 主题颜色（地图色块/标签）通过getComputedStyle实时读取CSS变量，
+  // 不是React state驱动；主题切换只改document.documentElement.dataset.theme这个
+  // DOM属性，不触发任何React重渲染。renderMap之前没有把theme放进依赖数组，导致
+  // 切主题后地图颜色不会自动刷新，要等用户操作触发了别的依赖变化（如点击改变
+  // previewCity）renderMap才被迫重跑，颜色才"顺带"更新——表现为"双击才生效"。
+  // 订阅theme仅为了让renderMap在主题切换时重新执行，函数内部仍然用
+  // getComputedStyle取真实颜色值，不直接使用这个变量。
+  const theme = useStore(s => s.settings.theme);
 
   const cityDays = useMemo(() => {
     const map = new Map<string, number>();
@@ -300,11 +308,15 @@ export default function MapView() {
           const short = shortName(f.properties.name);
           const centroid = PROVINCE_CENTROIDS[short];
           if (!centroid) return null;
-          const lit = litProvinces.has(short);
+          // 2026-06-20: 不再按点亮/未点亮区分文字色，统一用主题primary色——
+          // 因为标签现在靠halo(textShadow跟随主题background色)保证可读性，
+          // halo的对比度只取决于"文字色 vs halo色"这两个固定值，不受省名标注
+          // 底下实际色块深浅影响，因此不需要再用"灰色=未点亮"这种弱化手段
+          // 去间接提升对比度。litProvinces仍保留供其他地方使用，不删除这个计算。
           return {
             name: short,
             coord: centroid,
-            itemStyle: { color: lit ? litLabelColor : unlitLabelColor },
+            itemStyle: { color: litLabelColor },
           };
         })
         .filter((p): p is { name: string; coord: [number, number]; itemStyle: { color: string } } => p !== null);
@@ -404,8 +416,14 @@ export default function MapView() {
               formatter: '{b}',
               fontSize: 10,
               fontWeight: 400,
-              textShadowColor: 'rgba(255,255,255,.85)',
-              textShadowBlur: 3,
+              // 2026-06-20: 原固定白色阴影(rgba(255,255,255,.85))+blur3，在暗色
+              // 主题(Linear)下白色光晕糊在暗背景上效果差，用户反馈"像一团雾"；
+              // 且不跟随主题。改为：halo色跟随主题--color-background（与文字色
+              // --color-primary形成固定的高对比度组合，不受省名标注下方实际色块
+              // 深浅影响——这是halo手法的核心价值，对比度关系是"文字色 vs halo色"
+              // 而非"文字色 vs 色块色"），blur从3降到1.5减少模糊感。
+              textShadowColor: getHaloColor(),
+              textShadowBlur: 1.5,
             },
             data: provinceMarkPoints.map(p => ({
               name: p.name,
@@ -416,7 +434,7 @@ export default function MapView() {
         }]),
       ],
     }, provinceChanged);  // 省份切换时才全量替换，preview 变化时 merge 保留 zoom
-  }, [activeProvince, cityDays, cityFillColor, cityTooltipText, litProvinces, previewCity, showToast]);
+  }, [activeProvince, cityDays, cityFillColor, cityTooltipText, litProvinces, previewCity, showToast, theme]);
 
   // ── 绑定原生手势事件 ────────────────────────────────────────────────────
   useEffect(() => {

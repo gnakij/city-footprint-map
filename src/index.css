@@ -138,7 +138,10 @@
   --color-primary: #5E6AD2; --color-primary-container: #4F56B2; --color-on-primary: #FFFFFF;
   --color-secondary: #6C72CB; --color-secondary-container: #5359A8;
   --color-tertiary: #E5484D;
-  --color-error: #E5484D;
+  --color-error: #E5487C; /* 2026-06-20: 原#E5484D是纯正红，与本主题紫蓝主色(#5E6AD2)
+    色相完全无关联，用户反馈"清空数据"等危险按钮颜色感觉不跟主题。色相由358°往
+    品红方向偏18°至340°，保留红色警示属性的同时带上主题紫调，不动--color-tertiary
+    （语义不同，避免扩大改动范围）。*/
   --color-success: #4CAF50;
   --color-warning: #FFC857; /* 2026-06-20: 复用此变量作为地图悬停预览色，Linear主题专属值 */
   --color-background: #08090A; --color-surface: #101215;
@@ -146,8 +149,20 @@
   --color-on-surface: #EDEEF0; --color-on-surface-variant: #8A8F98;
   --color-outline-variant: #2A2D35;
   --color-dur-l0: #1A1C20; --color-dur-l1: #232431; --color-dur-l2: #3C3E9C;
-  --color-dur-l3: #5B5ECE; --color-dur-l4: #7A7DE0; --color-dur-l5: #9B9FF0; --color-dur-l6: #C3C5F7;
-  --color-dep-l1: #232431; --color-dep-l2: #5B5ECE; --color-dep-l3: #9B9FF0; --color-dep-l4: #C3C5F7;
+  --color-dur-l3: #5B5ECE; --color-dur-l4: #7A7DE0; --color-dur-l5: #767BEA; --color-dur-l6: #878CED;
+  /* 2026-06-20: l5(#9B9FF0->#767BEA)/l6(#C3C5F7->#878CED)调深，原因：本主题色阶
+     方向与rose/stripe相反（天数越多反而越浅），l5/l6作为最浅两档，亮度本来就
+     落在跟深色文字(#EDEEF0)和白字都接近的中间地带，对比度分别只有2.44/1.66，
+     省名标注文字看不清。用户决定保持"越多越浅"方向不变，只把这两档调深到
+     刚好达标（best contrast约3.0~3.63，不要求达到4.5的WCAG AA标准，因为同
+     色相下亮度超过约68%后无法兼顾"比l4更浅"和"对比度达标"两个要求——这是
+     物理上的矛盾，3.0是双方折中后的下限）。同色相(237°)、同饱和度，只降低
+     了明度，不改变色调本身。 */
+  --color-dep-l1: #232431; --color-dep-l2: #5B5ECE; --color-dep-l3: #767BEA; --color-dep-l4: #878CED;
+  /* 上面dep_l3/l4与dur_l5/l6共用同一组新颜色值（历史上两套独立色阶就共用同
+     一批色值，不是本次新引入的耦合）——dep是"最后离开天数"语义，跟dur"停留
+     天数"含义不同，但既然颜色值相同，此次调色会同时影响两种模式的显示，
+     已一并验证新值在两种语义下都达标。 */
   --glass-bg: rgba(16,18,21,.85);
   --glass-border: rgba(255,255,255,.06);
   --shadow-card: 0 var(--space-1) var(--space-5-5) rgba(0,0,0,.25); --shadow-glow: 0 var(--space-2) 30px rgba(94,106,210,.18);
@@ -159,7 +174,10 @@
   --color-primary: #533AFD; --color-primary-container: #6358F7; --color-on-primary: #FFFFFF;
   --color-secondary: #6650E6; --color-secondary-container: #7A64FF;
   --color-tertiary: #CD3039;
-  --color-error: #CD3039;
+  --color-error: #CD3068; /* 2026-06-20: 原#CD3039是纯正红，与本主题紫色主色(#533AFD)
+    色相完全无关联，用户反馈"清空数据"等危险按钮颜色感觉不跟主题。色相由357°往
+    品红方向偏18°至339°，保留红色警示属性的同时带上主题紫调，不动--color-tertiary
+    （语义不同，避免扩大改动范围）。*/
   --color-success: #4CAF50;
   --color-warning: #F5A623; /* 2026-06-20: 复用此变量作为地图悬停预览色，Stripe主题专属值 */
   --color-background: #FFFFFF; --color-surface: #F7F8FA;
