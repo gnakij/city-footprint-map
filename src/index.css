@@ -298,8 +298,6 @@ button { cursor: pointer; }
 .btn-outline.small, .btn-danger.small { min-height: var(--size-btn-small); padding: 0 var(--space-2-5); font-size: var(--font-xs); white-space: nowrap; }
 .mini-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .mini-actions .btn-outline, .mini-actions .btn-danger { min-height: var(--size-btn-small); padding: 0 var(--space-2-5); font-size: var(--font-xs); white-space: nowrap; }
-.empty-state { margin: 0; color: var(--color-on-surface-variant); font-weight: 500; }
-
 .stats-panel { position: fixed; right: var(--space-4-5); bottom: var(--space-4-5); z-index: var(--z-map-controls); width: 280px; padding: var(--space-3-5); }
 .stats-panel { cursor: default; }
 .stats-collapsed-pill {
