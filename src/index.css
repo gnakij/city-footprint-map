@@ -265,6 +265,13 @@ button { cursor: pointer; }
 
 .topbar { position: fixed; inset: var(--space-3) var(--space-3) auto; z-index: var(--z-topbar); min-height: 56px; border-radius: var(--radius-lg); display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); }
 .logo { font-weight: 800; white-space: nowrap; font-size: var(--font-lg); }
+/* 2026-06-20: Logo新增图标(emoji)+slogan，与登录页brand-mark保持同一个图标和
+   文案(均为🗺️/"记录你走过的每一座城")，但topbar是常驻小尺寸导航栏场景，不能
+   直接复用登录页--font-display(56px)那套大尺寸样式，单独定义协调的小尺寸。 */
+.logo-group { display: flex; align-items: center; gap: var(--space-2); }
+.logo-mark { font-size: var(--font-2xl); line-height: 1; flex-shrink: 0; }
+.logo-text-group { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.logo-slogan { margin: 0; font-size: var(--font-2xs); font-weight: 500; color: var(--color-on-surface-variant); white-space: nowrap; line-height: 1.2; }
 .topbar-actions, .current-user { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); }
 .top-actions, .icon-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); }
 .current-user { font-weight: 700; font-size: var(--font-sm); white-space: nowrap; }
@@ -631,6 +638,8 @@ button { cursor: pointer; }
   }
   .topbar { height: auto; grid-template-columns: 1fr auto; align-items: center; gap: var(--space-1-5); padding: var(--space-1-5) var(--space-2-5); border-radius: var(--radius-md); }
   .topbar .logo { font-size: var(--font-15); }
+  .topbar .logo-mark { font-size: var(--font-xl); }
+  .topbar .logo-slogan { display: none; } /* 移动端屏幕窄，隐藏slogan只保留图标+标题，避免和右侧用户区域挤在一起 */
   .topbar .current-user { gap: var(--space-1-5); }
   .topbar .btn-outline { min-height: var(--size-btn-default); padding: 0 var(--space-3-5); font-size: var(--font-sm); }
   .login-grid { grid-template-columns: 1fr; }
