@@ -301,11 +301,13 @@ button { cursor: pointer; }
    主题看起来几乎只有明暗差异，缺乏"这是哪个主题"的识别感。用户决定给顶部
    条单独混入一点主题主色（不改--glass-bg本身，避免影响Toast/地图控件/
    登录面板等其他共用.glass的元素）。用color-mix在.glass提供的玻璃背景基础
-   上叠加6%主题色——这里不能写成跟--glass-bg等比例的固定百分号，因为三主题
-   的--glass-bg本身透明度/明暗不同，6%是反复对比三主题预览效果后确认的
-   折中值，用户已通过静态预览页面确认采用"整体玻璃背景混入主题色"方案
-   （而非"加一条主题色细边"的备选方案）。 */
-.topbar { background: color-mix(in srgb, var(--color-primary) 6%, var(--glass-bg)); }
+   上叠加主题色。**比例迭代记录**：最初定的6%在静态预览（不透明纯色模拟）
+   里看着够，但部署后用户反馈Stripe主题"太白不紫"——根因是Stripe的
+   --glass-bg本身是rgba(247,248,250,.82)，已经非常接近白色且带透明度，
+   同样6%的紫色在这种底色上视觉冲淡程度远超预览时的模拟（预览没有还原
+   真实的半透明叠加效果）。用真实color-mix公式重新做了5档(6/10/14/18/22%)
+   对比预览，用户选定14%为最终值。 */
+.topbar { background: color-mix(in srgb, var(--color-primary) 14%, var(--glass-bg)); }
 .logo { font-weight: 800; white-space: nowrap; font-size: var(--font-lg); }
 /* 2026-06-20: Logo新增图标(emoji)+slogan，与登录页brand-mark保持同一个图标和
    文案(均为🗺️/"记录你走过的每一座城")，但topbar是常驻小尺寸导航栏场景，不能
@@ -558,7 +560,7 @@ button { cursor: pointer; }
      相同)——桌面端实际上完全没有玻璃效果，是这条规则换成的纯色背景。
      拆开成独立规则，桌面端同样用color-mix混入主题色，不再是纯--color-surface。 */
   .topbar.glass {
-    background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+    background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface));
     backdrop-filter: none;
     border: var(--space-xs) solid var(--color-outline-variant);
     box-shadow: var(--elevation-low);
