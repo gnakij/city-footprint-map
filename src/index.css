@@ -186,7 +186,7 @@
      后视觉效果会被纯白背景明显冲淡，需要比Rose/Linear更高的混入比例才能让
      紫色感清晰可辨。用户在真机上用真实纯白背景对比5档(14/22/30/38/46%)后
      选定22%。 */
-  --topbar-tint-pct: 80%;
+  --topbar-tint-pct: 8%;
   --color-primary: #533AFD; --color-primary-container: #6358F7; --color-on-primary: #FFFFFF;
   --color-secondary: #6650E6; --color-secondary-container: #7A64FF;
   --color-tertiary: #CD3039;
