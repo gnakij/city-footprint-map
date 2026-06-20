@@ -137,26 +137,49 @@ export default function MapView() {
 
   useEffect(() => { activeProvinceRef.current = activeProvince; }, [activeProvince]);
 
-  // ── 用 dispatchAction geoRoam 做缩放 ────────────────────────────────────
+  // ── 用 dispatchAction geoRoam 做缩放（可选同时平移）──────────────────────
   // 省级视图下只有 1 个系列（坐标系天然唯一），全国视图下需要把同一个 zoom/origin
   // 同时广播给主图层和省界轮廓层这两个独立坐标系，保证二者像素对齐、不分离。
+  //
+  // 关键点：ECharts 内部对 geoRoam 的 zoom 钳位（scaleLimit）是"每个 series 各自
+  // 用自己的 previousZoom 独立计算"的（见 echarts/lib/action/roamHelper.js 的
+  // updateCenterAndZoom）。即使两个 series 收到完全相同的 zoom 增量，只要某一帧
+  // 其中一个 series 的累积 zoom 先一步撞到 0.5~12 的边界、另一个还没撞到，二者从
+  // 这一帧起就会产生实际缩放倍率的分叉，且不会自愈——这正是放大后两层持续错位的根因。
+  //
+  // 修复方式：不要把"原始的、未经总量裁剪的增量"直接广播出去，而是先用我们自己
+  // 维护的权威状态 currentZoomRef 算出"裁剪到 0.5~12 之后的目标总缩放"，再反推出
+  // 一个统一的"有效增量"广播给所有 series。这样不管哪个 series 内部各自怎么钳位，
+  // 拿到的输入增量都已经是同一个、被裁剪过的值，从根上消除了分叉的触发条件。
   const dispatchZoom = useCallback((
     zoomDelta: number,
     originX: number,
     originY: number,
+    dx = 0,
+    dy = 0,
+    // 滚轮/wheel 是高频小增量，需要限制单帧最大步长（MAX/MIN_ZOOM_FACTOR）；
+    // pinch 手势传入的是整个手势期间的累积总倍率（可能远超单帧步长范围），
+    // 这里必须跳过单帧限制，否则会被错误地砍到 0.8~1.25 之间。
+    applyStepLimit = true,
   ) => {
     const chart = chartRef.current;
     if (!chart) return;
-    const clamped = Math.min(MAX_ZOOM_FACTOR, Math.max(MIN_ZOOM_FACTOR, zoomDelta));
-    currentZoomRef.current = Math.min(12, Math.max(0.5, currentZoomRef.current * clamped));
+    const rawClamped = applyStepLimit
+      ? Math.min(MAX_ZOOM_FACTOR, Math.max(MIN_ZOOM_FACTOR, zoomDelta))
+      : zoomDelta;
+    const targetZoom = Math.min(12, Math.max(0.5, currentZoomRef.current * rawClamped));
+    // 用目标总缩放反推出"有效增量"：两个 series 统一使用这个值，而不是 rawClamped
+    const effectiveFactor = targetZoom / currentZoomRef.current;
+    currentZoomRef.current = targetZoom;
     const seriesIndices = activeProvinceRef.current ? [0] : NATIONAL_VIEW_SERIES_INDICES;
     for (const seriesIndex of seriesIndices) {
       chart.dispatchAction({
         type: 'geoRoam',
         seriesIndex,
-        zoom: clamped,
+        zoom: effectiveFactor,
         originX,
         originY,
+        ...(dx || dy ? { dx, dy } : {}),
         animation: { duration: 0 },
       } as GeoRoamAction);
     }
@@ -641,23 +664,22 @@ export default function MapView() {
           // （cssZoomAccumulator 始终为 1）会被整个跳过，平移量丢失，松手后地图回跳。
           if (cssZoomAccumulator !== 1 || cssPanX !== 0 || cssPanY !== 0) {
             clearCssTransform();
-            // 计算最终 zoom 并同步给 ECharts
-            const finalZoom = pinchStartZoom * cssZoomAccumulator;
-            const clampedZoom = Math.min(12, Math.max(0.5, finalZoom));
-            currentZoomRef.current = clampedZoom;
-            const seriesIndices = activeProvinceRef.current ? [0] : NATIONAL_VIEW_SERIES_INDICES;
-            for (const seriesIndex of seriesIndices) {
-              chart.dispatchAction({
-                type: 'geoRoam',
-                seriesIndex,
-                zoom: clampedZoom / pinchStartZoom, // 增量缩放
-                dx: cssPanX,
-                dy: cssPanY,
-                originX: transformOriginX,
-                originY: transformOriginY,
-                animation: { duration: 0 },
-              } as GeoRoamAction);
+            // 统一走 dispatchZoom，复用其中"先按总量裁剪、再用同一个有效增量广播给
+            // 两个 series"的逻辑——避免这里曾经手写的独立 dispatchAction 路径绕开
+            // 该修正，导致主图层与省界轮廓层在 pinch 手势下各自钳位不同步而错位。
+            //
+            // 健全性检查：pinch 期间 currentZoomRef.current 理论上应该一直等于
+            // pinchStartZoom（CSS transform 阶段不会更新它）。如果这里不相等，
+            // 说明这期间有别的代码路径意外改动了 currentZoomRef，dispatchZoom 内部
+            // 用 currentZoomRef.current 当基准算出来的目标值就会偏离 pinch 手势本身
+            // 期望的缩放结果——开发环境下打印出来，方便及时发现而不是默默吃掉。
+            if (import.meta.env.DEV && currentZoomRef.current !== pinchStartZoom) {
+              console.warn(
+                `[MapView] pinch 结束时 currentZoomRef(${currentZoomRef.current}) 与 ` +
+                `pinchStartZoom(${pinchStartZoom}) 不一致，缩放基准可能有误`,
+              );
             }
+            dispatchZoom(cssZoomAccumulator, transformOriginX, transformOriginY, cssPanX, cssPanY, false);
             cssZoomAccumulator = 1;
             cssPanX = 0;
             cssPanY = 0;
