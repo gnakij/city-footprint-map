@@ -23,3 +23,12 @@ export function getLastDepartureColor(daysAgo: number): string {
   if (daysAgo < 3650) return cssVar('--color-dep-l2', '#FFC0CD');
   return cssVar('--color-dep-l1', '#FDE0E6');
 }
+
+/**
+ * 地图悬停/预览高亮色。2026-06-20 之前硬编码为固定的 #FFD166（黄色），
+ * 不跟随主题切换；复用 --color-warning 这个语义接近、此前未被任何组件
+ * 使用的变量，三个主题各自定义了专属值（见 index.css），不再是单一固定色。
+ */
+export function getPreviewColor(): string {
+  return cssVar('--color-warning', '#FFD166');
+}

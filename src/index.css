@@ -113,7 +113,7 @@
   --color-tertiary: #D9485A;
   --color-error: #D9485A;
   --color-success: #4CAF50;
-  --color-warning: #FF9800;
+  --color-warning: #FFB74D; /* 2026-06-20: 复用此变量作为地图悬停预览色，Rose主题专属值 */
   --color-background: #FFFBFC; --color-surface: #FFF5F7;
   --color-surface-container-low: #FBEEF1; --color-surface-container: #F7E4E9;
   --color-on-surface: #2D1B24; --color-on-surface-variant: #8C6C77;
@@ -123,7 +123,13 @@
   --color-dep-l1: #FDE0E6; --color-dep-l2: #FFC0CD; --color-dep-l3: #F95D84; --color-dep-l4: #A82848;
   --glass-bg: rgba(255,245,247,.82);
   --glass-border: rgba(240,217,225,.7);
-  --shadow-card: 0 var(--space-1) var(--space-5-5) rgba(249,93,132,.08); --shadow-glow: 0 var(--space-2) 28px rgba(249,93,132,.18);
+  --shadow-card: 0 var(--space-1) var(--space-5-5) rgba(224,8,62,.08); --shadow-glow: 0 var(--space-2) 28px rgba(224,8,62,.18);
+  /* 2026-06-20: rgba数值是主色#E0083E的RGB分量，硬编码而非引用--color-primary，
+     是因为CSS自定义属性不支持在rgba()里拆解颜色分量。上次改主色(#F95D84->#E0083E)
+     时漏掉了这两处，导致阴影还在用旧主色色相，肉眼看起来像“隐隐的红色边框”——
+     这不是真正的border，是带色相的box-shadow在浅色背景上造成的视觉误导。
+     以后再改--color-primary，必须同步搜索这两个rgba硬编码值一起改，否则会再发生
+     同样的不一致。*/
   color-scheme: light;
 }
 
@@ -134,7 +140,7 @@
   --color-tertiary: #E5484D;
   --color-error: #E5484D;
   --color-success: #4CAF50;
-  --color-warning: #FF9800;
+  --color-warning: #FFC857; /* 2026-06-20: 复用此变量作为地图悬停预览色，Linear主题专属值 */
   --color-background: #08090A; --color-surface: #101215;
   --color-surface-container-low: #191B20; --color-surface-container: #22252C;
   --color-on-surface: #EDEEF0; --color-on-surface-variant: #8A8F98;
@@ -155,7 +161,7 @@
   --color-tertiary: #CD3039;
   --color-error: #CD3039;
   --color-success: #4CAF50;
-  --color-warning: #FF9800;
+  --color-warning: #F5A623; /* 2026-06-20: 复用此变量作为地图悬停预览色，Stripe主题专属值 */
   --color-background: #FFFFFF; --color-surface: #F7F8FA;
   --color-surface-container-low: #F0F2F5; --color-surface-container: #E8EBF0;
   --color-on-surface: #061B31; --color-on-surface-variant: #64748D;
@@ -222,7 +228,10 @@ button { cursor: pointer; }
 .user-del:hover { background: var(--color-surface-container); }
 
 .loading-page, .login-page { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--space-5-5); position: relative; overflow: hidden; background: linear-gradient(160deg, #FFFBFC 0%, #FFF2F5 35%, #FDE8ED 100%); }
-.login-bg { position: fixed; inset: 0; background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(249,93,132,.05) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(240,120,140,.04) 0%, transparent 60%), linear-gradient(160deg, #FFFBFC 0%, #FFF2F5 35%, #FDE8ED 100%); z-index: 0; }
+.login-bg { position: fixed; inset: 0; background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(224,8,62,.05) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(240,120,140,.04) 0%, transparent 60%), linear-gradient(160deg, #FFFBFC 0%, #FFF2F5 35%, #FDE8ED 100%); z-index: 0; }
+/* 2026-06-20: 上面第一个径向渐变rgba(224,8,62,.05)同步使用了新主色#E0083E的RGB分量；
+   第二个rgba(240,120,140,.04)是独立选定的点缀色(接近但不等于旧主色#F95D84)，
+   不是主色变量的硬编码副本，主色调整不强行联动这一处，保留原值。 */
 :root[data-theme="linear"] .login-page, :root[data-theme="linear"] .loading-page { background: linear-gradient(160deg, #0F1116 0%, #12141A 35%, #0B0D10 100%); }
 :root[data-theme="linear"] .login-bg { background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(94,106,210,.04) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(94,106,210,.03) 0%, transparent 60%), linear-gradient(160deg, #0F1116 0%, #12141A 35%, #0B0D10 100%); }
 :root[data-theme="stripe"] .login-page, :root[data-theme="stripe"] .loading-page { background: linear-gradient(160deg, #F7F8FA 0%, #EDF0F5 35%, #FFF 100%); }

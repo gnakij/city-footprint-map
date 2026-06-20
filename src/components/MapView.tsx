@@ -11,7 +11,7 @@ import { loadChinaCitiesGeoJSON, loadChinaGeoJSON, loadProvinceGeoJSON, loadProv
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import type { CityData } from '../types';
-import { getDurationColor, getLastDepartureColor } from '../utils/colors';
+import { getDurationColor, getLastDepartureColor, getPreviewColor } from '../utils/colors';
 import { daysSinceDate, visitDays } from '../utils/date';
 import { findCityForFeature, municipalities, PROVINCE_CENTROIDS, shortName } from '../utils/mapHelpers';
 import Icon from './Icon';
@@ -245,6 +245,9 @@ export default function MapView() {
     }
 
     let data: Array<{ name: string; value: number; itemStyle: { areaColor: string }; label?: { color: string } }>;
+    // 循环外取一次悬停预览色，避免369个城市的map()循环里每次都重新调用
+    // getComputedStyle（getPreviewColor内部实现），降低不必要的性能开销。
+    const previewColor = getPreviewColor();
 
     if (activeProvince) {
       // 省级视图：城市级 data，点击直接打开录入抽屉
@@ -257,7 +260,7 @@ export default function MapView() {
           value,
           itemStyle: {
             areaColor: previewCity?.city_id === city?.city_id
-              ? '#FFD166'
+              ? previewColor
               : cityFillColor(city),
           },
           label: { color: lit ? LABEL_COLOR_LIT : LABEL_COLOR_UNLIT },
@@ -273,7 +276,7 @@ export default function MapView() {
           name: f.properties.name,
           value,
           itemStyle: {
-            areaColor: previewCity?.city_id === city?.city_id ? '#FFD166' : cityFillColor(city),
+            areaColor: previewCity?.city_id === city?.city_id ? previewColor : cityFillColor(city),
           },
         };
       });
