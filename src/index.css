@@ -96,6 +96,11 @@
   --z-modal: 40;             /* 真正阻断式的模态框 */
   --z-toast: 60;             /* 全局通知，永远最上层 */
   --z-tooltip: 1000;         /* 成就徽章tooltip等需要覆盖一切的最高层级 */
+
+  /* 响应式断点（CSS @media 不支持变量引用，此处仅作规范记录） */
+  /* --breakpoint-mobile: 767px;   移动端上限 */
+  /* --breakpoint-tablet: 768px;   桌面端下限 */
+  /* --breakpoint-tablet-max: 1024px; 平板上限 */
 }
 
 /* ═══════ Rose (pink) ─ default ═══════ */
