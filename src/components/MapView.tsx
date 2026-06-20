@@ -11,7 +11,7 @@ import { loadChinaCitiesGeoJSON, loadChinaGeoJSON, loadProvinceGeoJSON, loadProv
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import type { CityData } from '../types';
-import { getDurationColor, getLastDepartureColor, getPreviewColor, getLitLabelColor, getUnlitLabelColor } from '../utils/colors';
+import { getDurationColor, getLastDepartureColor, getPreviewColor, getLitLabelColor, getUnlitLabelColor, getTooltipBorderColor } from '../utils/colors';
 import { daysSinceDate, visitDays } from '../utils/date';
 import { findCityForFeature, municipalities, PROVINCE_CENTROIDS, shortName } from '../utils/mapHelpers';
 import Icon from './Icon';
@@ -338,6 +338,10 @@ export default function MapView() {
         // --z-modal，不会再盖住管理员面板等弹窗）。
         appendTo: 'body',
         className: 'map-tooltip',
+        // 固定使用主题色作边框，不再跟随被点击数据项的填充色变化（默认行为
+        // 是取 tooltipDataParams.color，城市按停留天数染色后若落在某些中间
+        // 档会呈现蓝色等不符合主题的颜色，用户反馈"边框颜色很奇怪"）。
+        borderColor: getTooltipBorderColor(),
         formatter: (params: { name: string; seriesIndex?: number }) => {
           if (params.seriesIndex === 1) return params.name; // 省界轮廓层，不需要额外信息
           if (activeProvince) {

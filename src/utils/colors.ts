@@ -51,3 +51,14 @@ export function getLitLabelColor(): string {
 export function getUnlitLabelColor(): string {
   return cssVar('--color-on-surface-variant', '#B7A2AA');
 }
+
+/**
+ * 地图标签弹窗(tooltip)的边框色。ECharts 默认行为是取被点击数据项本身的
+ * 填充色(tooltipDataParams.color)作为边框色，导致边框颜色随城市染色梯度
+ * 变化（比如停留天数落在中间档时呈现蓝色），用户反馈"弹窗边框颜色很奇怪"。
+ * 用户要求改为固定使用主题色，不再跟随数据变化——与 getLitLabelColor 数值
+ * 相同(都是--color-primary)但语义场景不同，独立命名以保持代码可读性。
+ */
+export function getTooltipBorderColor(): string {
+  return cssVar('--color-primary', '#8C2540');
+}
