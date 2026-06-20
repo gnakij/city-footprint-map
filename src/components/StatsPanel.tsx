@@ -66,7 +66,9 @@ export default function StatsPanel() {
         <span className="stats-pill-text">
           点亮城市 <strong>{stats.litCount}/{stats.totalCities}</strong>
         </span>
-        <span className="stats-pill-arrow">▲</span>
+        <svg className="stats-pill-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M6 2L10 8H2L6 2Z" fill="currentColor"/>
+        </svg>
       </button>
     );
   }
@@ -76,7 +78,11 @@ export default function StatsPanel() {
     <aside className="stats-panel card" role="region" aria-label="足迹统计">
       <div className="panel-title">
         <strong>足迹统计</strong>
-        <button className="stats-minimize" onClick={toggleStatsCollapsed} aria-label="收起统计">▼</button>
+        <button className="stats-minimize" onClick={toggleStatsCollapsed} aria-label="收起统计">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M6 10L2 4H10L6 10Z" fill="currentColor"/>
+          </svg>
+        </button>
       </div>
       <div className="stats-grid">
         <button className="stat stat-button" onClick={openDetail}>

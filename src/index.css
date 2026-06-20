@@ -20,6 +20,7 @@
   --font-xl: 20px;
   --font-2xl: 24px;
   --font-3xl: 28px;
+  --font-4xl: 48px;          /* 空状态图标 */
   --font-icon: 22px;       /* 圆形图标内文字/emoji，如成就徽章 */
   --font-display: 56px;   /* 仅登录页品牌大字使用 */
   --font-display-mobile: 22px; /* 登录页品牌标题(h1)移动端尺寸，与--font-icon数值偶合但语义独立，不应共用 */
@@ -33,6 +34,8 @@
   --space-3-5: 14px;
   --space-4-5: 18px;
   --space-5-5: 20px;
+  --space-7: 28px;
+  --space-9: 36px;
   --space-0-75: 3px;
   /* 组件尺寸 */
   --size-btn-small: 30px;
@@ -218,7 +221,7 @@ button { cursor: pointer; }
 :root[data-theme="linear"] .login-bg { background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(94,106,210,.04) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(94,106,210,.03) 0%, transparent 60%), linear-gradient(160deg, #0F1116 0%, #12141A 35%, #0B0D10 100%); }
 :root[data-theme="stripe"] .login-page, :root[data-theme="stripe"] .loading-page { background: linear-gradient(160deg, #F7F8FA 0%, #EDF0F5 35%, #FFF 100%); }
 :root[data-theme="stripe"] .login-bg { background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(83,58,253,.04) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(83,58,253,.03) 0%, transparent 60%), linear-gradient(160deg, #F7F8FA 0%, #EDF0F5 35%, #FFF 100%); }
-.login-panel { position: relative; z-index: 1; width: min(420px, 100%); padding: 36px var(--space-6); border-radius: var(--radius-lg); display: grid; gap: var(--space-5); }
+.login-panel { position: relative; z-index: 1; width: min(420px, 100%); padding: var(--space-9) var(--space-6); border-radius: var(--radius-lg); display: grid; gap: var(--space-5); }
 .login-header { text-align: center; }
 .login-header .brand-mark { margin: 0 auto var(--space-3); font-size: var(--font-display); line-height: 1; }
 .login-header h1 { margin: 0; font-size: 26px; color: var(--color-on-surface); }
@@ -328,7 +331,7 @@ button { cursor: pointer; }
 .stats-pill-icon { font-size: var(--font-lg); line-height: 1; }
 .stats-pill-text { line-height: 1; }
 .stats-pill-text strong { color: var(--color-primary); font-size: var(--font-md); }
-.stats-pill-arrow { color: var(--color-primary); font-size: 11px; line-height: 1; }
+.stats-pill-arrow { color: var(--color-primary); line-height: 1; display: inline-flex; align-items: center; }
 .panel-title { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2); }
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin: var(--space-2) 0; }
 .stat { padding: var(--space-2-5); background: var(--color-surface-container-low); border-radius: var(--radius-sm); }
@@ -418,9 +421,9 @@ button { cursor: pointer; }
 .mb-12 { margin-bottom: 12px; }
 .mb-16 { margin-bottom: 16px; }
 .mb-20 { margin-bottom: 20px; }
-.p-16 { padding: 16px; }
-.p-24 { padding: 24px; }
-.p-32 { padding: 32px; }
+.p-16 { padding: var(--space-4); }
+.p-24 { padding: var(--space-5); }
+.p-32 { padding: var(--space-6); }
 
 /* Flex 布局工具类 */
 .flex { display: flex; }
@@ -430,8 +433,8 @@ button { cursor: pointer; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 .flex-end { display: flex; justify-content: flex-end; }
 .flex-start { display: flex; align-items: flex-start; }
-.gap-8 { gap: 8px; }
-.gap-10 { gap: 10px; }
+.gap-8 { gap: var(--space-2); }
+.gap-10 { gap: var(--space-2-5); }
 
 /* 文本工具类 */
 .text-center { text-align: center; }
@@ -716,14 +719,14 @@ button { cursor: pointer; }
   .stats-collapsed-pill:hover { transform: translateY(calc(var(--space-0) * -1)); }
   .stats-pill-icon { font-size: var(--font-md); }
   .stats-pill-text strong { font-size: var(--font-15); }
-  .stats-pill-arrow { font-size: var(--font-2xs); }
+  .stats-pill-arrow { width: 10px; height: 10px; }
   .achievement-grid { grid-template-columns: repeat(4, minmax(var(--size-icon-large), 1fr)); overflow-x: auto; gap: var(--space-1-5); }
   .input { min-height: var(--size-icon-large); font-size: var(--font-md); }
   .btn-primary, .btn-outline, .btn-danger { min-height: var(--size-btn-default); font-size: var(--font-sm); padding: 0 var(--space-3-5); }
   .modal { padding: var(--space-4-5) var(--space-3-5); border-radius: var(--radius-panel); }
   .modal h2 { font-size: var(--font-xl); }
   .label-sm { font-size: var(--font-sm); }
-  .login-panel { padding: 28px var(--space-5-5); }
+  .login-panel { padding: var(--space-7) var(--space-5-5); }
   .login-header h1 { font-size: var(--font-display-mobile); }
 }
 @media (min-width: 768px) and (max-width: 1024px) {
@@ -765,7 +768,7 @@ button { cursor: pointer; }
 }
 
 .empty-state-icon {
-  font-size: 48px;
+  font-size: var(--font-4xl);
   opacity: 0.5;
 }
 
