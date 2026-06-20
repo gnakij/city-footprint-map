@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import DateInput from './ui/DateInput';
 import FuzzySelect from './ui/FuzzySelect';
 import DrillDownStats from './DrillDownStats';
+import Icon from './Icon';
 
 // 仅管理员可见，按需加载，避免普通用户打开个人资料时也下载这部分代码
 const AdminPanel = lazy(() => import('./AdminPanel'));
@@ -245,7 +246,7 @@ export default function UserProfile() {
       <section className="modal modal-xl">
         <div className="modal-head">
           <h2>{currentUser.name}</h2>
-          <button className="icon-btn" onClick={() => setProfileOpen(false)}>×</button>
+          <button className="icon-btn" onClick={() => setProfileOpen(false)}><Icon name="close" /></button>
         </div>
 
         <div className="mode-pill profile-tabs mb-20">
@@ -299,7 +300,7 @@ export default function UserProfile() {
             )}
 
             <p className="muted">
-              {currentUser.is_admin ? '🔑 管理员' : '👤 普通用户'} · 于 {new Date(currentUser.created_at).toLocaleDateString('zh-CN')} 创建
+              {currentUser.is_admin ? <><Icon name="key" /> 管理员</> : <><Icon name="user" /> 普通用户</>} · 于 {new Date(currentUser.created_at).toLocaleDateString('zh-CN')} 创建
             </p>
           </div>
         )}
@@ -332,12 +333,12 @@ export default function UserProfile() {
 
             {/* 操作按钮行 */}
             <div className="actions mt-12">
-              <button className="btn-primary" onClick={() => setShowForm(true)}>＋ 添加访问</button>
-              <button className="btn-outline" onClick={() => fileRef.current?.click()}>📥 导入数据</button>
-              <button className="btn-primary" onClick={download}>📤 导出数据</button>
-              <button className="btn-outline" onClick={downloadTemplate}>📥 下载模板</button>
+              <button className="btn-primary" onClick={() => setShowForm(true)}><Icon name="plus" /> 添加访问</button>
+              <button className="btn-outline" onClick={() => fileRef.current?.click()}><Icon name="download" /> 导入数据</button>
+              <button className="btn-primary" onClick={download}><Icon name="upload" /> 导出数据</button>
+              <button className="btn-outline" onClick={downloadTemplate}><Icon name="download" /> 下载模板</button>
               <button className="btn-danger" onClick={confirmClear}>清空所有数据</button>
-              <button className="btn-outline" onClick={() => setShowStats(true)} style={{ marginLeft: 'auto' }}>📊 统计</button>
+              <button className="btn-outline" onClick={() => setShowStats(true)} style={{ marginLeft: 'auto' }}><Icon name="chart" /> 统计</button>
             </div>
 
             {preview.length > 0 && (
@@ -345,7 +346,7 @@ export default function UserProfile() {
                 <div className="panel-title">
                   <strong>导入预览</strong>
                   <span className="muted">
-                    ✅ 有效 {preview.filter((row) => !row.error).length} 行 / ⚠️ 跳过 {preview.filter((row) => row.error === '城市已存在').length} 行 / ❌ 错误 {preview.filter((row) => row.error && row.error !== '城市已存在').length} 行
+                    <Icon name="check" /> 有效 {preview.filter((row) => !row.error).length} 行 / <Icon name="warning" /> 跳过 {preview.filter((row) => row.error === '城市已存在').length} 行 / <Icon name="error" /> 错误 {preview.filter((row) => row.error && row.error !== '城市已存在').length} 行
                   </span>
                 </div>
                 <div className="table-wrap compact">
@@ -361,7 +362,7 @@ export default function UserProfile() {
                             <td>{Number.isFinite(row.duration_days) ? row.duration_days : '-'}</td>
                             <td>{row.last_stay_date || '-'}</td>
                             <td>{row.notes || '-'}</td>
-                            <td className={row.error && !isDuplicate ? 'danger-text' : ''}>{row.error ?? '✓ 可导入'}</td>
+                            <td className={row.error && !isDuplicate ? 'danger-text' : ''}>{row.error ?? <><Icon name="check" /> 可导入</>}</td>
                           </tr>
                         );
                       })}

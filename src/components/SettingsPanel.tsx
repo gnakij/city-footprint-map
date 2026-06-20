@@ -1,6 +1,7 @@
 import { ChangeEvent, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { importData } from '../utils/export';
+import Icon from './Icon';
 
 export default function SettingsPanel() {
   const settings = useStore((state) => state.settings);
@@ -42,7 +43,7 @@ export default function SettingsPanel() {
       <section className="modal">
         <div className="modal-head">
           <h2>设置</h2>
-          <button className="icon-btn" onClick={() => setSettingsOpen(false)}>×</button>
+          <button className="icon-btn" onClick={() => setSettingsOpen(false)}><Icon name="close" /></button>
         </div>
         <div className="settings-section" style={{ borderTop: 0, paddingTop: 0, marginTop: 0 }}>
           <label>

@@ -3,6 +3,7 @@ import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import type { SortMode } from '../types';
 import { visitDays } from '../utils/date';
+import Icon from './Icon';
 
 export default function DrillDownStats({ embedded = false }: { embedded?: boolean }) {
   const visits = useStore((state) => state.visits);
@@ -42,7 +43,7 @@ export default function DrillDownStats({ embedded = false }: { embedded?: boolea
           <h2>{cityId ? activeCity?.city_name : province ?? '省份统计'}</h2>
           {(province || cityId) && <button className="back-btn" onClick={() => cityId ? setCityId(null) : setProvince(null)}>← 返回</button>}
         </div>
-        {!embedded && <button className="icon-btn" onClick={() => setStatsOpen(false)}>×</button>}
+        {!embedded && <button className="icon-btn" onClick={() => setStatsOpen(false)}><Icon name="close" /></button>}
       </div>
       <div className="mode-pill sort-pill">
         <button className={sort === 'days' ? 'active' : ''} onClick={() => setSort('days')}>按天数</button>

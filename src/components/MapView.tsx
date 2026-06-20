@@ -7,6 +7,7 @@ import type { CityData } from '../types';
 import { getDurationColor, getLastDepartureColor } from '../utils/colors';
 import { daysSinceDate, visitDays } from '../utils/date';
 import { findCityForFeature, municipalities, PROVINCE_CENTROIDS, shortName } from '../utils/mapHelpers';
+import Icon from './Icon';
 
 type ProvinceView = { name: string; short: string; adcode: number };
 type GeoJsonFeature = { properties: { name: string; adcode: number; center?: [number, number]; parent?: { adcode: number } } };
@@ -715,9 +716,9 @@ export default function MapView() {
         {activeProvince && (
           <button className="btn-outline" onClick={() => setActiveProvince(null)}>返回省级视图</button>
         )}
-        <button className="btn-outline" onClick={resetView}>🔄 重置视图</button>
-        <button className="icon-btn" title="放大" onClick={() => zoomCenter(1.4)}>+</button>
-        <button className="icon-btn" title="缩小" onClick={() => zoomCenter(1 / 1.4)}>−</button>
+        <button className="btn-outline" onClick={resetView}><Icon name="refresh" /> 重置视图</button>
+        <button className="icon-btn" title="放大" onClick={() => zoomCenter(1.4)}><Icon name="plus" /></button>
+        <button className="icon-btn" title="缩小" onClick={() => zoomCenter(1 / 1.4)}><Icon name="minus" /></button>
       </div>
       <div className="map-level card">
         {activeProvince ? `${activeProvince.short} · 城市` : '全国 · 城市'}

@@ -1,6 +1,7 @@
 import html2canvas from 'html2canvas';
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/useStore';
+import Icon from './Icon';
 
 export default function PosterGenerator() {
   const setPosterOpen = useStore((state) => state.setPosterOpen);
@@ -28,7 +29,7 @@ export default function PosterGenerator() {
       <section className="modal modal-wide">
         <div className="modal-head">
           <h2>生成海报</h2>
-          <button className="icon-btn" onClick={() => setPosterOpen(false)}>×</button>
+          <button className="icon-btn" onClick={() => setPosterOpen(false)}><Icon name="close" /></button>
         </div>
         <div className="poster-preview" ref={previewRef}>
           {image ? <img src={image} alt="城市足迹海报预览" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div className="p-24">正在生成预览...</div>}

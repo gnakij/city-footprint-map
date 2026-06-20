@@ -5,6 +5,7 @@ import { adminExportVisits, adminImportVisits, createUser, getUsers } from '../a
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import FuzzySelect from './ui/FuzzySelect';
+import Icon from './Icon';
 import type { ImportVisitRow } from '../types';
 import type { AdminVisitExportRow } from '../api';
 
@@ -24,18 +25,19 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
-  { date: '2026-06-20', items: ['1. 新增变量：--space-7(28px)、--space-9(36px)、--font-4xl(48px)', '2. 消除硬编码：登录面板 padding、空状态图标 font-size 引用变量', '3. 工具类引用变量：.p-16/.p-24/.p-32/.gap-8/.gap-10 改用 CSS 变量', '4. 小箭头 SVG 化：▲▼ 文字符号改为内联 SVG，消除 11px 硬编码'] },
-  { date: '2026-06-20', items: ['1. 修复部署流程：rsync 去掉 --delete，避免删 docs 目录', '2. 响应式断点规范化（767px/768px/1024px），CSS 注释记录', '3. 颜色对比度检查：Rose 主题成功色/警告色略低，标注使用限制', '4. 设计文档更新：响应式断点、全局状态规范落实，去掉"待定义"'] },
-  { date: '2026-06-20', items: ['1. 建立设计系统文档（docs/设计系统-2026-06-20.md）：完整设计 token 体系、组件规范、可访问性规范', '2. 新增可访问性支持：:focus-visible 焦点环、prefers-reduced-motion 减少动效', '3. 新增全局状态类名：.empty-state / .loading / .error-state', '4. 修复 6 处硬编码：font-size/gap/z-index/padding 引用变量', '5. 新增变量：--space-0-75(3px)、--z-tooltip(1000)', '6. 管理员面板新增"系统文档"页签，集中展示设计文档和功能文档'] },
+  { date: '2026-06-20', items: ['升级记录入口整合：从管理员面板独立页签移至系统文档页签，点击链接弹窗展示', '图标系统统一：20处 emoji/文字符号替换为 SVG 图标组件（Icon.tsx）', '新增变量：--space-7(28px)、--space-9(36px)、--font-4xl(48px)', '消除硬编码：登录面板 padding、空状态图标 font-size 引用变量', '工具类引用变量：.p-16/.p-24/.p-32/.gap-8/.gap-10 改用 CSS 变量', '小箭头 SVG 化：▲▼ 文字符号改为内联 SVG，消除 11px 硬编码', '修复部署流程：rsync 去掉 --delete，避免删 docs 目录', '响应式断点规范化（767px/768px/1024px），CSS 注释记录', '颜色对比度检查：Rose 主题成功色/警告色略低，标注使用限制', '设计文档更新：响应式断点、全局状态规范落实，去掉"待定义"'] },
+  { date: '2026-06-20', items: ['建立设计系统文档（docs/设计系统-2026-06-20.md）：完整设计 token 体系、组件规范、可访问性规范', '新增可访问性支持：:focus-visible 焦点环、prefers-reduced-motion 减少动效', '新增全局状态类名：.empty-state / .loading / .error-state', '修复 6 处硬编码：font-size/gap/z-index/padding 引用变量', '新增变量：--space-0-75(3px)、--z-tooltip(1000)', '管理员面板新增"系统文档"页签，集中展示设计文档和功能文档'] },
   { date: '2026-06-20', items: ['修复地图加载数据错位问题，并重新做了一次安全的体积压缩（china-cities.json 413万→65.7万字节，china-provinces-outline.json 130万→21.7万字节，几何精度损失小于1%，城市/省份零丢失）', '修复地图省份提示框浮在管理员等弹窗上方的问题', 'z-index 层级体系化：新建统一的语义化层级变量，修正统计面板/折叠胶囊与城市详情抽屉之间的层级混乱（折叠胶囊展开后跑到详情页下层、新打开的表单被胶囊遮挡等问题）'] },
   { date: '2026-06-20', items: ['字号体系化：建立完整字号梯度变量，替换44处硬编码值，仅保留少数确认为单次出现的精确调校值（品牌大标题、统计面板次要变体等）', '阴影体系化：建立三档elevation梯度变量，统一统计胶囊此前独有的内嵌高光拟物效果为扁平投影，修正其与卡片/弹窗/抽屉等组件之间的视觉风格不一致问题', '过渡曲线升级：标准缓动改用业内常见的Material Design贝塞尔曲线，交互更利落', '移除一处多余的!important声明（已验证导入预览报错提示样式无影响）', '修正搜索结果浮层层级归属、页签组件圆角变量误用间距变量的问题'] },
   { date: '2026-06-19', items: ['UI规范整理：按钮、页签、列表项样式统一', '颜色变量化：glass效果、阴影、边框等硬编码颜色替换为CSS变量', '间距变量化：4-48px常用尺寸替换为CSS变量', '新增系统升级记录页签'] },
   { date: '2026-06-19', items: ['修复用户名/昵称/省份/城市筛选框拼音模糊匹配（用户名昵称为新增，引入 pinyin-pro 实时转换）', '地图省界轮廓线变细，缓解移动端发黑发粗的问题', '修复移动端地图双指缩放/拖拽卡顿（touchmove 改为 rAF 帧节流）', 'CSS 设计 token 体系化：圆角按用途分层（面板 12px / 控件 8px）、交互过渡与状态强度（hover/active/disabled）统一为语义变量，修正多处字重与圆角跟规范不一致的问题，操作按钮组（.actions）统一靠右对齐'] },
 ];
-const DOC_LIST = [
+type DocItem = { category: string; title: string; url?: string; action?: string; last_updated: string; description: string; };
+const DOC_LIST: DocItem[] = [
   { category: '设计文档', title: '设计系统文档', url: '/cityprint/docs/设计系统-2026-06-20.md', last_updated: '2026-06-20', description: '完整设计 token 体系、组件规范' },
   { category: '功能文档', title: '功能现状文档', url: '/cityprint/docs/功能现状-2026-06-19.md', last_updated: '2026-06-19', description: '项目功能清单与现状说明' },
   { category: '协作文档', title: '协作者指南', url: '/cityprint/docs/协作者指南-2026-06-20.md', last_updated: '2026-06-20', description: '文档维护规则、更新流程' },
+  { category: '升级记录', title: '系统升级记录', action: 'changelog', last_updated: '2026-06-20', description: '历次更新内容与变更记录' },
 ];
 const PROVINCE_PINYIN: Record<string, string> = {
   北京: 'beijing',
@@ -128,7 +130,8 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
   const [newPassword, setNewPassword] = useState('');
   const [stats, setStats] = useState({ totalUsers: users.length, totalVisits: 0, adminUsers: 0 });
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [adminTab, setAdminTab] = useState<'users' | 'data' | 'changelog' | 'docs'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'data' | 'docs'>('users');
+  const [showChangelog, setShowChangelog] = useState(false);
   const [allVisits, setAllVisits] = useState<AdminVisitExportRow[]>([]);
   const [filterUsername, setFilterUsername] = useState('');
   const [filterName, setFilterName] = useState('');
@@ -358,7 +361,6 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       <div className="mode-pill mb-20">
         <button className={adminTab === 'users' ? 'active' : ''} onClick={() => setAdminTab('users')}>用户管理</button>
         <button className={adminTab === 'data' ? 'active' : ''} onClick={() => setAdminTab('data')}>数据管理</button>
-        <button className={adminTab === 'changelog' ? 'active' : ''} onClick={() => setAdminTab('changelog')}>系统升级记录</button>
         <button className={adminTab === 'docs' ? 'active' : ''} onClick={() => setAdminTab('docs')}>系统文档</button>
       </div>
 
@@ -460,11 +462,11 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                 city: filterCity,
               })}
             >
-              🔍 查询
+              <Icon name="search" /> 查询
             </button>
-            <button className="btn-primary" onClick={downloadCurrentLedger}>📤 导出当前视图</button>
-            <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}>📥 导入数据</button>
-            <button className="btn-outline" onClick={downloadAdminTemplate}>📥 下载模板</button>
+            <button className="btn-primary" onClick={downloadCurrentLedger}><Icon name="upload" /> 导出当前视图</button>
+            <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
+            <button className="btn-outline" onClick={downloadAdminTemplate}><Icon name="download" /> 下载模板</button>
           </div>
 
           {showImportTools && (
@@ -478,7 +480,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                     ))}
                   </select>
                   <div className="actions">
-                    <button className="btn-primary" disabled={!targetUserId} onClick={() => importFileRef.current?.click()}>📥 选择文件</button>
+                    <button className="btn-primary" disabled={!targetUserId} onClick={() => importFileRef.current?.click()}><Icon name="download" /> 选择文件</button>
                   </div>
                 </div>
                 <input ref={importFileRef} type="file" accept=".xlsx" hidden onChange={onImportFile} />
@@ -572,28 +574,20 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
         </div>
       )}
 
-      {adminTab === 'changelog' && (
-        <div className="changelog-list">
-          {CHANGELOG.map((entry, i) => (
-            <div key={i} className="changelog-entry">
-              <div className="changelog-date">{entry.date}</div>
-              <ul className="changelog-items">
-                {entry.items.map((item, j) => (
-                  <li key={j}>{j + 1}. {item}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-
       {adminTab === 'docs' && (
         <div className="changelog-list">
           {DOC_LIST.map((doc, i) => (
             <div key={i} className="changelog-entry">
               <div className="changelog-date">{doc.category} · 最后更新 {doc.last_updated}</div>
               <ul className="changelog-items">
-                <li><a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>{doc.title}</a> — {doc.description}</li>
+                <li>
+                  {doc.action === 'changelog' ? (
+                    <a href="#" onClick={(e) => { e.preventDefault(); setShowChangelog(true); }} style={{ color: 'var(--color-primary)' }}>{doc.title}</a>
+                  ) : (
+                    <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>{doc.title}</a>
+                  )}
+                  {' — '}{doc.description}
+                </li>
               </ul>
             </div>
           ))}
@@ -605,7 +599,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
           <section className="modal modal-sm">
             <div className="modal-head">
               <h2>重置密码 · {pendingReset.name}</h2>
-              <button className="icon-btn" onClick={() => setPendingReset(null)}>×</button>
+              <button className="icon-btn" onClick={() => setPendingReset(null)}><Icon name="close" /></button>
             </div>
             <div className="stack gap-10 mb-16">
               <div className="form-row">
@@ -630,7 +624,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
           <section className="modal">
             <div className="modal-head">
               <h2>新增用户</h2>
-              <button className="icon-btn" onClick={() => setShowCreateModal(false)}>×</button>
+              <button className="icon-btn" onClick={() => setShowCreateModal(false)}><Icon name="close" /></button>
             </div>
             <div className="form-grid-2 mb-16">
               <input className="input" value={newUsername} onChange={(event) => setNewUsername(event.target.value)} placeholder="用户名" />
@@ -640,6 +634,29 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             <div className="flex-end gap-8">
               <button className="btn-outline" onClick={() => { setShowCreateModal(false); setNewUsername(''); setNewNickname(''); setNewPassword(''); }}>取消</button>
               <button className="btn-primary" onClick={() => void handleCreateUser()}>确认创建</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {showChangelog && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <section className="modal modal-wide">
+            <div className="modal-head">
+              <h2>系统升级记录</h2>
+              <button className="icon-btn" onClick={() => setShowChangelog(false)}><Icon name="close" /></button>
+            </div>
+            <div className="changelog-list">
+              {CHANGELOG.map((entry, i) => (
+                <div key={i} className="changelog-entry">
+                  <div className="changelog-date">{entry.date}</div>
+                  <ul className="changelog-items">
+                    {entry.items.map((item, j) => (
+                      <li key={j}>{j + 1}. {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </section>
         </div>
@@ -654,7 +671,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       <section className="modal" style={{ width: 'min(1280px, calc(100vw - 32px))', maxWidth: 'none' }}>
         <div className="modal-head">
           <h2>管理员面板</h2>
-          <button className="icon-btn" onClick={() => setAdminOpen(false)}>×</button>
+          <button className="icon-btn" onClick={() => setAdminOpen(false)}><Icon name="close" /></button>
         </div>
         {content}
       </section>

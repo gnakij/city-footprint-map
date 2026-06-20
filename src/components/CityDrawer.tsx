@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import DateInput from './ui/DateInput';
+import Icon from './Icon';
 import type { CityData, VisitRecord } from '../types';
 import { useStore } from '../store/useStore';
 import { visitDays } from '../utils/date';
@@ -50,7 +51,7 @@ export default function CityDrawer({ city }: { city: CityData }) {
     <aside className="drawer city-drawer">
       <div className="drawer-head">
         <button className="back-btn" onClick={() => setDrawerOpen(false)} aria-label="返回">← 返回</button>
-        <button className="icon-btn" onClick={() => setDrawerOpen(false)}>×</button>
+        <button className="icon-btn" onClick={() => setDrawerOpen(false)}><Icon name="close" /></button>
       </div>
       <h2>{city.city_name}</h2>
       <p className="label-sm">{city.province} · {city.region}</p>

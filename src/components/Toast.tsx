@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useStore } from '../store/useStore';
+import Icon from './Icon';
 
 export default function Toast() {
   const toast = useStore((state) => state.toast);
@@ -13,9 +14,11 @@ export default function Toast() {
 
   if (!toast) return null;
 
+  const iconName = toast.icon === '!' ? 'info' : 'check';
+
   return (
     <div className="toast glass">
-      <strong>{toast.icon ?? '✓'}</strong>
+      <strong><Icon name={iconName} /></strong>
       <span>{toast.message}</span>
     </div>
   );

@@ -4,6 +4,7 @@ import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import { visitDays, daysSinceDate } from '../utils/date';
 import AchievementBadge from './AchievementBadge';
+import Icon from './Icon';
 
 const RANK_PREVIEW_COUNT = 10;
 const ACHIEVEMENT_PREVIEW_COUNT = 8;
@@ -62,7 +63,7 @@ export default function StatsPanel() {
         onClick={toggleStatsCollapsed}
         aria-label="展开足迹统计"
       >
-        <span className="stats-pill-icon">🏙️</span>
+        <span className="stats-pill-icon"><Icon name="city" /></span>
         <span className="stats-pill-text">
           点亮城市 <strong>{stats.litCount}/{stats.totalCities}</strong>
         </span>
