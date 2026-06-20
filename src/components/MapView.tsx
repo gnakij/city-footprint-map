@@ -308,15 +308,18 @@ export default function MapView() {
           const short = shortName(f.properties.name);
           const centroid = PROVINCE_CENTROIDS[short];
           if (!centroid) return null;
-          // 2026-06-20: 不再按点亮/未点亮区分文字色，统一用主题primary色——
-          // 因为标签现在靠halo(textShadow跟随主题background色)保证可读性，
-          // halo的对比度只取决于"文字色 vs halo色"这两个固定值，不受省名标注
-          // 底下实际色块深浅影响，因此不需要再用"灰色=未点亮"这种弱化手段
-          // 去间接提升对比度。litProvinces仍保留供其他地方使用，不删除这个计算。
+          const lit = litProvinces.has(short);
+          // 2026-06-20修正: 之前误把"点亮/未点亮区分"和"对比度不足"当成
+          // 同一个问题一起改掉了，导致未点亮省份的灰色文字也变成了主色，丢失
+          // 了"点亮=醒目主色，未点亮=低调灰色"这个视觉区分本身（用户反馈"没
+          // 点亮的城市应该都是灰灰的颜色，现在怎么都成主题色了"）。halo方案
+          // 解决的是"文字在深色块上看不清"，跟"点亮/未点亮该用什么颜色"是
+          //两件独立的事——halo对灰色文字同样有效（已验证三主题下unlit文字
+          // vs halo色对比度均>=4.5），不需要为了让halo生效而牺牲这个区分。
           return {
             name: short,
             coord: centroid,
-            itemStyle: { color: litLabelColor },
+            itemStyle: { color: lit ? litLabelColor : unlitLabelColor },
           };
         })
         .filter((p): p is { name: string; coord: [number, number]; itemStyle: { color: string } } => p !== null);
