@@ -30,6 +30,11 @@ const CHANGELOG = [
   { date: '2026-06-19', items: ['UI规范整理：按钮、页签、列表项样式统一', '颜色变量化：glass效果、阴影、边框等硬编码颜色替换为CSS变量', '间距变量化：4-48px常用尺寸替换为CSS变量', '新增系统升级记录页签'] },
   { date: '2026-06-19', items: ['修复用户名/昵称/省份/城市筛选框拼音模糊匹配（用户名昵称为新增，引入 pinyin-pro 实时转换）', '地图省界轮廓线变细，缓解移动端发黑发粗的问题', '修复移动端地图双指缩放/拖拽卡顿（touchmove 改为 rAF 帧节流）', 'CSS 设计 token 体系化：圆角按用途分层（面板 12px / 控件 8px）、交互过渡与状态强度（hover/active/disabled）统一为语义变量，修正多处字重与圆角跟规范不一致的问题，操作按钮组（.actions）统一靠右对齐'] },
 ];
+const DOC_LIST = [
+  { category: '设计文档', title: '设计系统文档', url: '/cityprint/docs/设计系统-2026-06-20.md', last_updated: '2026-06-20', description: '完整设计 token 体系、组件规范' },
+  { category: '功能文档', title: '功能现状文档', url: '/cityprint/docs/功能现状-2026-06-19.md', last_updated: '2026-06-19', description: '项目功能清单与现状说明' },
+  { category: '协作文档', title: '协作者指南', url: '/cityprint/docs/协作者指南-2026-06-20.md', last_updated: '2026-06-20', description: '文档维护规则、更新流程' },
+];
 const PROVINCE_PINYIN: Record<string, string> = {
   北京: 'beijing',
   天津: 'tianjin',
@@ -582,18 +587,14 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
 
       {adminTab === 'docs' && (
         <div className="changelog-list">
-          <div className="changelog-entry">
-            <div className="changelog-date">设计文档</div>
-            <ul className="changelog-items">
-              <li><a href="/cityprint/docs/设计系统-2026-06-20.md" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>设计系统文档（2026-06-20）</a> — 完整设计 token 体系、组件规范</li>
-            </ul>
-          </div>
-          <div className="changelog-entry">
-            <div className="changelog-date">功能文档</div>
-            <ul className="changelog-items">
-              <li><a href="/cityprint/docs/功能现状-2026-06-19.md" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>功能现状文档（2026-06-19）</a> — 项目功能清单与现状说明</li>
-            </ul>
-          </div>
+          {DOC_LIST.map((doc, i) => (
+            <div key={i} className="changelog-entry">
+              <div className="changelog-date">{doc.category} · 最后更新 {doc.last_updated}</div>
+              <ul className="changelog-items">
+                <li><a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>{doc.title}</a> — {doc.description}</li>
+              </ul>
+            </div>
+          ))}
         </div>
       )}
 
