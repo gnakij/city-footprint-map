@@ -108,7 +108,7 @@
 
 /* ═══════ Rose (pink) ─ default ═══════ */
 :root, :root[data-theme="rose"] {
-  --color-primary: #F95D84; --color-primary-container: #FF7BA3; --color-on-primary: #FFFFFF;
+  --color-primary: #E0083E; --color-primary-container: #FF7BA3; --color-on-primary: #FFFFFF;
   --color-secondary: #E87D94; --color-secondary-container: #F298A8;
   --color-tertiary: #D9485A;
   --color-error: #D9485A;
