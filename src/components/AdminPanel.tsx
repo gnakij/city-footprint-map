@@ -569,10 +569,10 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
         <div className="changelog-list">
           {CHANGELOG.map((entry, i) => (
             <div key={i} className="changelog-entry">
-              <div className="changelog-date">#{i + 1} · {entry.date}</div>
+              <div className="changelog-date">{entry.date}</div>
               <ul className="changelog-items">
                 {entry.items.map((item, j) => (
-                  <li key={j}>{item}</li>
+                  <li key={j}>{j + 1}. {item}</li>
                 ))}
               </ul>
             </div>
