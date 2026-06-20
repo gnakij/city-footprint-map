@@ -11,7 +11,7 @@ import { loadChinaCitiesGeoJSON, loadChinaGeoJSON, loadProvinceGeoJSON, loadProv
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import type { CityData } from '../types';
-import { getDurationColor, getLastDepartureColor, getPreviewColor } from '../utils/colors';
+import { getDurationColor, getLastDepartureColor, getPreviewColor, getLitLabelColor, getUnlitLabelColor } from '../utils/colors';
 import { daysSinceDate, visitDays } from '../utils/date';
 import { findCityForFeature, municipalities, PROVINCE_CENTROIDS, shortName } from '../utils/mapHelpers';
 import Icon from './Icon';
@@ -46,9 +46,12 @@ const WHEEL_STEP = 0.15;       // 鼠标滚轮每格步长
 // 拖拽判定阈值（像素）：移动超过这个距离才算"拖拽"，否则视为点击
 const DRAG_THRESHOLD = 6;
 
-// 点亮/未点亮省份的标签颜色
-const LABEL_COLOR_LIT = '#8C2540';     // 已点亮：更深更明显
-const LABEL_COLOR_UNLIT = '#B7A2AA';   // 未点亮：更淡
+// 点亮/未点亮省份的标签颜色：2026-06-20 之前是固定字面量(#8C2540/#B7A2AA)，
+// 不跟随主题切换。用户明确要求"已点亮统一用品牌主色，未点亮用项目已有的灰色
+// 文字变量"，不要新造颜色，也不要衍生深浅变体——直接复用 --color-primary 和
+// --color-on-surface-variant，三个主题各自天然就有协调的专属值。
+// 改为函数而非常量，确保每次 renderMap 执行时都重新读取当前生效的CSS变量
+// (主题切换后能跟着变)，与 getDurationColor/getPreviewColor 保持同一模式。
 
 // 全国视图下的两个 series 下标：0 = 主图层（市级色块），1 = 省界轮廓层（粗边框+
 // 省名标注）。2026-06-20 曾尝试"给两层广播完全相同的 zoom/dx/dy，让它们各自
@@ -245,9 +248,12 @@ export default function MapView() {
     }
 
     let data: Array<{ name: string; value: number; itemStyle: { areaColor: string }; label?: { color: string } }>;
-    // 循环外取一次悬停预览色，避免369个城市的map()循环里每次都重新调用
-    // getComputedStyle（getPreviewColor内部实现），降低不必要的性能开销。
+    // 循环外统一取一次悬停预览色/已点亮/未点亮标签色，避免369个城市的map()
+    // 循环里每次都重新调用getComputedStyle（这几个get函数内部实现），
+    // 降低不必要的性能开销。
     const previewColor = getPreviewColor();
+    const litLabelColor = getLitLabelColor();
+    const unlitLabelColor = getUnlitLabelColor();
 
     if (activeProvince) {
       // 省级视图：城市级 data，点击直接打开录入抽屉
@@ -263,7 +269,7 @@ export default function MapView() {
               ? previewColor
               : cityFillColor(city),
           },
-          label: { color: lit ? LABEL_COLOR_LIT : LABEL_COLOR_UNLIT },
+          label: { color: lit ? litLabelColor : unlitLabelColor },
         };
       });
     } else {
@@ -298,7 +304,7 @@ export default function MapView() {
           return {
             name: short,
             coord: centroid,
-            itemStyle: { color: lit ? LABEL_COLOR_LIT : LABEL_COLOR_UNLIT },
+            itemStyle: { color: lit ? litLabelColor : unlitLabelColor },
           };
         })
         .filter((p): p is { name: string; coord: [number, number]; itemStyle: { color: string } } => p !== null);

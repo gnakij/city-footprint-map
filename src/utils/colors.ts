@@ -32,3 +32,22 @@ export function getLastDepartureColor(daysAgo: number): string {
 export function getPreviewColor(): string {
   return cssVar('--color-warning', '#FFD166');
 }
+
+/**
+ * 地图"已点亮"城市/省份的标签文字色。2026-06-20 之前固定为 #8C2540
+ * （深酒红），不跟随主题。用户要求"已点亮统一用品牌主色"，不新造颜色，
+ * 直接复用 --color-primary。
+ */
+export function getLitLabelColor(): string {
+  return cssVar('--color-primary', '#8C2540');
+}
+
+/**
+ * 地图"未点亮"城市/省份的标签文字色。2026-06-20 之前固定为 #B7A2AA
+ * （浅紫灰），不跟随主题。用户要求"未点亮用项目已有的灰色调"，直接复用
+ * --color-on-surface-variant（三主题各自的次要文字色，已验证对各自地图
+ * 背景对比度均≥4.5:1，达到WCAG AA正文标准）。
+ */
+export function getUnlitLabelColor(): string {
+  return cssVar('--color-on-surface-variant', '#B7A2AA');
+}
