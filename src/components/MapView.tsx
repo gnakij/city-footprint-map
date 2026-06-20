@@ -50,11 +50,13 @@ const DRAG_THRESHOLD = 6;
 const LABEL_COLOR_LIT = '#8C2540';     // 已点亮：更深更明显
 const LABEL_COLOR_UNLIT = '#B7A2AA';   // 未点亮：更淡
 
-// 全国视图下参与 geoRoam 同步的 series 下标：
-// 0 = 主图层（市级色块），1 = 省界轮廓层（粗边框+省名标注）。
-// 两者的 GeoJSON 几何来源相同（省界图是市级图按省份 union 而来，bbox 完全一致），
-// 所以即使是两个独立的 geo 坐标系实例，只要每次都用完全相同的 zoom/dx/dy 参数
-// 同时驱动，视觉上就会保持像素级对齐，不会出现拖拽时两层分离的问题。
+// 全国视图下的两个 series 下标：0 = 主图层（市级色块），1 = 省界轮廓层（粗边框+
+// 省名标注）。2026-06-20 曾尝试"给两层广播完全相同的 zoom/dx/dy，让它们各自
+// 独立计算"的方案，多轮真实设备录屏验证后发现这种方式在连续操作后仍会产生
+// 肉眼可见的像素级偏移（具体内部机制未查实，但现象本身被反复证实）。现已改为
+// 单向同步：只驱动 series 0，再用 syncOutlineToMainLayer 读取它的真实渲染
+// 状态原样复制给 series 1，这个下标数组现在只用于 resetView 等需要同时显式
+// 设置两层绝对初始值的场景，不再用于"同时广播增量"。
 const NATIONAL_VIEW_SERIES_INDICES = [0, 1];
 
 export default function MapView() {
@@ -137,20 +139,33 @@ export default function MapView() {
 
   useEffect(() => { activeProvinceRef.current = activeProvince; }, [activeProvince]);
 
+  // ── 强制把省界轮廓层(series 1)的视图状态，原样同步成主图层(series 0)的真实状态 ──
+  // 之前的方案是给两个 series 各自独立广播相同的 zoom/dx/dy 增量，让它们"各自算账"。
+  // 排查多轮真实设备录屏后发现，即使输入完全相同，两个独立坐标系在连续多次缩放/
+  // 平移操作后仍会产生肉眼可见的像素级偏移（具体内部机制未能100%查证，但现象
+  // 本身被录屏反复证实存在）。这次改为更直接、不依赖"为什么会分叉"这一假设的
+  // 方式：每次操作后，不再让 series 1 自己算，而是读取 series 0 坐标系的真实
+  // zoom/center（ECharts 公开 API），把这个真实值原样设置给 series 1。
+  // 这样 series 1 永远是 series 0 的"镜像"，不存在两边各自独立计算导致分叉的可能。
+  const syncOutlineToMainLayer = useCallback(() => {
+    const chart = chartRef.current;
+    if (!chart || activeProvinceRef.current) return; // 省级视图下没有轮廓层，不需要同步
+    const ecModel = (chart as unknown as { getModel: () => {
+      getSeriesByIndex: (idx: number) => { coordinateSystem?: { getZoom: () => number; getCenter: () => number[] } } | undefined;
+    } }).getModel();
+    const mainSeries = ecModel.getSeriesByIndex(0);
+    const mainGeo = mainSeries?.coordinateSystem;
+    if (!mainGeo) return;
+    const zoom = mainGeo.getZoom();
+    const center = mainGeo.getCenter();
+    chart.setOption({
+      series: [{}, { zoom, center }],
+    }, false);
+  }, []);
+
   // ── 用 dispatchAction geoRoam 做缩放（可选同时平移）──────────────────────
-  // 省级视图下只有 1 个系列（坐标系天然唯一），全国视图下需要把同一个 zoom/origin
-  // 同时广播给主图层和省界轮廓层这两个独立坐标系，保证二者像素对齐、不分离。
-  //
-  // 关键点：ECharts 内部对 geoRoam 的 zoom 钳位（scaleLimit）是"每个 series 各自
-  // 用自己的 previousZoom 独立计算"的（见 echarts/lib/action/roamHelper.js 的
-  // updateCenterAndZoom）。即使两个 series 收到完全相同的 zoom 增量，只要某一帧
-  // 其中一个 series 的累积 zoom 先一步撞到 0.5~12 的边界、另一个还没撞到，二者从
-  // 这一帧起就会产生实际缩放倍率的分叉，且不会自愈——这正是放大后两层持续错位的根因。
-  //
-  // 修复方式：不要把"原始的、未经总量裁剪的增量"直接广播出去，而是先用我们自己
-  // 维护的权威状态 currentZoomRef 算出"裁剪到 0.5~12 之后的目标总缩放"，再反推出
-  // 一个统一的"有效增量"广播给所有 series。这样不管哪个 series 内部各自怎么钳位，
-  // 拿到的输入增量都已经是同一个、被裁剪过的值，从根上消除了分叉的触发条件。
+  // 只广播给主图层(series 0)，省界轮廓层(series 1)不再独立接收广播，
+  // 而是广播结束后调用 syncOutlineToMainLayer 强制对齐，见上方注释。
   const dispatchZoom = useCallback((
     zoomDelta: number,
     originX: number,
@@ -168,38 +183,33 @@ export default function MapView() {
       ? Math.min(MAX_ZOOM_FACTOR, Math.max(MIN_ZOOM_FACTOR, zoomDelta))
       : zoomDelta;
     const targetZoom = Math.min(12, Math.max(0.5, currentZoomRef.current * rawClamped));
-    // 用目标总缩放反推出"有效增量"：两个 series 统一使用这个值，而不是 rawClamped
     const effectiveFactor = targetZoom / currentZoomRef.current;
     currentZoomRef.current = targetZoom;
-    const seriesIndices = activeProvinceRef.current ? [0] : NATIONAL_VIEW_SERIES_INDICES;
-    for (const seriesIndex of seriesIndices) {
-      chart.dispatchAction({
-        type: 'geoRoam',
-        seriesIndex,
-        zoom: effectiveFactor,
-        originX,
-        originY,
-        ...(dx || dy ? { dx, dy } : {}),
-        animation: { duration: 0 },
-      } as GeoRoamAction);
-    }
-  }, []);
+    chart.dispatchAction({
+      type: 'geoRoam',
+      seriesIndex: 0,
+      zoom: effectiveFactor,
+      originX,
+      originY,
+      ...(dx || dy ? { dx, dy } : {}),
+      animation: { duration: 0 },
+    } as GeoRoamAction);
+    syncOutlineToMainLayer();
+  }, [syncOutlineToMainLayer]);
 
   // ── 用 dispatchAction geoRoam 做平移 ────────────────────────────────────
   const dispatchPan = useCallback((dx: number, dy: number) => {
     const chart = chartRef.current;
     if (!chart) return;
-    const seriesIndices = activeProvinceRef.current ? [0] : NATIONAL_VIEW_SERIES_INDICES;
-    for (const seriesIndex of seriesIndices) {
-      chart.dispatchAction({
-        type: 'geoRoam',
-        seriesIndex,
-        dx,
-        dy,
-        animation: { duration: 0 },
-      } as GeoRoamAction);
-    }
-  }, []);
+    chart.dispatchAction({
+      type: 'geoRoam',
+      seriesIndex: 0,
+      dx,
+      dy,
+      animation: { duration: 0 },
+    } as GeoRoamAction);
+    syncOutlineToMainLayer();
+  }, [syncOutlineToMainLayer]);
 
   const renderMap = useCallback(async () => {
     const chart = chartRef.current;
