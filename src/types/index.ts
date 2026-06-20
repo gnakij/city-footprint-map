@@ -1,4 +1,4 @@
-export type ThemeMode = 'linear' | 'stripe' | 'rose';
+export type ThemeMode = 'rose' | 'stripe' | 'amber' | 'turquoise' | 'azure';
 export type SortMode = 'days' | 'name';
 export type ColorMode = 'duration' | 'lastDeparture';
 

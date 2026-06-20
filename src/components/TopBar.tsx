@@ -2,10 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/useStore';
 import Icon from './Icon';
 
-const THEME_OPTIONS: Array<{ value: 'linear' | 'stripe' | 'rose'; label: string }> = [
-  { value: 'linear', label: 'Linear · 暗黑' },
-  { value: 'stripe', label: 'Stripe · 白紫' },
-  { value: 'rose', label: 'Rose · 樱花' },
+// 2026-06-21: 五主题全量重制，删除Linear，新增琥珀/绿松/冰河，晨雾(原Stripe)
+// 重新调整色相。命名风格统一为"中文意象名 · 色调说明"，与樱花保持一致。
+const THEME_OPTIONS: Array<{ value: 'rose' | 'stripe' | 'amber' | 'turquoise' | 'azure'; label: string }> = [
+  { value: 'rose', label: '樱花 · 粉调' },
+  { value: 'stripe', label: '晨雾 · 紫调' },
+  { value: 'amber', label: '琥珀 · 金调' },
+  { value: 'turquoise', label: '绿松 · 青调' },
+  { value: 'azure', label: '冰河 · 蓝调' },
 ];
 
 export default function TopBar() {
