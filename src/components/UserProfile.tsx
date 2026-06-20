@@ -1,4 +1,4 @@
-import { ChangeEvent, lazy, Suspense, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import DateInput from './ui/DateInput';
 import FuzzySelect from './ui/FuzzySelect';
@@ -6,14 +6,13 @@ import DrillDownStats from './DrillDownStats';
 import Icon from './Icon';
 
 // 仅管理员可见，按需加载，避免普通用户打开个人资料时也下载这部分代码
-const AdminPanel = lazy(() => import('./AdminPanel'));
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import { updateMe } from '../store/api';
 import type { ImportVisitRow, VisitRecord } from '../types';
 import { visitDays } from '../utils/date';
 
-type ProfileTab = 'profile' | 'visits' | 'admin' | 'settings';
+type ProfileTab = 'profile' | 'visits' | 'settings';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -234,10 +233,14 @@ export default function UserProfile() {
 
   if (!currentUser) return null;
 
+  // 2026-06-20: "系统管理"已从这里移出，改为TopBar账号下拉菜单里的独立入口，
+  // 点击后打开AdminPanel的独立弹窗(非embedded模式)。原因：管理面板内容结构、
+  // 内容量与"个人信息/访问记录/系统设置"差异巨大，共享同一个.modal-xl容器时
+  // 切换会有高度跳变问题（此前用min-height硬凑值，效果不稳定），拆成独立弹窗
+  // 从根上避免共享容器带来的尺寸联动问题。
   const tabs: Array<{ id: ProfileTab; label: string }> = [
     { id: 'profile', label: '个人信息' },
     { id: 'visits', label: '访问记录' },
-    ...(currentUser.is_admin ? [{ id: 'admin' as ProfileTab, label: '系统管理' }] : []),
     { id: 'settings', label: '系统设置' },
   ];
 
@@ -441,14 +444,6 @@ export default function UserProfile() {
             <button className="back-btn mb-12" onClick={() => setShowStats(false)}>← 返回访问列表</button>
             <DrillDownStats embedded />
           </>
-        )}
-
-        {tab === 'admin' && (
-          <div className="stack">
-            <Suspense fallback={<p className="muted">加载管理面板…</p>}>
-              <AdminPanel embedded />
-            </Suspense>
-          </div>
         )}
 
         {tab === 'settings' && (

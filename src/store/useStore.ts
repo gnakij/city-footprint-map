@@ -30,7 +30,7 @@ import {
   getSystemStats as apiGetSystemStats,
 } from './api';
 
-type ProfileTab = 'profile' | 'visits' | 'admin' | 'settings';
+type ProfileTab = 'profile' | 'visits' | 'settings';
 
 interface ToastState { message: string; icon?: string; }
 
@@ -151,7 +151,12 @@ export const useStore = create<StoreState>((set, get) => ({
       return;
     }
     const data = await loadUserData(admin);
-    set({ currentUser: admin, users: await getUsers(), adminSetupRequired: false, adminOpen: true, ...data, toast: { icon: '✓', message: '管理员已创建' } });
+    // 2026-06-20: adminOpen之前一直是true，但此前没有任何渲染入口消费这个
+    // 状态（是遗留的死代码）。这次给adminOpen补上了独立弹窗挂载点（见App.tsx），
+    // 如果继续传true，管理员创建后会自动弹出管理员面板——用户确认不需要这个
+    // 行为，登录/创建后应该正常进入主地图页，"系统管理"只通过TopBar下拉菜单
+    // 手动打开。
+    set({ currentUser: admin, users: await getUsers(), adminSetupRequired: false, ...data, toast: { icon: '✓', message: '管理员已创建' } });
   },
 
   loginAdmin: async (username, password) => {
@@ -162,7 +167,8 @@ export const useStore = create<StoreState>((set, get) => ({
     }
     const users = await getUsers();
     const data = await loadUserData(admin);
-    set({ currentUser: admin, users, adminOpen: true, ...data, toast: { icon: '✓', message: '已登录管理员' } });
+    // 同上：不再自动弹出管理员面板，登录后进主地图页。
+    set({ currentUser: admin, users, ...data, toast: { icon: '✓', message: '已登录管理员' } });
     return true;
   },
 

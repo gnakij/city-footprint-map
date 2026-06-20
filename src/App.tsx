@@ -10,6 +10,7 @@ import { useStore } from './store/useStore';
 const MapView = lazy(() => import('./components/MapView'));
 const CityDrawer = lazy(() => import('./components/CityDrawer'));
 const UserProfile = lazy(() => import('./components/UserProfile'));
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
 
 function Loading() {
   return (
@@ -42,6 +43,7 @@ function AppContent() {
   const selectedCity = useStore((state) => state.selectedCity);
   const drawerOpen = useStore((state) => state.drawerOpen);
   const profileOpen = useStore((state) => state.profileOpen);
+  const adminOpen = useStore((state) => state.adminOpen);
 
   useEffect(() => {
     void load();
@@ -83,6 +85,16 @@ function AppContent() {
       {profileOpen && (
         <Suspense fallback={null}>
           <UserProfile />
+        </Suspense>
+      )}
+      {/* 2026-06-20: "系统管理"从个人资料弹窗的tab里移出来，改成TopBar账号
+          下拉菜单的独立入口，对应这里独立挂载的AdminPanel（非embedded模式，
+          组件内部会渲染成自己的.modal-backdrop弹窗）。adminOpen状态此前已
+          存在于store（管理员登录/创建时会被设为true），但一直没有渲染入口
+          消费它，是个遗留的"半成品"状态——这次补上挂载点。 */}
+      {adminOpen && (
+        <Suspense fallback={null}>
+          <AdminPanel />
         </Suspense>
       )}
       <Toast />

@@ -6,6 +6,7 @@ export default function TopBar() {
   const currentUser = useStore((state) => state.currentUser);
   const logout = useStore((state) => state.logout);
   const setProfileOpen = useStore((state) => state.setProfileOpen);
+  const setAdminOpen = useStore((state) => state.setAdminOpen);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +52,21 @@ export default function TopBar() {
               <Icon name="user" />
               个人资料
             </button>
+            {currentUser?.is_admin && (
+              // 2026-06-20: "系统管理"从个人资料弹窗的tab里移出来，改成这里的
+              // 独立入口，点击后打开AdminPanel的独立弹窗（非embedded模式，
+              // App.tsx里根据adminOpen状态挂载）。原因：管理面板内容结构、
+              // 内容量与个人资料弹窗里其他tab差异很大，共享同一个弹窗容器时
+              // 切换会有高度跳变问题，拆成独立弹窗从根上避免这个问题。
+              <button
+                className="account-dropdown-item"
+                role="menuitem"
+                onClick={() => { setMenuOpen(false); setAdminOpen(true); }}
+              >
+                <Icon name="settings" />
+                系统管理
+              </button>
+            )}
             <button
               className="account-dropdown-item is-danger"
               role="menuitem"
