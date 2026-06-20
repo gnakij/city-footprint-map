@@ -24,6 +24,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
+  { date: '2026-06-20', items: ['建立设计系统文档（docs/设计系统-2026-06-20.md）：完整设计 token 体系、组件规范、可访问性规范', '新增可访问性支持：:focus-visible 焦点环、prefers-reduced-motion 减少动效', '新增全局状态类名：.empty-state / .loading / .error-state', '修复 6 处硬编码：font-size/gap/z-index/padding 引用变量', '新增变量：--space-0-75(3px)、--z-tooltip(1000)', '管理员面板新增"系统文档"页签，集中展示设计文档和功能文档'] },
   { date: '2026-06-19', items: ['UI规范整理：按钮、页签、列表项样式统一', '颜色变量化：glass效果、阴影、边框等硬编码颜色替换为CSS变量', '间距变量化：4-48px常用尺寸替换为CSS变量', '新增系统升级记录页签'] },
   { date: '2026-06-19', items: ['修复用户名/昵称/省份/城市筛选框拼音模糊匹配（用户名昵称为新增，引入 pinyin-pro 实时转换）', '地图省界轮廓线变细，缓解移动端发黑发粗的问题', '修复移动端地图双指缩放/拖拽卡顿（touchmove 改为 rAF 帧节流）', 'CSS 设计 token 体系化：圆角按用途分层（面板 12px / 控件 8px）、交互过渡与状态强度（hover/active/disabled）统一为语义变量，修正多处字重与圆角跟规范不一致的问题，操作按钮组（.actions）统一靠右对齐'] },
   { date: '2026-06-20', items: ['修复地图加载数据错位问题，并重新做了一次安全的体积压缩（china-cities.json 413万→65.7万字节，china-provinces-outline.json 130万→21.7万字节，几何精度损失小于1%，城市/省份零丢失）', '修复地图省份提示框浮在管理员等弹窗上方的问题', 'z-index 层级体系化：新建统一的语义化层级变量，修正统计面板/折叠胶囊与城市详情抽屉之间的层级混乱（折叠胶囊展开后跑到详情页下层、新打开的表单被胶囊遮挡等问题）'] },
@@ -120,7 +121,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
   const [newPassword, setNewPassword] = useState('');
   const [stats, setStats] = useState({ totalUsers: users.length, totalVisits: 0, adminUsers: 0 });
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [adminTab, setAdminTab] = useState<'users' | 'data' | 'changelog'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'data' | 'changelog' | 'docs'>('users');
   const [allVisits, setAllVisits] = useState<AdminVisitExportRow[]>([]);
   const [filterUsername, setFilterUsername] = useState('');
   const [filterName, setFilterName] = useState('');
@@ -351,6 +352,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
         <button className={adminTab === 'users' ? 'active' : ''} onClick={() => setAdminTab('users')}>用户管理</button>
         <button className={adminTab === 'data' ? 'active' : ''} onClick={() => setAdminTab('data')}>数据管理</button>
         <button className={adminTab === 'changelog' ? 'active' : ''} onClick={() => setAdminTab('changelog')}>系统升级记录</button>
+        <button className={adminTab === 'docs' ? 'active' : ''} onClick={() => setAdminTab('docs')}>系统文档</button>
       </div>
 
       {adminTab === 'users' && (
@@ -575,6 +577,23 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
               </ul>
             </div>
           ))}
+        </div>
+      )}
+
+      {adminTab === 'docs' && (
+        <div className="changelog-list">
+          <div className="changelog-entry">
+            <div className="changelog-date">设计文档</div>
+            <ul className="changelog-items">
+              <li><a href="/cityprint/docs/设计系统-2026-06-20.md" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>设计系统文档（2026-06-20）</a> — 完整设计 token 体系、组件规范</li>
+            </ul>
+          </div>
+          <div className="changelog-entry">
+            <div className="changelog-date">功能文档</div>
+            <ul className="changelog-items">
+              <li><a href="/cityprint/docs/功能现状-2026-06-19.md" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>功能现状文档（2026-06-19）</a> — 项目功能清单与现状说明</li>
+            </ul>
+          </div>
         </div>
       )}
 
