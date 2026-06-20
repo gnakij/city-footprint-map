@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface IconProps {
-  name: 'close' | 'plus' | 'minus' | 'refresh' | 'download' | 'upload' | 'chart' | 'search' | 'key' | 'user' | 'city' | 'check' | 'warning' | 'error' | 'info' | 'logout' | 'settings';
+  name: 'close' | 'plus' | 'minus' | 'refresh' | 'download' | 'upload' | 'chart' | 'search' | 'key' | 'user' | 'city' | 'check' | 'warning' | 'error' | 'info' | 'logout' | 'settings' | 'palette';
   size?: number;
   className?: string;
 }
@@ -90,6 +90,18 @@ const icons: Record<IconProps['name'], React.ReactNode> = {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 21h18M5 21V7l8-4v18M13 21V3l6 4v14" />
       <path d="M9 9h1M9 13h1M15 9h1M15 13h1" />
+    </svg>
+  ),
+  // 2026-06-20: 调色板图标，新增用于TopBar账号下拉菜单里的"主题选择"入口
+  // （原用settings齿轮图标跟"系统管理"撞了，语义也不贴切——主题选择是色彩/
+  // 外观相关，不是系统配置）。
+  palette: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a10 10 0 1 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.4-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A4.2 4.2 0 0 0 21 11c0-4.97-4.5-9-9-9z" />
+      <circle cx="6.5" cy="11.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="9.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="14.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="17.5" cy="11.5" r="1.2" fill="currentColor" stroke="none" />
     </svg>
   ),
   check: (

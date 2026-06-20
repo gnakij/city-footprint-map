@@ -246,6 +246,13 @@ button { cursor: pointer; }
 .account-dropdown-item:hover { background: var(--color-surface-container-low); }
 .account-dropdown-item:active { transform: scale(var(--state-active-scale)); }
 .account-dropdown-item.is-danger { color: var(--color-error); }
+/* 2026-06-20: "主题选择"二级展开列表（账号下拉菜单内原地展开，不跳新弹窗，
+   不关闭外层菜单）。submenu用左侧细线+左缩进跟主列表项形成层级区分，subitem
+   复用account-dropdown-item的大部分视觉但字号略小、左侧多留一个图标位的
+   占位（check图标或spacer），让"当前选中"状态左对齐不抖动。 */
+.account-dropdown-submenu { display: grid; gap: var(--space-1); padding: var(--space-1) 0 var(--space-1) var(--space-2-5); margin-left: var(--space-2-5); border-left: 1px solid var(--color-outline-variant); }
+.account-dropdown-subitem { font-size: var(--font-sm); font-weight: 500; }
+.account-dropdown-subitem .icon, .account-subitem-spacer { width: 16px; height: 16px; flex-shrink: 0; }
 .user-dropdown { position: absolute; top: var(--size-input); left: 0; min-width: 180px; padding: var(--space-2); z-index: var(--z-flyout); }
 .user-row { display: flex; align-items: center; justify-content: space-between; }
 .user-name { flex: 1; text-align: left; border: 0; background: transparent; padding: var(--space-2) var(--space-2-5); font-weight: 600; color: var(--color-on-surface); border-radius: var(--radius-sm); font-size: var(--font-base); }

@@ -30,7 +30,7 @@ import {
   getSystemStats as apiGetSystemStats,
 } from './api';
 
-type ProfileTab = 'profile' | 'visits' | 'settings';
+type ProfileTab = 'profile' | 'visits';
 
 interface ToastState { message: string; icon?: string; }
 
@@ -43,7 +43,6 @@ interface StoreState {
   drawerOpen: boolean;
   searchQuery: string;
   posterOpen: boolean;
-  settingsOpen: boolean;
   visitsOpen: boolean;
   adminOpen: boolean;
   statsOpen: boolean;
@@ -70,7 +69,6 @@ interface StoreState {
   setDrawerOpen: (open: boolean) => void;
   setSearchQuery: (query: string) => void;
   setPosterOpen: (open: boolean) => void;
-  setSettingsOpen: (open: boolean) => void;
   setVisitsOpen: (open: boolean) => void;
   setAdminOpen: (open: boolean) => void;
   setStatsOpen: (open: boolean) => void;
@@ -118,7 +116,7 @@ async function checkAchievements(uid: string, records: VisitRecord[], unlocked: 
 
 export const useStore = create<StoreState>((set, get) => ({
   visits: [], achievements: [], settings: { theme: 'rose' },
-  drawerOpen: false, searchQuery: '', posterOpen: false, settingsOpen: false, visitsOpen: false, adminOpen: false, statsOpen: false, profileOpen: false,
+  drawerOpen: false, searchQuery: '', posterOpen: false, visitsOpen: false, adminOpen: false, statsOpen: false, profileOpen: false,
   hydrated: false, currentUser: null, users: [], adminSetupRequired: false, statsCollapsed: false, profileTab: 'profile', colorMode: 'duration',
 
   load: async () => {
@@ -191,7 +189,7 @@ export const useStore = create<StoreState>((set, get) => ({
   logout: () => {
     clearToken();
     document.documentElement.dataset.theme = 'rose';
-    set({ currentUser: null, visits: [], achievements: [], selectedCity: undefined, previewCity: undefined, drawerOpen: false, adminOpen: false, visitsOpen: false, settingsOpen: false, posterOpen: false, profileOpen: false });
+    set({ currentUser: null, visits: [], achievements: [], selectedCity: undefined, previewCity: undefined, drawerOpen: false, adminOpen: false, visitsOpen: false, posterOpen: false, profileOpen: false });
   },
 
   createRegularUser: async (name) => {
@@ -234,7 +232,6 @@ export const useStore = create<StoreState>((set, get) => ({
   setDrawerOpen: (drawerOpen) => set({ drawerOpen }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setPosterOpen: (posterOpen) => set({ posterOpen }),
-  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setVisitsOpen: (visitsOpen) => set({ visitsOpen }),
   setAdminOpen: (adminOpen) => set({ adminOpen }),
   setStatsOpen: (statsOpen) => set({ statsOpen }),

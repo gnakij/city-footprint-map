@@ -12,7 +12,7 @@ import { updateMe } from '../store/api';
 import type { ImportVisitRow, VisitRecord } from '../types';
 import { visitDays } from '../utils/date';
 
-type ProfileTab = 'profile' | 'visits' | 'settings';
+type ProfileTab = 'profile' | 'visits';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -57,11 +57,9 @@ function writeWorkbook(filename: string, rows: Array<Record<string, string | num
 export default function UserProfile() {
   const currentUser = useStore((s) => s.currentUser);
   const visits = useStore((s) => s.visits);
-  const settings = useStore((s) => s.settings);
   const saveVisit = useStore((s) => s.saveVisit);
   const deleteVisit = useStore((s) => s.deleteVisit);
   const bulkCreateVisits = useStore((s) => s.bulkCreateVisits);
-  const updateSettings = useStore((s) => s.updateSettings);
   const clearData = useStore((s) => s.clearData);
   const profileTab = useStore((s) => s.profileTab);
   const setProfileOpen = useStore((s) => s.setProfileOpen);
@@ -233,15 +231,15 @@ export default function UserProfile() {
 
   if (!currentUser) return null;
 
-  // 2026-06-20: "系统管理"已从这里移出，改为TopBar账号下拉菜单里的独立入口，
-  // 点击后打开AdminPanel的独立弹窗(非embedded模式)。原因：管理面板内容结构、
-  // 内容量与"个人信息/访问记录/系统设置"差异巨大，共享同一个.modal-xl容器时
-  // 切换会有高度跳变问题（此前用min-height硬凑值，效果不稳定），拆成独立弹窗
-  // 从根上避免共享容器带来的尺寸联动问题。
+  // 2026-06-20: "系统管理"和"系统设置"（改名"主题选择"）都已从这里移出，
+  // 改为TopBar账号下拉菜单里的独立入口/二级展开列表。原因：①管理面板内容
+  // 结构、内容量与"个人信息/访问记录"差异巨大，共享同一个.modal-xl容器时
+  // 切换会有高度跳变问题；②主题选择本身只有一个下拉框，内容量配不上独立的
+  // tab/弹窗，且用户提到未来还想加更多主题，改成下拉菜单内原地展开的二级
+  // 列表更轻量，也更适合未来扩展。
   const tabs: Array<{ id: ProfileTab; label: string }> = [
     { id: 'profile', label: '个人信息' },
     { id: 'visits', label: '访问记录' },
-    { id: 'settings', label: '系统设置' },
   ];
 
   return (
@@ -446,20 +444,6 @@ export default function UserProfile() {
           </>
         )}
 
-        {tab === 'settings' && (
-          <div className="stack">
-            <div className="settings-section" style={{ borderTop: 0, paddingTop: 0, marginTop: 0 }}>
-              <label>
-                <span className="label-sm">主题</span>
-                <select className="input" value={settings.theme} onChange={(event) => void updateSettings({ ...settings, theme: event.target.value as typeof settings.theme })}>
-                  <option value="linear">Linear · 暗黑</option>
-                  <option value="stripe">Stripe · 白紫</option>
-                  <option value="rose">Rose · 樱花</option>
-                </select>
-              </label>
-            </div>
-          </div>
-        )}
       </section>
     </div>
   );
