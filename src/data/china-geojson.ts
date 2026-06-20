@@ -1,5 +1,4 @@
 // @ts-nocheck
-import fallbackChinaGeoJSON from './china.json';
 
 const GEO_BASE = '/cityprint/geojson';
 const cache = new Map<string, unknown>();
@@ -14,7 +13,12 @@ export async function loadChinaGeoJSON() {
     cache.set('china', data);
     return data;
   } catch (error) {
+    // 动态 import：兜底数据（约570KB）只在 fetch 真正失败时才加载，
+    // 不会像静态 import 那样把这份 JSON 打包进 MapView 主 chunk
+    // （之前是 MapView chunk 体积偏大的主因之一）
     console.warn('Using bundled China GeoJSON fallback', error);
+    const fallbackModule = await import('./china.json');
+    const fallbackChinaGeoJSON = fallbackModule.default;
     cache.set('china', fallbackChinaGeoJSON);
     return fallbackChinaGeoJSON;
   }

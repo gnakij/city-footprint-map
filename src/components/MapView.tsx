@@ -1,4 +1,11 @@
-import * as echarts from 'echarts';
+// 按需引入 ECharts 核心模块：本组件只用到 map 系列 + tooltip + markPoint，
+// 完整的 `import * as echarts from 'echarts'` 会把 bar/line/pie/dataZoom 等
+// 全部图表类型和组件一并打包进来，是 MapView chunk 体积偏大（约1.6MB）的主因。
+// 按需引入后只打包实际使用的部分，可大幅缩小该 chunk。
+import * as echarts from 'echarts/core';
+import { MapChart } from 'echarts/charts';
+import { TooltipComponent, MarkPointComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { loadChinaCitiesGeoJSON, loadChinaGeoJSON, loadProvinceGeoJSON, loadProvinceOutlineGeoJSON } from '../data/china-geojson';
 import { CITIES } from '../data/cities';
@@ -8,6 +15,9 @@ import { getDurationColor, getLastDepartureColor } from '../utils/colors';
 import { daysSinceDate, visitDays } from '../utils/date';
 import { findCityForFeature, municipalities, PROVINCE_CENTROIDS, shortName } from '../utils/mapHelpers';
 import Icon from './Icon';
+
+// 注册按需引入的模块（替代完整 import 后必须手动注册实际用到的部分）
+echarts.use([MapChart, TooltipComponent, MarkPointComponent, CanvasRenderer]);
 
 type ProvinceView = { name: string; short: string; adcode: number };
 type GeoJsonFeature = { properties: { name: string; adcode: number; center?: [number, number]; parent?: { adcode: number } } };

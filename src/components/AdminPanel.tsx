@@ -25,6 +25,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
+  { date: '2026-06-20', items: ['MapView 性能优化：ECharts 从全量 import 改为按需引入（仅注册 map 系列 + tooltip + markPoint），打包体积从约1.63MB降至约46万字节，减少72%', '离线兜底地图数据改为动态 import：原本静态打包进主 chunk 的约57万字节兜底 GeoJSON，改为仅在网络请求失败时才单独加载', '清理未使用依赖 echarts-for-react（项目实际直接调用 echarts 原生 API，从未 import 过该库）'] },
   { date: '2026-06-20', items: ['升级记录入口整合：从管理员面板独立页签移至系统文档页签，点击链接弹窗展示', '图标系统统一：20处 emoji/文字符号替换为 SVG 图标组件（Icon.tsx）', '新增变量：--space-7(28px)、--space-9(36px)、--font-4xl(48px)', '消除硬编码：登录面板 padding、空状态图标 font-size 引用变量', '工具类引用变量：.p-16/.p-24/.p-32/.gap-8/.gap-10 改用 CSS 变量', '小箭头 SVG 化：▲▼ 文字符号改为内联 SVG，消除 11px 硬编码', '修复部署流程：rsync 去掉 --delete，避免删 docs 目录', '响应式断点规范化（767px/768px/1024px），CSS 注释记录', '颜色对比度检查：Rose 主题成功色/警告色略低，标注使用限制', '设计文档更新：响应式断点、全局状态规范落实，去掉"待定义"'] },
   { date: '2026-06-20', items: ['建立设计系统文档（docs/设计系统-2026-06-20.md）：完整设计 token 体系、组件规范、可访问性规范', '新增可访问性支持：:focus-visible 焦点环、prefers-reduced-motion 减少动效', '新增全局状态类名：.empty-state / .loading / .error-state', '修复 6 处硬编码：font-size/gap/z-index/padding 引用变量', '新增变量：--space-0-75(3px)、--z-tooltip(1000)', '管理员面板新增"系统文档"页签，集中展示设计文档和功能文档'] },
   { date: '2026-06-20', items: ['修复地图加载数据错位问题，并重新做了一次安全的体积压缩（china-cities.json 413万→65.7万字节，china-provinces-outline.json 130万→21.7万字节，几何精度损失小于1%，城市/省份零丢失）', '修复地图省份提示框浮在管理员等弹窗上方的问题', 'z-index 层级体系化：新建统一的语义化层级变量，修正统计面板/折叠胶囊与城市详情抽屉之间的层级混乱（折叠胶囊展开后跑到详情页下层、新打开的表单被胶囊遮挡等问题）'] },
