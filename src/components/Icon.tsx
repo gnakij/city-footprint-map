@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface IconProps {
-  name: 'close' | 'plus' | 'minus' | 'refresh' | 'download' | 'upload' | 'chart' | 'search' | 'key' | 'user' | 'city' | 'check' | 'warning' | 'error' | 'info' | 'logout' | 'settings' | 'palette';
+  name: 'close' | 'plus' | 'minus' | 'refresh' | 'download' | 'upload' | 'chart' | 'search' | 'key' | 'user' | 'city' | 'check' | 'warning' | 'error' | 'info' | 'logout' | 'settings' | 'palette' | 'arrow-left';
   size?: number;
   className?: string;
 }
@@ -30,6 +30,14 @@ const icons: Record<IconProps['name'], React.ReactNode> = {
       <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
       <path d="M3 22v-6h6" />
       <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+    </svg>
+  ),
+  // 2026-06-20: 新增，用于移动端地图控件重设计后"返回省级视图"改为纯图标
+  // （原来带文字，移动端空间有限统一改成纯图标胶囊后需要一个语义清楚的图标）。
+  'arrow-left': (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
     </svg>
   ),
   download: (

@@ -297,6 +297,15 @@ button { cursor: pointer; }
 .inline-form.compact .input { min-width: 120px; min-height: 38px; }
 
 .topbar { position: fixed; inset: var(--space-3) var(--space-3) auto; z-index: var(--z-topbar); min-height: 56px; border-radius: var(--radius-lg); display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); }
+/* 2026-06-20: 顶部条原本完全用通用.glass的中性玻璃背景(--glass-bg)，三个
+   主题看起来几乎只有明暗差异，缺乏"这是哪个主题"的识别感。用户决定给顶部
+   条单独混入一点主题主色（不改--glass-bg本身，避免影响Toast/地图控件/
+   登录面板等其他共用.glass的元素）。用color-mix在.glass提供的玻璃背景基础
+   上叠加6%主题色——这里不能写成跟--glass-bg等比例的固定百分号，因为三主题
+   的--glass-bg本身透明度/明暗不同，6%是反复对比三主题预览效果后确认的
+   折中值，用户已通过静态预览页面确认采用"整体玻璃背景混入主题色"方案
+   （而非"加一条主题色细边"的备选方案）。 */
+.topbar { background: color-mix(in srgb, var(--color-primary) 6%, var(--glass-bg)); }
 .logo { font-weight: 800; white-space: nowrap; font-size: var(--font-lg); }
 /* 2026-06-20: Logo新增图标(emoji)+slogan，与登录页brand-mark保持同一个图标和
    文案(均为🗺️/"记录你走过的每一座城")，但topbar是常驻小尺寸导航栏场景，不能
@@ -537,9 +546,19 @@ button { cursor: pointer; }
 
 /* Desktop map HUD refinement */
 @media (min-width: 768px) {
-  .topbar.glass,
   .map-controls.glass {
     background: var(--color-surface);
+    backdrop-filter: none;
+    border: var(--space-xs) solid var(--color-outline-variant);
+    box-shadow: var(--elevation-low);
+  }
+  /* 2026-06-20: .topbar原本和.map-controls共用这条规则，在768px+视口把玻璃
+     效果换成纯色背景。但用户要的"顶部条混入主题色"如果只改299行附近那条
+     基础规则，会在这里被覆盖掉(这条规则源码顺序更靠后，且选择器优先级
+     相同)——桌面端实际上完全没有玻璃效果，是这条规则换成的纯色背景。
+     拆开成独立规则，桌面端同样用color-mix混入主题色，不再是纯--color-surface。 */
+  .topbar.glass {
+    background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
     backdrop-filter: none;
     border: var(--space-xs) solid var(--color-outline-variant);
     box-shadow: var(--elevation-low);
@@ -683,47 +702,51 @@ button { cursor: pointer; }
   .topbar-actions, .top-actions { grid-column: 1 / -1; order: 4; justify-content: flex-start; overflow-x: auto; }
   .icon-actions, .current-user { order: 2; }
   .mode-pill button { flex: 1; }
+  /* 2026-06-20重设计: 原方块堆叠（直角矩形+实心分隔线背景块）跟旁边.map-level
+     的圆角悬浮胶囊风格冲突，用户反馈"傻大粗笨"。改为同款圆角胶囊（背景/阴影
+     与.map-level一致：color-mix(--color-surface 90%, --color-background)，
+     不用.glass的backdrop-filter），四个按钮（返回省级/重置/放大/缩小）统一
+     收窄成纯图标按钮（JSX里文字用.map-controls-label包裹，这里隐藏），
+     分隔线改用更柔和的半透明色而非生硬的--color-outline-variant。 */
   .map-controls {
     left: auto;
     right: max(var(--space-3), env(safe-area-inset-right));
     top: var(--space-4);
-    display: grid;
-    grid-auto-flow: row;
-    grid-auto-rows: var(--size-btn-large);
+    display: flex;
+    flex-direction: column;
     align-items: stretch;
     gap: 0;
     width: max-content;
-    max-width: 132px;
     padding: var(--space-1);
     overflow: hidden;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-background));
+    backdrop-filter: none;
+    border: none;
     box-shadow: 0 var(--space-2-5) 30px color-mix(in srgb, var(--shadow-color) 14%, transparent);
   }
+  .map-controls-label { display: none; }
   .map-controls .btn-outline,
   .map-controls .icon-btn {
-    width: 100%;
-    min-width: var(--size-btn-large);
-    height: var(--size-btn-large);
-    min-height: var(--size-btn-large);
+    width: var(--size-btn-default);
+    min-width: var(--size-btn-default);
+    height: var(--size-btn-default);
+    min-height: var(--size-btn-default);
     border: 0;
-    border-radius: 0;
+    border-radius: var(--radius-full);
     background: transparent;
     box-shadow: none;
+    justify-content: center;
+    padding: 0;
   }
   .map-controls .btn-outline + .btn-outline,
   .map-controls .btn-outline + .icon-btn,
   .map-controls .icon-btn + .icon-btn {
-    border-top: var(--space-xs) solid var(--color-outline-variant);
-  }
-  .map-controls .btn-outline {
-    justify-content: center;
-    padding: 0 var(--space-2-5);
-    font-size: var(--font-xs);
-    white-space: nowrap;
+    border-top: 1px solid color-mix(in srgb, var(--color-on-surface-variant) 20%, transparent);
   }
   .map-controls .icon-btn {
-    font-size: var(--font-xl);
-    font-weight: 800;
+    font-size: var(--font-lg);
+    font-weight: 700;
   }
   .map-level {
     left: max(var(--space-3), env(safe-area-inset-left));
@@ -794,6 +817,14 @@ button { cursor: pointer; }
   .stats-pill-icon { font-size: var(--font-md); }
   .stats-pill-text strong { font-size: var(--font-15); }
   .stats-pill-arrow { width: 10px; height: 10px; }
+  /* 2026-06-20: 桌面端这个气泡漂浮在地图正中间留白区域，主题色边框+呼吸发光
+     （见374行statsPillGlow）是有功能目的的——提示"这是个可点击的次要入口"。
+     移动端贴底横条本身位置已经足够显眼（屏幕最下方、左右几乎撑满），不需要
+     再靠主题色边框去抢注意力，用户反馈"傻大粗笨"（注：移动端本来就没有
+     呼吸发光动画，只有弹出动画floatUp，这点不受影响）。改为跟项目其他.card
+     一致的中性边框+静态阴影，只覆盖border/box-shadow两处，桌面端不受影响。 */
+  .stats-collapsed-pill { border: var(--space-xs) solid var(--color-card-border); box-shadow: var(--shadow-card); }
+  .stats-collapsed-pill:hover { border-color: var(--color-card-border); box-shadow: var(--shadow-card); }
   .achievement-grid { grid-template-columns: repeat(4, minmax(var(--size-icon-large), 1fr)); overflow-x: auto; gap: var(--space-1-5); }
   .input { min-height: var(--size-icon-large); font-size: var(--font-md); }
   .btn-primary, .btn-outline, .btn-danger { min-height: var(--size-btn-default); font-size: var(--font-sm); padding: 0 var(--space-3-5); }
