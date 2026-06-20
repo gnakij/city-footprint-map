@@ -392,7 +392,13 @@ button { cursor: pointer; }
 .modal-wide { width: min(900px, 100%); }
 .visit-modal { width: min(1120px, 100%); }
 .stats-modal { width: min(620px, 100%); }
-.modal-xl { width: min(1180px, 100%); }
+.modal-xl { width: min(1180px, 100%); min-height: 560px; }
+/* 2026-06-20: 新增min-height。这个modal内部有4个tab(个人信息/访问记录/系统管理/
+   系统设置)，内容量差异很大("个人信息"只有两个输入框，"系统管理"嵌套了完整的
+   表格管理界面)，.modal本身只有max-height没有min-height，导致切换tab时modal
+   随内容量自由伸缩，用户反馈"页签切换时会忽上忽下"。固定一个适中的最小高度，
+   让内容少的tab也撑到这个高度(不会显得局促)，内容多的tab超出时仍可max-height
+   90vh+overflow滚动，不会无限增高顶到屏幕外。 */
 .modal-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); }
 .settings-section { border-top: var(--space-xs) solid var(--color-outline-variant); padding-top: var(--space-4); margin-top: var(--space-4); display: grid; gap: var(--space-3); }
 .poster-preview { width: min(360px, 100%); aspect-ratio: 9/16; margin: auto; overflow: hidden; background: var(--color-background); border-radius: var(--radius-sm); border: var(--space-xs) solid var(--color-outline-variant); }
@@ -407,7 +413,12 @@ button { cursor: pointer; }
 .table-wrap { width: 100%; overflow: auto; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 720px; }
 .data-table th, .data-table td { border-bottom: var(--space-xs) solid var(--color-outline-variant); padding: var(--space-2-5); text-align: left; vertical-align: top; font-size: var(--font-base); }
-.data-table th { color: var(--color-on-surface-variant); font-size: var(--font-xs); }
+.data-table th { color: var(--color-on-surface-variant); font-size: var(--font-sm); font-weight: 700; }
+/* 2026-06-20: 表头字号从--font-xs(12px)调整为--font-sm(13px)，与页签(.mode-pill button)
+   同一字号，呼应页面顶部的视觉语言；同时与表格内容(--font-base,14px)只差1px，
+   不会显得头重脚轻。原12px被用户反馈"列表字体比表头都大"，确认是真实的数值差异。
+   字重加到700(表头本身字重未声明，浏览器默认400)，进一步用粗细区分表头与正文，
+   弥补字号差距缩小后视觉层级可能被削弱的问题。 */
 .visit-form { margin: var(--space-3) 0; padding: var(--space-4); background: var(--color-surface-container-low); border-radius: var(--radius-panel); }
 .visit-form .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
 .visit-form .form-row { margin: 0; display: grid; gap: var(--space-1-5); }
@@ -745,6 +756,10 @@ button { cursor: pointer; }
   .btn-primary, .btn-outline, .btn-danger { min-height: var(--size-btn-default); font-size: var(--font-sm); padding: 0 var(--space-3-5); }
   .modal { padding: var(--space-4-5) var(--space-3-5); border-radius: var(--radius-panel); }
   .modal h2 { font-size: var(--font-xl); }
+  .modal-xl { min-height: min(560px, 80vh); }
+  /* 2026-06-20: 移动端屏幕普遍偏矮，560px固定最小高度可能导致弹窗过高甚至溢出，
+     改为取560px和80vh中较小者，保证不会超出视口太多；80vh而非90vh是留出一些
+     呼吸空间，避免和.modal自身的max-height:90vh贴得太近。 */
   .label-sm { font-size: var(--font-sm); }
   .login-panel { padding: var(--space-7) var(--space-5-5); }
   .login-header h1 { font-size: var(--font-display-mobile); }
