@@ -59,7 +59,7 @@
      效果良好；Stripe在真实纯白背景下重新做了5档(14/22/30/38/46%)对比预览，
      用户选定22%（约为Rose的1.57倍）。Linear目前沿用14%，未单独反馈问题，
      如果之后发现也偏淡可以同样方式调整。 */
-  --topbar-tint-pct: 10%;
+  --topbar-tint-pct: 8%;
   --shadow-color: rgba(19,27,46,1);
   --color-card-border: rgba(194,198,216,.6);
   --color-focus-ring: rgba(0,102,255,.12);
@@ -186,7 +186,7 @@
      后视觉效果会被纯白背景明显冲淡，需要比Rose/Linear更高的混入比例才能让
      紫色感清晰可辨。用户在真机上用真实纯白背景对比5档(14/22/30/38/46%)后
      选定22%。 */
-  --topbar-tint-pct: 30%;
+  --topbar-tint-pct: 80%;
   --color-primary: #533AFD; --color-primary-container: #6358F7; --color-on-primary: #FFFFFF;
   --color-secondary: #6650E6; --color-secondary-container: #7A64FF;
   --color-tertiary: #CD3039;
@@ -323,7 +323,15 @@ button { cursor: pointer; }
    同样6%的紫色在这种底色上视觉冲淡程度远超预览时的模拟（预览没有还原
    真实的半透明叠加效果）。用真实color-mix公式重新做了5档(6/10/14/18/22%)
    对比预览，用户选定14%为最终值。 */
-.topbar { background: color-mix(in srgb, var(--color-primary) var(--topbar-tint-pct), var(--glass-bg)); }
+/* 2026-06-20修复重大bug: 上面247-249行有三条几乎重复的.glass规则，其中
+   248/249两行用了:root[data-theme="linear"/"stripe"] .glass这种属性选择器+
+   类选择器的组合，CSS特异性(0,1,1,0)比下面这条单类选择器.topbar(0,0,1,0)
+   高得多。导致在Linear/Stripe主题下，无论这条混色规则写什么百分比，实际
+   生效的都是上面的纯var(--glass-bg)，混色完全被覆盖看不出来——这正是用户
+   反馈"红色调到理想值但紫色完全没有任何迹象"的真正原因，之前几次调整比例
+   全部无效，因为问题根本不在比例大小。改用:root .topbar.glass这种同等或
+   更高特异性的选择器，确保不会被那两条规则劫持。 */
+:root .topbar.glass { background: color-mix(in srgb, var(--color-primary) var(--topbar-tint-pct), var(--glass-bg)); }
 .logo { font-weight: 800; white-space: nowrap; font-size: var(--font-lg); }
 /* 2026-06-20: Logo新增图标(emoji)+slogan，与登录页brand-mark保持同一个图标和
    文案(均为🗺️/"记录你走过的每一座城")，但topbar是常驻小尺寸导航栏场景，不能
@@ -574,8 +582,15 @@ button { cursor: pointer; }
      效果换成纯色背景。但用户要的"顶部条混入主题色"如果只改299行附近那条
      基础规则，会在这里被覆盖掉(这条规则源码顺序更靠后，且选择器优先级
      相同)——桌面端实际上完全没有玻璃效果，是这条规则换成的纯色背景。
-     拆开成独立规则，桌面端同样用color-mix混入主题色，不再是纯--color-surface。 */
-  .topbar.glass {
+     拆开成独立规则，桌面端同样用color-mix混入主题色，不再是纯--color-surface。
+     2026-06-20再次修复: 选择器从.topbar.glass改成:root .topbar.glass——
+     247-249行有几条:root[data-theme=...] .glass规则，特异性(0,1,1,0)比
+     单纯.topbar.glass(0,0,2,0)更高，会把这里的混色覆盖掉(这正是Stripe主题
+     "调到80%紫色完全没有任何迹象"这个bug的真正原因，而不是比例数值问题)。
+     这条规则也要加:root前缀提到同等特异性(0,1,2,0)，否则会被334行新加的
+     移动端那条(也是:root .topbar.glass，但在media query外部分声明)反过来
+     覆盖，导致桌面端错误显示移动端的玻璃背景效果。 */
+  :root .topbar.glass {
     background: color-mix(in srgb, var(--color-primary) var(--topbar-tint-pct), var(--color-surface));
     backdrop-filter: none;
     border: var(--space-xs) solid var(--color-outline-variant);
