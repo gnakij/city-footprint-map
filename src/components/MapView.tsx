@@ -307,8 +307,28 @@ export default function MapView() {
         trigger: 'item',
         enterable: false,
         confine: true,
-        z: 35, // 与 .user-dropdown 同级；必须低于 .modal-backdrop(40)，否则会盖在管理员/弹窗等模态框上方
-               // （ECharts tooltip 默认直接挂载到 document.body，绕开了项目自身的 z-index 体系，必须显式指定）
+        // ECharts tooltip 默认渲染模式是 'html'（不是早先误以为的 canvas内绘制），
+        // 是真实的 <div>，默认挂载在 ECharts 容器(api.getDom())内部——不是
+        // document.body，这是之前长期存在的错误认知。该 <div> 的 z-index 由
+        // ECharts 库内部硬编码为 9999999（见 echarts/lib/component/tooltip/
+        // TooltipHTMLContent.js 的 gCssText），完全不读取任何配置项，之前写的
+        // `z: 35` 在 html 渲染模式下从未真正生效，只是被误以为生效了。
+        //
+        // 真正的问题：pinch 缩放期间会给地图容器加 CSS transform（见下方
+        // applyCssTransform），任何非 none 的 transform 都会给该元素建立新的
+        // CSS 层叠上下文，导致挂在容器内部的 tooltip 不管 z-index 多大，都
+        // 无法越过容器本身去压在管理员面板等外部模态框之上——这才是"打开
+        // 管理员面板时地图标签浮在面板上方"的真正根因，且只在地图容器带有
+        // transform 的窗口期内出现，与缩放程度本身无关（不需要查清楚精确的
+        // 触发时间窗口，只要让 tooltip 不再被装在这个容器里就能从机制上根治）。
+        //
+        // 修复：appendTo: 'body' 让 tooltip 挂载到 document.body，脱离容器
+        // 及其可能存在的 transform；同时用 className 配合 .map-tooltip 这个
+        // CSS class（定义在 index.css，用 !important 覆盖库内联的 9999999），
+        // 把层级压回项目自己的语义化体系（与 .user-dropdown 同级，低于
+        // --z-modal，不会再盖住管理员面板等弹窗）。
+        appendTo: 'body',
+        className: 'map-tooltip',
         formatter: (params: { name: string; seriesIndex?: number }) => {
           if (params.seriesIndex === 1) return params.name; // 省界轮廓层，不需要额外信息
           if (activeProvince) {
