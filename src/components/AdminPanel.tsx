@@ -25,6 +25,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
+  { date: '2026-06-21', items: ['管理员面板「用户管理」页签移动端整改：①修复数字统计卡片(总用户/管理员/总访问)被误改为单列堆叠的问题——根因是.admin-stats被错误归类进".form-grid-2"这条移动端规则(本意是表单输入框分两栏改单列)，三个简短数字横排三栏完全不挤且信息密度更高，已从该规则移除独立处理，移动端保持横排三栏只收紧内边距。②用户列表移动端从表格改为卡片列表——根因排查发现.data-table设了min-width:720px(桌面表格设计思路)，移动端无任何专属断点处理，导致表格被硬塞进手机屏幕靠横向滚动适配，文字相对显得小、操作按钮也要滚动才能点到；用户截图标注确认调整方向是把用户列表"往大调"去匹配数字卡片的视觉重量，而非反向调小那些被多个场景复用、风险更大的组件。桌面端表格保持不变（用.desktop-only/.mobile-only配合767px断点切换，不用JS判断设备）。③新增移动端"修改昵称"按钮：PC端原是输入框失焦自动保存模式，移动端改为明确的"修改→保存/取消"确认式交互（不依赖PC端才有的隐含习惯），保存时复用与PC端完全相同的updateAnyUserName接口，不另写保存逻辑。④保存/取消按钮与重置密码/删除按钮统一为同一套按钮规格（同高度var(--size-btn-default)/同字号/同圆角/等宽flex布局），避免迭代过程中两套按钮各写一份互不对齐的问题'] },
   { date: '2026-06-21', items: ['管理员面板「系统文档」页签整改：①根治tab切换高度跳动——根因是用户管理/数据管理两个tab的表格内容随实际用户数/访问记录数动态变化，固定min-height只是凑当下数据量，用户数增长后依然会跳；改为结构性方案，tab按钮固定在外部不滚动，三tab内容统一包进.admin-tab-viewport（固定高度+内部overflow:auto），同时修复.modal-admin覆盖掉继承的overflow:auto（外层若可滚动会跟内层抢滚动权，导致方案不生效），从根本上让外层弹窗高度恒定，不依赖任何猜测数值。②配色重做：分类标题（如"设计文档·最后更新..."）原跟链接同用--color-primary，红色无差别铺满整块区域，改为次要文字色，红色只留给真正可交互的链接。③按文档类型（设计/功能/协作/升级记录）拆分为独立卡片，粉色只露在卡片间缝隙形成天然分组，不需要额外分隔线；每张卡片整体可点击（不只是链接文字），链接描述文字降为次要色与链接标题形成层级区分，卡片加细描边+hover反馈增强交互鲁棒性'] },
   { date: '2026-06-21', items: ['首页视觉层级优化：用户截图反馈顶栏和统计面板浓度几乎相同，整页缺乏主次区分，地图被夹在两块同色块中间未被强调。解决方案是把顶栏单独降低主题色混入比例(--topbar-tint-pct: 8%→4%)，统计卡片等其余容器维持原有8%暖度不变(--card-tint-pct不变)——只精简改动范围为"顶栏单独退一档"，不大改其余容器的暖色调性。仍复用标准--color-primary做混色源，不引入新的独立色值变量'] },
   { date: '2026-06-21', items: ['主题系统全量重制：删除Linear主题（原紫色，色阶层次单薄、l5/l6需手动压深才能达标），新增三个主题：琥珀(amber)、绿松(turquoise)、冰河(azure)；晨雾(原Stripe)色相由漂移不一致的H247.7统一调整为标准紫调H262；最终五个主题为樱花/晨雾/琥珀/绿松/冰河，命名风格统一为"中文意象名+色调"', '色阶生成方式从手工逐主题调色改为统一算法：基于樱花反推出"L非线性曲线(power=1.6幂函数)+S抛物线"公式，仅需指定主色相(Hue)即可推导全部7档色阶，解决了手调色阶之间深浅不均匀、跨主题层次感不一致的问题；中后段(l3/l4/l5)间距特意拉大、前段(l0/l1)压缩，修复了线性曲线下"中间三档肉眼难以区分"的问题', '危险操作色（清空数据等）不再使用红色系，改为各主题色阶最深档l6，规则为"l6明度=主色明度−10%"，确保危险色在视觉上比主色更深更沉，用深浅而非色相传递警示感，五个主题统一此规则', '同步更新：ThemeMode类型定义、TopBar主题切换菜单选项、.glass选择器（删除linear/stripe重复条目简化为统一规则）、login/loading页面渐变背景（五主题各自配色）、地图省名标注光晕色对比度验证（五主题下均≥4.5，达WCAG AA标准）'] },
@@ -142,6 +143,11 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
   const [resetPw, setResetPw] = useState('');
   const [resetConfirm, setResetConfirm] = useState('');
   const [names, setNames] = useState<Record<string, string>>({});
+  /* 2026-06-21: 移动端用户卡片"修改昵称"交互专用——记录当前正在编辑昵称
+     的用户id，null表示没有任何卡片处于编辑态。PC端表格沿用原有的失焦
+     保存模式不受影响，移动端用明确的"修改→保存/取消"交互，因为移动端
+     没有PC端"点输入框直接改、点别处自动保存"的隐含习惯。 */
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [newUsername, setNewUsername] = useState('');
   const [newNickname, setNewNickname] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -286,6 +292,23 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
     }
   };
 
+  /* 2026-06-21: 移动端卡片"保存"按钮专用，复用PC端同一个updateAnyUserName
+     接口，不另写一套保存逻辑——区别只在触发方式（明确点击保存，而不是
+     失焦自动保存）。 */
+  const handleNameSave = (userId: string) => {
+    const currentName = names[userId];
+    const originalName = users.find((u) => u.id === userId)?.name;
+    if (currentName !== undefined && currentName !== originalName) {
+      void updateAnyUserName(userId, currentName);
+    }
+    setEditingNameId(null);
+  };
+
+  const handleNameCancel = (userId: string, originalName: string) => {
+    setNames({ ...names, [userId]: originalName });
+    setEditingNameId(null);
+  };
+
   const downloadCurrentLedger = () => {
     writeAdminWorkbook('城市足迹当前视图.xlsx', ledgerVisits.map((visit) => {
       const city = cityById.get(visit.city_id);
@@ -402,7 +425,15 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             <button className="btn-primary" onClick={() => setShowCreateModal(true)}>+ 新增用户</button>
           </div>
 
-          <div className="table-wrap">
+          {/* 2026-06-21: 桌面端表格保持不变。移动端(768px以下)改用卡片列表
+             ——根因排查发现.data-table设了min-width:720px，是桌面表格的
+             设计思路，移动端完全没有专属断点处理，导致表格被硬塞进手机屏幕、
+             靠横向滚动适配，文字相对显得小、操作按钮也要滚动才能点到。
+             用户截图标注确认方向：调整箭头指向的用户列表（往大调），而不是
+             调小圈出的数字卡片/Tab按钮（那两处被多个场景复用，风险更大）。
+             两套结构通过.desktop-only/.mobile-only配合CSS媒体查询切换显示，
+             不用JS判断设备类型，符合项目现有的响应式风格。 */}
+          <div className="table-wrap desktop-only">
             <table className="data-table">
               <thead><tr><th>用户</th><th>类型</th><th>创建时间</th><th>密码</th><th>操作</th></tr></thead>
               <tbody>
@@ -430,6 +461,50 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="user-cards mobile-only">
+            {users.map((user) => {
+              const isEditing = editingNameId === user.id;
+              return (
+                <div key={user.id} className="user-card">
+                  {isEditing ? (
+                    <>
+                      <div className="edit-input-row">
+                        <input
+                          className="input edit-input"
+                          value={names[user.id] ?? user.name}
+                          onChange={(event) => setNames({ ...names, [user.id]: event.target.value })}
+                          placeholder="用户名称"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="card-btn-row">
+                        <button className="card-btn card-btn-primary" onClick={() => handleNameSave(user.id)}>保存</button>
+                        <button className="card-btn card-btn-ghost" onClick={() => handleNameCancel(user.id, user.name)}>取消</button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="user-card-head">
+                        <div className="user-card-name-row">
+                          <span className="user-card-name">{names[user.id] ?? user.name}</span>
+                          <button className="edit-link-btn" onClick={() => setEditingNameId(user.id)}>修改</button>
+                        </div>
+                        <span className={`user-card-tag${user.is_admin ? ' is-admin' : ''}`}>{user.is_admin ? '管理员' : '普通用户'}</span>
+                      </div>
+                      <div className="user-card-meta">
+                        {user.username && `@${user.username} · `}创建于 {user.created_at.slice(0, 10)}
+                      </div>
+                      <div className="card-btn-row">
+                        <button className="card-btn card-btn-outline" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
+                        {!user.is_admin && <button className="card-btn card-btn-danger" onClick={() => removeUser(user.id)}>删除</button>}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </>
       )}

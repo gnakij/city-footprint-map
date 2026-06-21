@@ -587,7 +587,39 @@ button { cursor: pointer; }
 .poster-preview { width: min(360px, 100%); aspect-ratio: 9/16; margin: auto; overflow: hidden; background: var(--color-background); border-radius: var(--radius-sm); border: var(--space-xs) solid var(--color-outline-variant); }
 .toast { position: fixed; left: 50%; top: 86px; transform: translateX(-50%); z-index: var(--z-toast); min-height: var(--size-input); padding: 0 var(--space-4); display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-full); animation: toastIn .22s ease-out; }
 
+/* 2026-06-21: .admin-stats此前被误归类进".form-grid-2"那条移动端规则
+   (grid-template-columns: 1fr)，跟"表单输入框分两栏"共用同一个"改单列"
+   逻辑，但数字统计卡片(总用户/管理员/总访问，都是简短数字)横排三栏完全
+   不挤，且信息密度更高——已从那条规则里移除，移动端保持横排三栏，只在
+   下方767px断点内单独做内边距/字号的紧凑化调整(不改列数)。 */
 .admin-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin-bottom: var(--space-4); }
+/* 2026-06-21: 桌面/移动端结构切换工具类，用于用户管理表格(桌面)/卡片
+   (移动端)的显示切换，不用JS判断设备类型，符合项目现有响应式风格。
+   默认(无媒体查询时)都显示，由下方767px断点二选一隐藏。 */
+.desktop-only { }
+.mobile-only { display: none; }
+/* 2026-06-21: 移动端用户卡片列表样式。设计依据：用户提供截图标注，确认
+   方向是把箭头指向的用户列表"往大调"去匹配数字卡片/Tab按钮的视觉重量，
+   而不是反过来调小那两处被多个场景复用的组件(风险更大)。 */
+.user-cards { display: grid; gap: var(--space-2-5); }
+.user-card { background: var(--color-surface); border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-md); padding: var(--space-3-5); }
+.user-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); gap: var(--space-2); }
+.user-card-name-row { display: flex; align-items: center; gap: var(--space-1-5); min-width: 0; }
+.user-card-name { font-size: var(--font-lg); font-weight: 700; color: var(--color-on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.edit-link-btn { border: none; background: none; color: var(--color-primary); font-size: var(--font-xs); font-weight: 600; padding: var(--space-0-5) var(--space-1-5); white-space: nowrap; }
+.user-card-tag { font-size: var(--font-xs); padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-sm); background: var(--color-surface-container-low); color: var(--color-on-surface-variant); font-weight: 600; white-space: nowrap; }
+.user-card-tag.is-admin { background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface-container-low)); color: var(--color-primary); }
+.user-card-meta { font-size: var(--font-sm); color: var(--color-on-surface-variant); margin-bottom: var(--space-3); }
+/* 保存/取消按钮与重置密码/删除按钮统一为同一套规格(同高度/字号/圆角/
+   等宽flex)，避免之前demo里两套按钮各写一份、互不对齐的问题。 */
+.card-btn-row { display: flex; gap: var(--space-2); }
+.card-btn { flex: 1; height: var(--size-btn-default); border-radius: var(--radius-sm); font-size: var(--font-sm); font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.card-btn-outline { border: var(--space-xs) solid var(--color-outline-variant); background: var(--color-background); color: var(--color-on-surface); }
+.card-btn-danger { border: var(--space-xs) solid color-mix(in srgb, var(--color-error) 40%, var(--color-outline-variant)); background: var(--color-background); color: var(--color-error); }
+.card-btn-primary { border: none; background: var(--color-primary); color: var(--color-on-primary); }
+.card-btn-ghost { border: var(--space-xs) solid var(--color-outline-variant); background: var(--color-background); color: var(--color-on-surface-variant); }
+.edit-input-row { margin-bottom: var(--space-2); }
+.edit-input { width: 100%; height: var(--size-btn-default); border: 1.5px solid var(--color-primary) !important; }
 /* 2026-06-21: 系统文档整体改版。背景问题：最外层.modal本身是淡粉色底
    (color-mix主色8%混合)，系统文档内容原来直接铺在这层粉底上，文字量少
    留白多，粉色占比被放大，用户反馈"整页粉嘟嘟"。解决思路不是简单加一个
@@ -942,7 +974,15 @@ button { cursor: pointer; }
     white-space: nowrap;
   }
   .city-drawer { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 76vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; animation: slideUp .2s ease-out; }
-  .visit-form .form-grid-2, .form-grid-2, .admin-stats { grid-template-columns: 1fr; }
+  /* 2026-06-21: .admin-stats已从这条规则移除（详见上方.admin-stats定义
+     处的注释），不再随表单输入框一起被改成单列。 */
+  .visit-form .form-grid-2, .form-grid-2 { grid-template-columns: 1fr; }
+  /* 数字卡片移动端紧凑化：保持横排三栏，只收紧内边距让三个卡片在窄屏下
+     不会太挤，字号不变(--font-xl的20px在三栏布局下完全够用)。 */
+  .admin-stats .stat { padding: var(--space-2) var(--space-1-5); }
+  /* 桌面/移动端结构切换：767px以下隐藏桌面表格、显示移动端卡片列表。 */
+  .desktop-only { display: none; }
+  .mobile-only { display: block; }
   .visit-editor { grid-template-columns: 1fr; }
   .inline-form { align-items: stretch; flex-direction: column; }
   .stats-panel { --stats-panel-pad-x: var(--space-3); --stats-panel-pad-y: var(--space-2-5); left: var(--space-2); right: var(--space-2); bottom: var(--space-2); width: auto; max-height: 42vh; overflow: auto; padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x); }
