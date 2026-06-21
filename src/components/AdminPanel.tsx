@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent, useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { pinyin } from 'pinyin-pro';
 import { adminExportVisits, adminImportVisits, createUser, getUsers } from '../api';
@@ -25,6 +25,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
+  { date: '2026-06-21', items: ['移动端批量删除交互（长按进入多选→勾选→统一删除）：原长按方案在真机测试中跟系统原生文本选择/分享菜单冲突，改为业内常见的长按进多选模式，勾选后批量删除。两轮真机踩坑：①需在touchstart时主动preventDefault才能真正拦住系统长按菜单，onContextMenu只能拦右键、拦不住移动端长按；②需用位移阈值区分长按手指轻微抖动和真实滑动/边缘返回手势，超出阈值才放行默认行为，否则会误拦正常滚动', '删除确认改用项目自有modal样式替代浏览器原生window.confirm，单个删除和批量删除共用同一套确认逻辑（pendingDelete统一为数组）。弹窗视觉效果经过四轮方案对比迭代：列表背景加深方向因色阶台阶过细、肉眼难辨而放弃，改为更符合业内惯例的浅底+左侧危险色细条强调，呼应下方确认按钮的危险色语义', '修复确认删除/取消按钮在浅色主题背景下因描边/背景色对比度不足而显得不清晰的问题：.btn-danger加自身加深描边+投影；.btn-outline全局描边改用主文字色半透明混色（影响所有用到该组件的场景，非局部打补丁）', '修复多选模式下相邻选中卡片描边贴在一起视觉上像连成一条线的问题：卡片间距从12px提到16px，选中态新增柔和外发光代替单纯硬边线分界'] },
   { date: '2026-06-21', items: ['「用户管理」移动端卡片真机验证后两轮修复：①卡片内容居中、大量空白——根因排查发现新增的.user-card与登录页"选择账号"组件的.user-card撞名（登录页那套是display:grid+justify-items:center的居中布局），两套规则叠加导致表现异常；这是开发时未先检索class名是否已被占用造成的命名冲突，不是间距数值问题。统一改名为admin-user-card-*前缀，与登录页组件完全隔离。②"重置密码"按钮文字换行折叠成两行——根因是.card-btn缺少white-space:nowrap，窄屏下flex:1分到的宽度不够容纳4个字被迫换行；已加nowrap+text-overflow:ellipsis+min-width:0修复。③数字卡片(总用户/管理员/总访问)和"新增用户"按钮挪到.admin-tab-viewport外部固定在顶部，不再随用户列表滚动——用户体验反馈"列表滚动时希望这些信息保持可见"；放在viewport外部、tab按钮同级是更简单可靠的方案，避免在viewport内部再嵌一层sticky可能重演"外层内层抢滚动权"的问题（此前修复tab切换高度跳动时已踩过这个坑）'] },
   { date: '2026-06-21', items: ['管理员面板「用户管理」页签移动端整改：①修复数字统计卡片(总用户/管理员/总访问)被误改为单列堆叠的问题——根因是.admin-stats被错误归类进".form-grid-2"这条移动端规则(本意是表单输入框分两栏改单列)，三个简短数字横排三栏完全不挤且信息密度更高，已从该规则移除独立处理，移动端保持横排三栏只收紧内边距。②用户列表移动端从表格改为卡片列表——根因排查发现.data-table设了min-width:720px(桌面表格设计思路)，移动端无任何专属断点处理，导致表格被硬塞进手机屏幕靠横向滚动适配，文字相对显得小、操作按钮也要滚动才能点到；用户截图标注确认调整方向是把用户列表"往大调"去匹配数字卡片的视觉重量，而非反向调小那些被多个场景复用、风险更大的组件。桌面端表格保持不变（用.desktop-only/.mobile-only配合767px断点切换，不用JS判断设备）。③新增移动端"修改昵称"按钮：PC端原是输入框失焦自动保存模式，移动端改为明确的"修改→保存/取消"确认式交互（不依赖PC端才有的隐含习惯），保存时复用与PC端完全相同的updateAnyUserName接口，不另写保存逻辑。④保存/取消按钮与重置密码/删除按钮统一为同一套按钮规格（同高度var(--size-btn-default)/同字号/同圆角/等宽flex布局），避免迭代过程中两套按钮各写一份互不对齐的问题'] },
   { date: '2026-06-21', items: ['管理员面板「系统文档」页签整改：①根治tab切换高度跳动——根因是用户管理/数据管理两个tab的表格内容随实际用户数/访问记录数动态变化，固定min-height只是凑当下数据量，用户数增长后依然会跳；改为结构性方案，tab按钮固定在外部不滚动，三tab内容统一包进.admin-tab-viewport（固定高度+内部overflow:auto），同时修复.modal-admin覆盖掉继承的overflow:auto（外层若可滚动会跟内层抢滚动权，导致方案不生效），从根本上让外层弹窗高度恒定，不依赖任何猜测数值。②配色重做：分类标题（如"设计文档·最后更新..."）原跟链接同用--color-primary，红色无差别铺满整块区域，改为次要文字色，红色只留给真正可交互的链接。③按文档类型（设计/功能/协作/升级记录）拆分为独立卡片，粉色只露在卡片间缝隙形成天然分组，不需要额外分隔线；每张卡片整体可点击（不只是链接文字），链接描述文字降为次要色与链接标题形成层级区分，卡片加细描边+hover反馈增强交互鲁棒性'] },
@@ -149,6 +150,21 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
      保存模式不受影响，移动端用明确的"修改→保存/取消"交互，因为移动端
      没有PC端"点输入框直接改、点别处自动保存"的隐含习惯。 */
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  /* 2026-06-21: 移动端批量删除交互（第二版，替换第一版"长按直接删除单个"
+     方案——真机测试发现长按会跟浏览器原生的"选择文本/分享"菜单冲突，且
+     用户提出更完整的方案：长按进入多选模式，勾选若干个后统一删除，是
+     更标准的批量操作交互，业内邮箱/相册/文件管理器都是这套模式）。
+     selectionMode: 是否处于多选态。selectedIds: 当前已勾选的用户id集合。
+     pendingDelete改为承载"待确认批量删除的用户列表"(单个删除也走同一个
+     modal，传入长度为1的数组即可，不再需要两套确认逻辑)。
+     longPressTimer/longPressTriggered配合阻止浏览器原生长按菜单——
+     原生菜单是长按选中文本/呼出分享时触发的，跟我们自己的setTimeout
+     长按检测同时存在会冲突，需要在长按命中时主动preventDefault。 */
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [pendingDelete, setPendingDelete] = useState<{ userId: string; name: string }[] | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggered = useRef(false);
   const [newUsername, setNewUsername] = useState('');
   const [newNickname, setNewNickname] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -281,8 +297,112 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
     setResetConfirm('');
   };
 
+  /* 2026-06-21: 原用window.confirm()做确认，是浏览器原生弹窗、样式无法
+     定制、跟项目自己的modal设计完全不统一。删除确认统一改用项目自己的
+     modal样式(参照"重置密码"modal-sm模板)。pendingDelete现在是数组，
+     桌面端单个删除传长度为1的数组，移动端批量删除传选中的全部用户，
+     共用同一个modal和同一个confirmDeleteUser，不需要两套确认逻辑。 */
   const removeUser = (id: string) => {
-    if (window.confirm('确定删除该用户及其所有数据？此操作不可恢复。')) void deleteUserAndData(id);
+    const user = users.find((u) => u.id === id);
+    if (user) setPendingDelete([{ userId: id, name: user.name }]);
+  };
+
+  const confirmDeleteUser = () => {
+    if (!pendingDelete) return;
+    pendingDelete.forEach((item) => void deleteUserAndData(item.userId));
+    setPendingDelete(null);
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  /* 2026-06-21: 移动端"长按进入多选模式"交互（第三版修复）。真机测试
+     发现：①浏览器"手动标记广告"/划词工具栏菜单依然弹出——根因是上一版
+     onContextMenu只能拦截右键菜单事件，移动端长按触发的是另一套系统级
+     文本选择/菜单行为，必须在touchstart时就调用event.preventDefault()
+     才能真正拦住（之前的处理函数都没接收原生事件参数、没调用过
+     preventDefault，onContextMenu的return false在新版React里根本不
+     生效）。②"手指多拨动一下页面就关闭了"——是浏览器的"边缘滑动返回
+     上一页"系统手势被触发，需要在touchmove时也阻止默认行为，但不能
+     无差别阻止——必须先用阈值区分"真的在滚动列表"还是"长按时手指轻微
+     抖动"，否则用户长按时手指完全不动几乎不可能，体验会很差；阈值内的
+     小幅移动允许继续计时，超出阈值才视为"取消长按、走滚动"，此时才放行
+     默认行为（不阻止，让用户能正常滚动列表）。
+     touchStartPos记录按下时的坐标，用于touchmove时计算位移量。 */
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const LONG_PRESS_MOVE_THRESHOLD = 10; // px，超出则视为滚动而不是长按抖动
+
+  /* 2026-06-21: is_admin/selectionMode的拦截已经在JSX层处理（多选模式
+     下和管理员卡片完全不绑定这些事件props），这里不再重复判断
+     selectionMode——保留is_admin判断是因为这是函数自身逻辑的一部分
+     （管理员永远不该进多选），但selectionMode属于"调用方该不该调用我"
+     的范畴，不应该让函数自己再判断一遍调用时机，否则两处逻辑分散、
+     不容易看出真正生效的是哪一层。 */
+  const handleLongPressStart = (event: ReactTouchEvent | ReactMouseEvent, user: { id: string; name: string; is_admin: boolean }) => {
+    if (user.is_admin) return;
+    // 2026-06-21修复: 每次新的按下都先彻底清掉上一次可能残留的计时器，
+    // 防止"长按A(被is_admin拦截，定时器从未启动)→长按B"这种连续操作下
+    // 出现任何潜在的状态竞争——不依赖猜测具体哪一步残留了什么，直接在
+    // 起点保证这次是完全干净的状态。
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if ('touches' in event) {
+      const touch = event.touches[0];
+      touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    }
+    longPressTriggered.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true;
+      longPressTimer.current = null;
+      setSelectionMode(true);
+      setSelectedIds(new Set([user.id]));
+      // 长按命中的瞬间阻止默认行为，避免系统紧接着弹出选择文本/划词菜单。
+      event.preventDefault?.();
+    }, 500);
+  };
+
+  const handleLongPressMove = (event: ReactTouchEvent) => {
+    if (!touchStartPos.current || !longPressTimer.current) return;
+    const touch = event.touches[0];
+    const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+    const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+    if (dx > LONG_PRESS_MOVE_THRESHOLD || dy > LONG_PRESS_MOVE_THRESHOLD) {
+      // 超出阈值视为真实滚动/滑动，取消长按计时，并主动不调用
+      // preventDefault——放行默认行为，让浏览器正常处理滚动或边缘返回手势，
+      // 不要在用户明确是在滑动时还去拦截系统手势。
+      handleLongPressEnd();
+    }
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    touchStartPos.current = null;
+  };
+
+  const toggleSelected = (userId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      // 全部取消勾选后自动退出多选模式，作为"取消"按钮的补充，不强制
+      // 用户一定要点按钮才能退出。
+      if (next.size === 0) setSelectionMode(false);
+      return next;
+    });
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleBatchDelete = () => {
+    const targets = users.filter((u) => selectedIds.has(u.id)).map((u) => ({ userId: u.id, name: u.name }));
+    if (targets.length > 0) setPendingDelete(targets);
   };
 
   const handleNameBlur = (userId: string) => {
@@ -420,8 +540,28 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             <div className="stat"><span className="label-sm">管理员</span><strong>{stats.adminUsers}</strong></div>
             <div className="stat"><span className="label-sm">总访问</span><strong>{stats.totalVisits}</strong></div>
           </div>
-          <div className="mb-16">
+          {/* 2026-06-21: 移动端多选模式下，"新增用户"切换为"取消"+
+             "删除用户(已选N个)"。桌面端不会触发长按多选(走表格而非
+             卡片)，所以桌面端的"新增用户"按钮始终显示，用desktop-only
+             包裹；移动端用selectionMode分叉显示哪一组按钮。 */}
+          <div className="mb-16 desktop-only">
             <button className="btn-primary" onClick={() => setShowCreateModal(true)}>+ 新增用户</button>
+          </div>
+          <div className="mb-16 mobile-only">
+            {selectionMode ? (
+              <div className="admin-selection-bar">
+                <button className="btn-outline" onClick={exitSelectionMode}>取消</button>
+                <button
+                  className="btn-danger"
+                  disabled={selectedIds.size === 0}
+                  onClick={handleBatchDelete}
+                >
+                  删除用户{selectedIds.size > 0 ? `（已选${selectedIds.size}个）` : ''}
+                </button>
+              </div>
+            ) : (
+              <button className="btn-primary" onClick={() => setShowCreateModal(true)}>+ 新增用户</button>
+            )}
           </div>
         </>
       )}
@@ -479,9 +619,55 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
           <div className="admin-user-cards mobile-only">
             {users.map((user) => {
               const isEditing = editingNameId === user.id;
+              const isChecked = selectedIds.has(user.id);
+              /* 2026-06-21: 多选模式下，整卡点击=切换勾选（管理员账号
+                 例外，不响应点击）；非多选模式下，长按进入多选，普通
+                 点击不绑定在卡片本身（点"修改"/按钮各自触发）。
+                 longPressTriggered用于区分"这次touchend/click是长按
+                 松手后的尾随事件，还是真正的点击"——长按命中后会把
+                 triggered设为true，这里检测到就直接return不处理点击，
+                 避免长按进多选模式的同时又触发了一次勾选切换。 */
+              /* 2026-06-21: 多选模式下彻底不绑定任何长按相关事件（不是
+                 "绑定了但函数内部return"，是压根不传这些props）——用户
+                 明确要求"多选状态下没有长按这件事"，要的是干净利落、没有
+                 任何长按响应的暧昧空间，不只是行为上没反应。 */
+              const handleCardClick = () => {
+                if (longPressTriggered.current) {
+                  longPressTriggered.current = false;
+                  return;
+                }
+                if (selectionMode && !user.is_admin) toggleSelected(user.id);
+              };
               return (
-                <div key={user.id} className="admin-user-card">
-                  {isEditing ? (
+                <div
+                  key={user.id}
+                  className={`admin-user-card${isEditing || selectionMode ? '' : ' is-interactive'}${selectionMode && isChecked ? ' is-checked' : ''}`}
+                  onTouchStart={user.is_admin || selectionMode ? undefined : (e) => handleLongPressStart(e, user)}
+                  onTouchEnd={user.is_admin || selectionMode ? undefined : handleLongPressEnd}
+                  onTouchMove={user.is_admin || selectionMode ? undefined : handleLongPressMove}
+                  onMouseDown={user.is_admin || selectionMode ? undefined : (e) => handleLongPressStart(e, user)}
+                  onMouseUp={user.is_admin || selectionMode ? undefined : handleLongPressEnd}
+                  onMouseLeave={user.is_admin || selectionMode ? undefined : handleLongPressEnd}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onClick={handleCardClick}
+                >
+                  {selectionMode ? (
+                    <div className="admin-user-card-select-row">
+                      <span className={`admin-user-card-checkbox${isChecked ? ' is-checked' : ''}${user.is_admin ? ' is-disabled' : ''}`}>
+                        {isChecked && <Icon name="check" />}
+                      </span>
+                      {/* 2026-06-21: 多选行原来只显示昵称，补充显示用户名
+                         (@username)解决重名分不清的问题。昵称+用户名同一行
+                         横排显示（更紧凑），标签推到最右侧对齐。 */}
+                      <div className="admin-user-card-select-info">
+                        <div className="admin-user-card-select-text">
+                          <span className="admin-user-card-name">{user.name}</span>
+                          {user.username && <span className="admin-user-card-select-username">@{user.username}</span>}
+                        </div>
+                        <span className={`admin-user-card-tag${user.is_admin ? ' is-admin' : ''}`}>{user.is_admin ? '管理员' : '普通用户'}</span>
+                      </div>
+                    </div>
+                  ) : isEditing ? (
                     <>
                       <div className="edit-input-row">
                         <input
@@ -509,9 +695,15 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                       <div className="admin-user-card-meta">
                         {user.username && `@${user.username} · `}创建于 {user.created_at.slice(0, 10)}
                       </div>
-                      <div className="card-btn-row">
-                        <button className="card-btn card-btn-outline" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
-                        {!user.is_admin && <button className="card-btn card-btn-danger" onClick={() => removeUser(user.id)}>删除</button>}
+                      {/* 2026-06-21: 常驻"删除"按钮移除（改为长按进入多选批量
+                         删除），只剩"重置密码"——不再需要撑满整行的
+                         card-btn-row布局，改为靠左、宽度刚好包裹文字的
+                         紧凑按钮(admin-user-card-action)。非管理员账号
+                         卡片下方提示"长按可批量删除"，告知这个隐藏交互
+                         的存在。 */}
+                      <div className="admin-user-card-footer">
+                        <button className="admin-user-card-action" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
+                        {!user.is_admin && <span className="admin-user-card-hint">长按可批量删除</span>}
                       </div>
                     </>
                   )}
@@ -742,6 +934,32 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             <div className="flex-end gap-8">
               <button className="btn-outline" onClick={() => setPendingReset(null)}>取消</button>
               <button className="btn-primary" onClick={() => void handleResetPassword()}>确认重置</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* 2026-06-21: 删除确认改用项目自己的modal样式，替代之前的
+         window.confirm()原生弹窗——桌面端单个删除和移动端批量删除共用
+         这一个modal，pendingDelete统一是数组（单个删除传长度1的数组），
+         不需要两套确认逻辑。批量删除时汇总展示全部待删除用户名列表，
+         让用户确认前能清楚看到具体删的是谁。 */}
+      {pendingDelete && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <section className="modal modal-sm">
+            <div className="modal-head">
+              <h2>{pendingDelete.length > 1 ? `删除 ${pendingDelete.length} 个用户` : `删除用户 · ${pendingDelete[0].name}`}</h2>
+              <button className="icon-btn" onClick={() => setPendingDelete(null)}><Icon name="close" /></button>
+            </div>
+            {pendingDelete.length > 1 && (
+              <ul className="admin-delete-list mb-16">
+                {pendingDelete.map((item) => <li key={item.userId}>{item.name}</li>)}
+              </ul>
+            )}
+            <p className="mb-16">确定删除{pendingDelete.length > 1 ? '以上用户' : '该用户'}及其所有数据？此操作不可恢复。</p>
+            <div className="flex-end gap-8">
+              <button className="btn-outline" onClick={() => setPendingDelete(null)}>取消</button>
+              <button className="btn-danger" onClick={confirmDeleteUser}>确认删除</button>
             </div>
           </section>
         </div>

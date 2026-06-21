@@ -284,8 +284,22 @@ button { cursor: pointer; }
   transition: var(--transition-interactive);
 }
 .btn-primary { background: var(--color-primary); color: var(--color-on-primary); box-shadow: var(--shadow-glow); }
-.btn-outline { background: transparent; color: var(--color-on-surface); border: var(--space-xs) solid var(--color-outline-variant); }
-.btn-danger { background: var(--color-error); color: var(--color-on-primary); }
+/* 2026-06-21: 全局.btn-outline描边对比度加强。真机反馈在浅色主题背景
+   （如樱花的浅粉modal/卡片底色）上，描边色--color-outline-variant跟
+   背景太接近，按钮边缘几乎看不见——这是全局通病，不是某个场景单独的
+   问题，所以在组件本身改，让所有用到.btn-outline的地方（重置密码取消、
+   各类弹窗次要按钮、多选状态条取消等）统一受益。描边改用
+   --color-on-surface自身做半透明描边，而非沿用outline-variant这个
+   "背景级"的浅色变量——on-surface是主文字色，透明度压低后既能保证在
+   任意主题背景上都有可辨边缘，又不会重到跟主按钮抢视觉重量。 */
+.btn-outline { background: transparent; color: var(--color-on-surface); border: var(--space-xs) solid color-mix(in srgb, var(--color-on-surface) 28%, transparent); }
+/* 2026-06-21: 危险操作按钮对比度加强。--color-error跟随主题色（每个
+   主题色相不同），在某些主题下（如晨雾的紫调error）跟modal的浅色背景
+   明度/色相都接近，按钮"扁"在背景里，缺少高风险操作该有的警示感。不
+   改用固定红色（用户要求仍跟随主题），而是用自身加深一档的描边+更明显
+   的投影，让按钮轮廓在任何主题下都比背景更"硬"——不依赖背景色本身的
+   对比度，描边色用color-mix把--color-error调暗20%，确保边缘始终可辨。 */
+.btn-danger { background: var(--color-error); color: var(--color-on-primary); border: var(--space-xs) solid color-mix(in srgb, var(--color-error) 80%, black); box-shadow: 0 2px 8px color-mix(in srgb, var(--color-error) 35%, transparent); }
 .btn-primary:not(:disabled):hover, .btn-outline:not(:disabled):hover, .btn-danger:not(:disabled):hover { opacity: var(--state-hover-opacity); }
 .btn-primary:not(:disabled):active, .btn-outline:not(:disabled):active, .btn-danger:not(:disabled):active { transform: scale(var(--state-active-scale)); }
 .btn-primary:disabled, .btn-outline:disabled, .btn-danger:disabled { opacity: var(--state-disabled-opacity); cursor: not-allowed; }
@@ -574,8 +588,36 @@ button { cursor: pointer; }
    且不再使用flex，.admin-tab-viewport改为单纯固定height(不用flex:1)，
    只让内层viewport滚动，外层modal高度由"head+tab按钮+viewport固定高度"
    三者相加决定，是个确定值，不随内容变化。 */
-.modal-admin { overflow: hidden; max-height: none; }
-.admin-tab-viewport { height: 600px; overflow-y: auto; }
+/* 2026-06-21: 第三次修复——用户反馈"用户管理tab比数据管理/系统文档高出
+   一截，跟旁边页签高度不一样"。根因：上一轮把"数字卡片+新增用户按钮"挪到
+   .admin-tab-viewport外部固定不滚动后，它们变成了在固定600px高度的
+   viewport之上"额外叠加"的内容——用户管理tab总高度=viewport 600px+这块
+   内容的高度，比只有viewport 600px的另外两个tab高出一截，这是单纯固定
+   height方案的副作用，不是新bug，是这次新增需求(数字卡片固定顶部)与
+   "三tab总高度一致"这个既有目标产生了冲突。
+   修复思路：不再靠手算"数字卡片大概占多少px"去做减法（这种猜测数值的
+   方式已经在之前几轮踩过坑，不可靠）。改用flex自动分配——给.modal-admin
+   一个总的固定高度(620px)，内部模拟管理员面板的"head+tab按钮+视口"，
+   .admin-tab-viewport改为flex:1(占据除"数字卡片+按钮"之外的所有剩余
+   空间)而不是自己设固定height，"数字卡片+新增按钮"那块按内容自然高度
+   撑开(无需任何class标记，flex子项默认行为)。这样无论该区域实际高度
+   是多少，三个tab的总高度永远等于.modal-admin的固定值，不需要手算任何
+   具体数值，也不会重演之前"flex:1与固定height混用冲突"的问题——因为这次
+   只有viewport一处用flex:1，没有同时叠加固定height。 */
+.modal-admin { display: flex; flex-direction: column; overflow: hidden; max-height: none; height: 620px; }
+/* .modal-admin直接子元素中除.admin-tab-viewport外的所有内容(modal-head/
+   mode-pill/数字卡片+新增按钮区块)都需要flex-shrink:0，确保只有viewport
+   会随剩余空间伸缩，其他内容始终保持自身实际高度，不会被flex布局意外
+   压缩变形。"数字卡片+新增按钮"区块用<>Fragment包裹不产生额外DOM节点，
+   .admin-stats和包裹新增按钮的.mb-16才是.modal-admin真正的flex直接
+   子元素，分别选中。 */
+.modal-admin > .modal-head,
+.modal-admin > .mode-pill,
+.modal-admin > .admin-stats,
+.modal-admin > .mb-16 {
+  flex-shrink: 0;
+}
+.admin-tab-viewport { flex: 1; min-height: 0; overflow-y: auto; }
 /* 2026-06-20: 新增min-height。这个modal内部有4个tab(个人信息/访问记录/系统管理/
    系统设置)，内容量差异很大("个人信息"只有两个输入框，"系统管理"嵌套了完整的
    表格管理界面)，.modal本身只有max-height没有min-height，导致切换tab时modal
@@ -607,15 +649,124 @@ button { cursor: pointer; }
    规则叠加后表现为"卡片内容居中、大量空白"——这正是用户反馈"太宽密度
    太低"的真正原因，不是间距数值设置错误。统一改名为admin-user-card-*
    前缀，与登录页组件完全隔离，不再共用任何class名。 */
-.admin-user-cards { display: grid; gap: var(--space-2-5); }
+/* 间距从10px(space-2-5)提到12px(space-3)，配合鲜明的描边颜色对比
+   (.is-checked主色描边 vs 默认浅灰描边)给视觉留更多呼吸空间，避免相邻
+   卡片描边贴得太近看起来像重叠。 */
+/* 2026-06-21: 多选模式下相邻选中卡片描边重叠成一条粗线的问题。此前
+   已把gap从10px提到12px仍不够——根因不只是间距数值，而是两条强对比
+   的--color-primary描边贴着浅色背景的窄缝时，视觉上容易把中间留白
+   吃掉，显得像连成一片。这次双管齐下：gap再提到16px(--space-4)，是
+   放大留白的硬指标；is-checked态额外加box-shadow做外发光，让选中
+   卡片的边界感来自整体轮廓的光晕过渡而不仅是一条硬边线，硬边线贴在
+   一起容易重叠，柔和的光晕过渡视觉上更容易分清各自的边界在哪。 */
+.admin-user-cards { display: grid; gap: var(--space-4); }
 .admin-user-card { background: var(--color-surface); border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-md); padding: var(--space-3-5); }
+/* 2026-06-21: 用户反馈用户列表卡片和系统文档卡片(.changelog-entry)的
+   点击交互方式不一致——系统文档卡片有hover/focus时的描边变色+阴影，
+   用户列表卡片完全没有任何反馈。统一两者的视觉语言(同样的描边混色比例
+   40%、同样的elevation-low阴影、同样的transition时长)，让"这是可交互
+   卡片"的提示在两个场景下保持一致。但不复用.changelog-entry的cursor:
+   pointer和整卡onClick——用户列表卡片内有多个独立操作(修改/重置密码/
+   删除)，"点哪都触发同一动作"会有误操作风险，跟系统文档"整卡只对应
+   一个链接"的场景不同。只在.is-interactive(非编辑态)时生效，编辑态下
+   卡片背景本身不是可交互区域，不应有这层反馈。 */
+.admin-user-card.is-interactive {
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.admin-user-card.is-interactive:hover,
+.admin-user-card.is-interactive:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-outline-variant));
+  box-shadow: var(--elevation-low);
+}
 .admin-user-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); gap: var(--space-2); }
 .admin-user-card-name-row { display: flex; align-items: center; gap: var(--space-1-5); min-width: 0; }
 .admin-user-card-name { font-size: var(--font-lg); font-weight: 700; color: var(--color-on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .edit-link-btn { border: none; background: none; color: var(--color-primary); font-size: var(--font-xs); font-weight: 600; padding: var(--space-0-5) var(--space-1-5); white-space: nowrap; }
-.admin-user-card-tag { font-size: var(--font-xs); padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-sm); background: var(--color-surface-container-low); color: var(--color-on-surface-variant); font-weight: 600; white-space: nowrap; }
+/* 2026-06-21: "管理员"(2字)和"普通用户"(4字)文字长度不同，原来背景框
+   完全靠padding撑开，两个标签宽度参差不齐。加min-width统一最小宽度+
+   text-align:center让文字在框内居中，视觉上两个标签长度一致更好看。 */
+/* min-width+max-width双重限制确保"管理员"(2字)和"普通用户"(4字)两种
+   标签真正等宽（之前只有min-width，理论上更长文字仍可能撑大），数值
+   从56px提到64px留更多余量。 */
+.admin-user-card-tag { font-size: var(--font-xs); padding: var(--space-0-5) var(--space-2); min-width: 64px; max-width: 64px; text-align: center; border-radius: var(--radius-sm); background: var(--color-surface-container-low); color: var(--color-on-surface-variant); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .admin-user-card-tag.is-admin { background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface-container-low)); color: var(--color-primary); }
 .admin-user-card-meta { font-size: var(--font-sm); color: var(--color-on-surface-variant); margin-bottom: var(--space-2-5); }
+/* 2026-06-21: 新增"长按删除"交互后，常驻删除按钮移除，卡片底部只剩
+   "重置密码"一个操作，不再需要card-btn-row那种撑满整行的等宽flex布局
+   ——改为靠左、宽度刚好包裹文字的紧凑按钮，搭配右侧"长按可删除"的
+   提示文字(次要色、小字号，不抢眼，只是告知这个隐藏交互存在)。 */
+.admin-user-card-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.admin-user-card-action { height: var(--size-btn-default); padding: 0 var(--space-3); border-radius: var(--radius-sm); border: var(--space-xs) solid var(--color-outline-variant); background: var(--color-background); color: var(--color-on-surface); font-size: var(--font-sm); font-weight: 600; white-space: nowrap; }
+.admin-user-card-hint { font-size: var(--font-xs); color: var(--color-on-surface-variant); white-space: nowrap; }
+/* 2026-06-21: 批量删除多选模式样式（第二版交互，替换第一版"长按直接
+   删除单个"）。顶部"取消"+"删除用户"按钮组。 */
+.admin-selection-bar { display: flex; gap: var(--space-2); }
+.admin-selection-bar .btn-outline, .admin-selection-bar .btn-danger { flex: 1; }
+/* 多选态下卡片整体可点击切换勾选，加cursor:pointer提示；勾选后描边变
+   主色，呼应is-interactive那套hover反馈的设计语言，保持视觉一致。 */
+/* 2026-06-21修复: 真机测试发现长按时浏览器原生菜单(iOS"复制/翻译/
+   标记广告"或Android划词工具栏)依然弹出，根因之一是缺少
+   -webkit-touch-callout:none（这是iOS Safari专用，阻止长按弹出系统
+   菜单的关键属性，JS层的preventDefault不能完全覆盖所有平台的这个
+   行为）。同时禁用user-select防止长按选中文字触发系统选择態。这两条
+   从inline style移到这里统一管理，不写在JSX里。 */
+.admin-user-card {
+  cursor: default;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.admin-user-card.is-checked { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 10%, transparent); }
+/* 2026-06-21修复: 真机截图反馈多选行"管理员/普通用户标签不整齐、字
+   很大、边框相互重叠"。根因：①多选行直接复用了默认态的.admin-user-
+   card-name(font-lg/20px)，这个字号是给默认态单独一行的名字设计的，
+   在多选行(名字+标签同一行挤在一起)显得过大；②.admin-user-card-tag
+   的min-width:56px不够覆盖"普通用户"四个字在某些设备字体渲染下的实际
+   宽度，导致"管理员"(56px)和"普通用户"(被撑大)还是不一致；③卡片间
+   gap10px配合鲜明的描边颜色对比，视觉上显得贴得太近。
+   修复：多选行名字单独用更紧凑的字号；标签min-width从56px提到64px
+   (留更多余量)，同时max-width也设同样值强制等宽（之前只有min-width，
+   理论上仍可能被撑大）；卡片间gap从10px提到12px，给描边留出更多呼吸
+   空间。 */
+.admin-user-card-select-row { display: flex; align-items: center; gap: var(--space-3); cursor: pointer; }
+.admin-user-card-select-row .admin-user-card-name { font-size: var(--font-base); font-weight: 600; }
+/* 2026-06-21: 多选行新增用户名(@username)显示，跟昵称纵向叠放，字号
+   更小、颜色更次要，呼应"昵称是主信息、用户名是辅助区分信息"的层级。 */
+/* 2026-06-21: 改为同一行横排（之前是纵向叠放），更紧凑。用baseline
+   对齐让大字号昵称和小字号用户名底部对齐，视觉更整齐。 */
+.admin-user-card-select-text { display: flex; align-items: baseline; gap: var(--space-1-5); min-width: 0; }
+.admin-user-card-select-username { font-size: var(--font-xs); color: var(--color-on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 整行按下时的轻微反馈——不只是勾选后才变色，按下瞬间(:active)也有
+   反馈，让"点哪里都能选"这个特性更容易被用户感知到。 */
+.admin-user-card-select-row:active { opacity: .7; }
+.admin-user-card-checkbox {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  border-radius: var(--radius-sm);
+  border: var(--space-xs) solid var(--color-outline-variant);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-on-primary);
+}
+.admin-user-card-checkbox.is-checked { background: var(--color-primary); border-color: var(--color-primary); }
+/* 管理员账号复选框灰化不可点——告知"这个账号不能被选中删除"，而不是
+   完全不显示复选框（完全隐藏会让管理员卡片在多选列表里显得"缺了一块"，
+   灰化更清楚地传达"看得见但不能选"的语义）。 */
+.admin-user-card-checkbox.is-disabled { background: var(--color-surface-container-low); border-color: var(--color-outline-variant); opacity: .5; }
+/* 标签(管理员/普通用户)统一推到最右侧——用justify-content:space-between
+   让左侧昵称+用户名区块和右侧标签分别贴两端，而不是紧挨着名字。 */
+.admin-user-card-select-info { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex: 1; min-width: 0; }
+.admin-user-card-select-info .admin-user-card-select-text { flex: 1; }
+/* 2026-06-21: 删除确认弹窗层次优化（第四轮，方案对比后确定）。前三轮
+   都在"列表用比背景更深的色块"这个方向里调参数，始终在"太接近分不清"
+   和"太重显得闷"之间找不到舒服的点——根因是方向本身就不太对：业内更
+   常见的做法是用"变浅"而非"加深"做分离（这条列表是纯信息展示，不该
+   抢警示文字和危险按钮的戏）。改为浅底(--color-background，全主题
+   通用、不带tint)+左侧危险色细条强调——细条颜色呼应下方"确认删除"
+   按钮的--color-error，让用户一眼联想到"这些是将被删除的对象"，比
+   单纯的灰色更有语义，同时不会像整块深色背景那样视觉过重。 */
+.admin-delete-list { margin: 0; padding: var(--space-3) var(--space-4); font-size: var(--font-sm); color: var(--color-on-surface); background: var(--color-background); border-left: 3px solid var(--color-error); border-radius: 0 var(--radius-panel) var(--radius-panel) 0; display: grid; gap: var(--space-1); list-style: none; }
+.admin-delete-list li { position: relative; padding-left: var(--space-3); }
+.admin-delete-list li::before { content: ''; position: absolute; left: 0; top: 50%; width: 5px; height: 5px; border-radius: var(--radius-full); background: var(--color-error); opacity: .6; transform: translateY(-50%); }
 /* 保存/取消按钮与重置密码/删除按钮统一为同一套规格(同高度/字号/圆角/
    等宽flex)，避免之前demo里两套按钮各写一份、互不对齐的问题。 */
 .card-btn-row { display: flex; gap: var(--space-2); }
@@ -1048,10 +1199,13 @@ button { cursor: pointer; }
   .modal { padding: var(--space-4-5) var(--space-3-5); border-radius: var(--radius-panel); }
   .modal h2 { font-size: var(--font-xl); }
   .modal-xl { min-height: min(560px, 80vh); }
-  /* 2026-06-21: .admin-tab-viewport的600px固定高度在矮屏手机上会撑爆
+  /* 2026-06-21: 桌面端.modal-admin固定height:620px在矮屏手机上会撑爆
      视口（同样的道理参照.modal-xl的min(固定值, 80vh)处理方式），改用
-     视口相对值，确保任何屏幕高度下都不会溢出。 */
-  .admin-tab-viewport { height: min(600px, 70vh); }
+     视口相对值。注意：这里改的是.modal-admin的总高度，不是
+     .admin-tab-viewport——viewport现在用flex:1自动占据剩余空间，不应
+     再单独给它设height，否则会重演"flex:1与固定height混用冲突"的问题
+     （第二次修复时已踩过这个坑）。 */
+  .modal-admin { height: min(620px, 75vh); }
   /* 2026-06-20: 移动端屏幕普遍偏矮，560px固定最小高度可能导致弹窗过高甚至溢出，
      改为取560px和80vh中较小者，保证不会超出视口太多；80vh而非90vh是留出一些
      呼吸空间，避免和.modal自身的max-height:90vh贴得太近。 */
