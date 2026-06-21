@@ -554,6 +554,28 @@ button { cursor: pointer; }
 .visit-modal { width: min(1120px, 100%); }
 .stats-modal { width: min(620px, 100%); }
 .modal-xl { width: min(1180px, 100%); min-height: 560px; }
+/* 2026-06-21: 管理员面板主弹窗专属class。
+   第一次尝试：给.modal-admin设固定min-height(680px)去对齐三个tab高度，
+   部署后用户反馈"还会跳"——根因是"用户管理"和"数据管理"两个tab的表格内容
+   随实际用户数/访问记录数动态变化(测试环境当前只有4个用户，未来会增长)，
+   任何固定数值都只是凑了当下的数据量，不是真正的解决方案。
+   改用更稳健的方案：.modal-admin本身不再需要min-height兜底，弹窗高度
+   交给.admin-tab-viewport(见下方)内部处理——tab按钮固定在外部不参与滚动，
+   三个tab的实际内容统一包进这个viewport容器，容器本身固定高度+内部
+   overflow:auto，无论内容多少都不会撑大或缩小外层弹窗，根治高度跳动，
+   不依赖任何猜测出的固定数值。 */
+/* 2026-06-21: 第二次修复——发现flex:1与固定height同时使用会冲突
+   (flex-basis默认行为下两者互相打架，浏览器表现不可预测)，且更关键的
+   根因是.modal基础定义自带overflow:auto+max-height:90vh，外层modal
+   本身就是可滚动容器，会跟内层.admin-tab-viewport的overflow-y:auto
+   抢滚动权——浏览器优先让最外层先触发滚动，内层的"固定高度让外层不变"
+   策略完全没生效，这才是用户反馈"还会跳/没生效"的真正原因。
+   修复：.modal-admin覆盖掉继承的overflow（改为hidden，不再滚动），
+   且不再使用flex，.admin-tab-viewport改为单纯固定height(不用flex:1)，
+   只让内层viewport滚动，外层modal高度由"head+tab按钮+viewport固定高度"
+   三者相加决定，是个确定值，不随内容变化。 */
+.modal-admin { overflow: hidden; max-height: none; }
+.admin-tab-viewport { height: 600px; overflow-y: auto; }
 /* 2026-06-20: 新增min-height。这个modal内部有4个tab(个人信息/访问记录/系统管理/
    系统设置)，内容量差异很大("个人信息"只有两个输入框，"系统管理"嵌套了完整的
    表格管理界面)，.modal本身只有max-height没有min-height，导致切换tab时modal
@@ -566,11 +588,38 @@ button { cursor: pointer; }
 .toast { position: fixed; left: 50%; top: 86px; transform: translateX(-50%); z-index: var(--z-toast); min-height: var(--size-input); padding: 0 var(--space-4); display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-full); animation: toastIn .22s ease-out; }
 
 .admin-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin-bottom: var(--space-4); }
-.changelog-list { display: grid; gap: var(--space-4); }
-.changelog-entry { display: grid; gap: var(--space-2); }
-.changelog-date { font-weight: 700; font-size: var(--font-base); color: var(--color-primary); }
-.changelog-items { margin: 0; padding-left: 20px; }
-.changelog-items li { font-size: var(--font-sm); line-height: 1.6; color: var(--color-on-surface); }
+/* 2026-06-21: 系统文档整体改版。背景问题：最外层.modal本身是淡粉色底
+   (color-mix主色8%混合)，系统文档内容原来直接铺在这层粉底上，文字量少
+   留白多，粉色占比被放大，用户反馈"整页粉嘟嘟"。解决思路不是简单加一个
+   大白卡片，而是按文档类型(设计/功能/协作/升级记录)拆成独立卡片，让粉色
+   只露在卡片间的缝隙里，天然形成分组线索，不需要额外画分隔线。
+   分类标题(.changelog-date)此前用--color-primary，跟链接同样用主色，红色
+   无差别铺满整块区域，现改为次要文字色，只保留字重加粗表达"这是分组标题"，
+   让红色只留给真正可交互的链接。
+   整卡可点击：每张卡片本身是一个可点击的交互单元(role=button)，不只是
+   链接那几个字才能点，移动端点击区域更大，误触率更低；链接自身仍保留
+   onClick但加stopPropagation，避免和卡片整体点击重复触发。 */
+.changelog-list { display: grid; gap: var(--space-2-5); }
+.changelog-entry {
+  display: grid; gap: var(--space-1-5);
+  background: var(--color-surface);
+  border: var(--space-xs) solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  padding: var(--space-3-5);
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.changelog-entry:hover, .changelog-entry:focus-visible {
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-outline-variant));
+  box-shadow: var(--elevation-low);
+}
+.changelog-date { font-weight: 700; font-size: var(--font-base); color: var(--color-on-surface-variant); }
+.changelog-body { font-size: var(--font-sm); line-height: 1.6; }
+.changelog-link { color: var(--color-primary); text-decoration: none; font-weight: 600; }
+.changelog-link:hover { text-decoration: underline; }
+/* 描述文字比链接更浅、不加粗，强化"链接是标题、描述是说明"的层级关系，
+   不让两者同等抢眼。 */
+.changelog-desc { color: var(--color-on-surface-variant); }
 .table-wrap { width: 100%; overflow: auto; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 720px; }
 .data-table th, .data-table td { border-bottom: var(--space-xs) solid var(--color-outline-variant); padding: var(--space-2-5); text-align: left; vertical-align: top; font-size: var(--font-base); }
@@ -949,6 +998,10 @@ button { cursor: pointer; }
   .modal { padding: var(--space-4-5) var(--space-3-5); border-radius: var(--radius-panel); }
   .modal h2 { font-size: var(--font-xl); }
   .modal-xl { min-height: min(560px, 80vh); }
+  /* 2026-06-21: .admin-tab-viewport的600px固定高度在矮屏手机上会撑爆
+     视口（同样的道理参照.modal-xl的min(固定值, 80vh)处理方式），改用
+     视口相对值，确保任何屏幕高度下都不会溢出。 */
+  .admin-tab-viewport { height: min(600px, 70vh); }
   /* 2026-06-20: 移动端屏幕普遍偏矮，560px固定最小高度可能导致弹窗过高甚至溢出，
      改为取560px和80vh中较小者，保证不会超出视口太多；80vh而非90vh是留出一些
      呼吸空间，避免和.modal自身的max-height:90vh贴得太近。 */

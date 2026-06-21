@@ -25,6 +25,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
+  { date: '2026-06-21', items: ['管理员面板「系统文档」页签整改：①根治tab切换高度跳动——根因是用户管理/数据管理两个tab的表格内容随实际用户数/访问记录数动态变化，固定min-height只是凑当下数据量，用户数增长后依然会跳；改为结构性方案，tab按钮固定在外部不滚动，三tab内容统一包进.admin-tab-viewport（固定高度+内部overflow:auto），同时修复.modal-admin覆盖掉继承的overflow:auto（外层若可滚动会跟内层抢滚动权，导致方案不生效），从根本上让外层弹窗高度恒定，不依赖任何猜测数值。②配色重做：分类标题（如"设计文档·最后更新..."）原跟链接同用--color-primary，红色无差别铺满整块区域，改为次要文字色，红色只留给真正可交互的链接。③按文档类型（设计/功能/协作/升级记录）拆分为独立卡片，粉色只露在卡片间缝隙形成天然分组，不需要额外分隔线；每张卡片整体可点击（不只是链接文字），链接描述文字降为次要色与链接标题形成层级区分，卡片加细描边+hover反馈增强交互鲁棒性'] },
   { date: '2026-06-21', items: ['首页视觉层级优化：用户截图反馈顶栏和统计面板浓度几乎相同，整页缺乏主次区分，地图被夹在两块同色块中间未被强调。解决方案是把顶栏单独降低主题色混入比例(--topbar-tint-pct: 8%→4%)，统计卡片等其余容器维持原有8%暖度不变(--card-tint-pct不变)——只精简改动范围为"顶栏单独退一档"，不大改其余容器的暖色调性。仍复用标准--color-primary做混色源，不引入新的独立色值变量'] },
   { date: '2026-06-21', items: ['主题系统全量重制：删除Linear主题（原紫色，色阶层次单薄、l5/l6需手动压深才能达标），新增三个主题：琥珀(amber)、绿松(turquoise)、冰河(azure)；晨雾(原Stripe)色相由漂移不一致的H247.7统一调整为标准紫调H262；最终五个主题为樱花/晨雾/琥珀/绿松/冰河，命名风格统一为"中文意象名+色调"', '色阶生成方式从手工逐主题调色改为统一算法：基于樱花反推出"L非线性曲线(power=1.6幂函数)+S抛物线"公式，仅需指定主色相(Hue)即可推导全部7档色阶，解决了手调色阶之间深浅不均匀、跨主题层次感不一致的问题；中后段(l3/l4/l5)间距特意拉大、前段(l0/l1)压缩，修复了线性曲线下"中间三档肉眼难以区分"的问题', '危险操作色（清空数据等）不再使用红色系，改为各主题色阶最深档l6，规则为"l6明度=主色明度−10%"，确保危险色在视觉上比主色更深更沉，用深浅而非色相传递警示感，五个主题统一此规则', '同步更新：ThemeMode类型定义、TopBar主题切换菜单选项、.glass选择器（删除linear/stripe重复条目简化为统一规则）、login/loading页面渐变背景（五主题各自配色）、地图省名标注光晕色对比度验证（五主题下均≥4.5，达WCAG AA标准）'] },
   { date: '2026-06-20', items: ['移动端统计面板收起态去除主题色边框和发光动画，改为跟其他卡片一致的中性边框（桌面端不变）', '顶部导航条混入一点主题主色，让Linear/Stripe/Rose三个主题的顶栏更有区分度', '移动端地图控件（返回省级/重置视图/缩放）重新设计为圆角胶囊样式，跟旁边的视图标签风格统一，告别此前的方块堆叠样式'] },
@@ -379,6 +380,15 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
         <button className={adminTab === 'data' ? 'active' : ''} onClick={() => setAdminTab('data')}>数据管理</button>
         <button className={adminTab === 'docs' ? 'active' : ''} onClick={() => setAdminTab('docs')}>系统文档</button>
       </div>
+      {/* 2026-06-21: 之前用min-height硬撑"系统文档"tab去对齐另外两个tab的
+         高度，但用户管理/数据管理的表格内容随实际用户数/访问记录数动态变化
+         （当前测试数据只有4个用户，未来会增长），固定min-height只是凑了
+         当下的数字，用户数一多依然会跳。改用更稳健的方案：tab按钮固定在
+         外面不滚动，三个tab的内容统一包进.admin-tab-viewport（固定高度+
+         内部overflow:auto），这样无论内容多少，外层弹窗高度永远不变，
+         滚动发生在内容区域内部，根治"切tab高度跳动"问题，不依赖猜测的
+         固定数值。 */}
+      <div className="admin-tab-viewport">
 
       {adminTab === 'users' && (
         <>
@@ -592,21 +602,35 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
 
       {adminTab === 'docs' && (
         <div className="changelog-list">
-          {DOC_LIST.map((doc, i) => (
-            <div key={i} className="changelog-entry">
-              <div className="changelog-date">{doc.category} · 最后更新 {doc.last_updated}</div>
-              <ul className="changelog-items">
-                <li>
+          {DOC_LIST.map((doc, i) => {
+            const handleEntryClick = () => {
+              if (doc.action === 'changelog') {
+                setShowChangelog(true);
+              } else {
+                window.open(doc.url, '_blank', 'noopener,noreferrer');
+              }
+            };
+            return (
+              <div
+                key={i}
+                className="changelog-entry"
+                role="button"
+                tabIndex={0}
+                onClick={handleEntryClick}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleEntryClick(); } }}
+              >
+                <div className="changelog-date">{doc.category} · 最后更新 {doc.last_updated}</div>
+                <div className="changelog-body">
                   {doc.action === 'changelog' ? (
-                    <a href="#" onClick={(e) => { e.preventDefault(); setShowChangelog(true); }} style={{ color: 'var(--color-primary)' }}>{doc.title}</a>
+                    <a href="#" className="changelog-link" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowChangelog(true); }}>{doc.title}</a>
                   ) : (
-                    <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>{doc.title}</a>
+                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="changelog-link" onClick={(e) => e.stopPropagation()}>{doc.title}</a>
                   )}
-                  {' — '}{doc.description}
-                </li>
-              </ul>
-            </div>
-          ))}
+                  <span className="changelog-desc">{' — '}{doc.description}</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -677,6 +701,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
           </section>
         </div>
       )}
+      </div>
     </>
   );
 
@@ -684,7 +709,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true">
-      <section className="modal" style={{ width: 'min(1280px, calc(100vw - 32px))', maxWidth: 'none' }}>
+      <section className="modal modal-admin" style={{ width: 'min(1280px, calc(100vw - 32px))', maxWidth: 'none' }}>
         <div className="modal-head">
           <h2>管理员面板</h2>
           <button className="icon-btn" onClick={() => setAdminOpen(false)}><Icon name="close" /></button>
