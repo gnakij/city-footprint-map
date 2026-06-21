@@ -601,19 +601,29 @@ button { cursor: pointer; }
 /* 2026-06-21: 移动端用户卡片列表样式。设计依据：用户提供截图标注，确认
    方向是把箭头指向的用户列表"往大调"去匹配数字卡片/Tab按钮的视觉重量，
    而不是反过来调小那两处被多个场景复用的组件(风险更大)。 */
-.user-cards { display: grid; gap: var(--space-2-5); }
-.user-card { background: var(--color-surface); border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-md); padding: var(--space-3-5); }
-.user-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); gap: var(--space-2); }
-.user-card-name-row { display: flex; align-items: center; gap: var(--space-1-5); min-width: 0; }
-.user-card-name { font-size: var(--font-lg); font-weight: 700; color: var(--color-on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 2026-06-21修复: 命名冲突排查——上面已存在的.user-card/.user-card-name
+   是登录页"选择账号"组件专用(display:grid+justify-items:center，跟本
+   组件设计的左对齐紧凑布局完全不同)，新增样式时未检查导致撞名，两套
+   规则叠加后表现为"卡片内容居中、大量空白"——这正是用户反馈"太宽密度
+   太低"的真正原因，不是间距数值设置错误。统一改名为admin-user-card-*
+   前缀，与登录页组件完全隔离，不再共用任何class名。 */
+.admin-user-cards { display: grid; gap: var(--space-2-5); }
+.admin-user-card { background: var(--color-surface); border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-md); padding: var(--space-3-5); }
+.admin-user-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); gap: var(--space-2); }
+.admin-user-card-name-row { display: flex; align-items: center; gap: var(--space-1-5); min-width: 0; }
+.admin-user-card-name { font-size: var(--font-lg); font-weight: 700; color: var(--color-on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .edit-link-btn { border: none; background: none; color: var(--color-primary); font-size: var(--font-xs); font-weight: 600; padding: var(--space-0-5) var(--space-1-5); white-space: nowrap; }
-.user-card-tag { font-size: var(--font-xs); padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-sm); background: var(--color-surface-container-low); color: var(--color-on-surface-variant); font-weight: 600; white-space: nowrap; }
-.user-card-tag.is-admin { background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface-container-low)); color: var(--color-primary); }
-.user-card-meta { font-size: var(--font-sm); color: var(--color-on-surface-variant); margin-bottom: var(--space-3); }
+.admin-user-card-tag { font-size: var(--font-xs); padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-sm); background: var(--color-surface-container-low); color: var(--color-on-surface-variant); font-weight: 600; white-space: nowrap; }
+.admin-user-card-tag.is-admin { background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface-container-low)); color: var(--color-primary); }
+.admin-user-card-meta { font-size: var(--font-sm); color: var(--color-on-surface-variant); margin-bottom: var(--space-2-5); }
 /* 保存/取消按钮与重置密码/删除按钮统一为同一套规格(同高度/字号/圆角/
    等宽flex)，避免之前demo里两套按钮各写一份、互不对齐的问题。 */
 .card-btn-row { display: flex; gap: var(--space-2); }
-.card-btn { flex: 1; height: var(--size-btn-default); border-radius: var(--radius-sm); font-size: var(--font-sm); font-weight: 600; display: flex; align-items: center; justify-content: center; }
+/* 2026-06-21: 修复"重置密码"按钮文字换行折叠成两行的问题——根因是
+   缺少white-space:nowrap，窄屏下flex:1分到的宽度不够容纳4个字，文字被
+   迫换行，固定height又把两行内容挤压变形。加nowrap禁止换行，配合
+   min-width:0让flex子项能正确收缩（避免撑爆父容器）而不是换行。 */
+.card-btn { flex: 1; min-width: 0; height: var(--size-btn-default); border-radius: var(--radius-sm); font-size: var(--font-sm); font-weight: 600; display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 var(--space-1); }
 .card-btn-outline { border: var(--space-xs) solid var(--color-outline-variant); background: var(--color-background); color: var(--color-on-surface); }
 .card-btn-danger { border: var(--space-xs) solid color-mix(in srgb, var(--color-error) 40%, var(--color-outline-variant)); background: var(--color-background); color: var(--color-error); }
 .card-btn-primary { border: none; background: var(--color-primary); color: var(--color-on-primary); }

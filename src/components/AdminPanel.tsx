@@ -25,6 +25,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
+  { date: '2026-06-21', items: ['「用户管理」移动端卡片真机验证后两轮修复：①卡片内容居中、大量空白——根因排查发现新增的.user-card与登录页"选择账号"组件的.user-card撞名（登录页那套是display:grid+justify-items:center的居中布局），两套规则叠加导致表现异常；这是开发时未先检索class名是否已被占用造成的命名冲突，不是间距数值问题。统一改名为admin-user-card-*前缀，与登录页组件完全隔离。②"重置密码"按钮文字换行折叠成两行——根因是.card-btn缺少white-space:nowrap，窄屏下flex:1分到的宽度不够容纳4个字被迫换行；已加nowrap+text-overflow:ellipsis+min-width:0修复。③数字卡片(总用户/管理员/总访问)和"新增用户"按钮挪到.admin-tab-viewport外部固定在顶部，不再随用户列表滚动——用户体验反馈"列表滚动时希望这些信息保持可见"；放在viewport外部、tab按钮同级是更简单可靠的方案，避免在viewport内部再嵌一层sticky可能重演"外层内层抢滚动权"的问题（此前修复tab切换高度跳动时已踩过这个坑）'] },
   { date: '2026-06-21', items: ['管理员面板「用户管理」页签移动端整改：①修复数字统计卡片(总用户/管理员/总访问)被误改为单列堆叠的问题——根因是.admin-stats被错误归类进".form-grid-2"这条移动端规则(本意是表单输入框分两栏改单列)，三个简短数字横排三栏完全不挤且信息密度更高，已从该规则移除独立处理，移动端保持横排三栏只收紧内边距。②用户列表移动端从表格改为卡片列表——根因排查发现.data-table设了min-width:720px(桌面表格设计思路)，移动端无任何专属断点处理，导致表格被硬塞进手机屏幕靠横向滚动适配，文字相对显得小、操作按钮也要滚动才能点到；用户截图标注确认调整方向是把用户列表"往大调"去匹配数字卡片的视觉重量，而非反向调小那些被多个场景复用、风险更大的组件。桌面端表格保持不变（用.desktop-only/.mobile-only配合767px断点切换，不用JS判断设备）。③新增移动端"修改昵称"按钮：PC端原是输入框失焦自动保存模式，移动端改为明确的"修改→保存/取消"确认式交互（不依赖PC端才有的隐含习惯），保存时复用与PC端完全相同的updateAnyUserName接口，不另写保存逻辑。④保存/取消按钮与重置密码/删除按钮统一为同一套按钮规格（同高度var(--size-btn-default)/同字号/同圆角/等宽flex布局），避免迭代过程中两套按钮各写一份互不对齐的问题'] },
   { date: '2026-06-21', items: ['管理员面板「系统文档」页签整改：①根治tab切换高度跳动——根因是用户管理/数据管理两个tab的表格内容随实际用户数/访问记录数动态变化，固定min-height只是凑当下数据量，用户数增长后依然会跳；改为结构性方案，tab按钮固定在外部不滚动，三tab内容统一包进.admin-tab-viewport（固定高度+内部overflow:auto），同时修复.modal-admin覆盖掉继承的overflow:auto（外层若可滚动会跟内层抢滚动权，导致方案不生效），从根本上让外层弹窗高度恒定，不依赖任何猜测数值。②配色重做：分类标题（如"设计文档·最后更新..."）原跟链接同用--color-primary，红色无差别铺满整块区域，改为次要文字色，红色只留给真正可交互的链接。③按文档类型（设计/功能/协作/升级记录）拆分为独立卡片，粉色只露在卡片间缝隙形成天然分组，不需要额外分隔线；每张卡片整体可点击（不只是链接文字），链接描述文字降为次要色与链接标题形成层级区分，卡片加细描边+hover反馈增强交互鲁棒性'] },
   { date: '2026-06-21', items: ['首页视觉层级优化：用户截图反馈顶栏和统计面板浓度几乎相同，整页缺乏主次区分，地图被夹在两块同色块中间未被强调。解决方案是把顶栏单独降低主题色混入比例(--topbar-tint-pct: 8%→4%)，统计卡片等其余容器维持原有8%暖度不变(--card-tint-pct不变)——只精简改动范围为"顶栏单独退一档"，不大改其余容器的暖色调性。仍复用标准--color-primary做混色源，不引入新的独立色值变量'] },
@@ -403,6 +404,28 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
         <button className={adminTab === 'data' ? 'active' : ''} onClick={() => setAdminTab('data')}>数据管理</button>
         <button className={adminTab === 'docs' ? 'active' : ''} onClick={() => setAdminTab('docs')}>系统文档</button>
       </div>
+
+      {/* 2026-06-21: 数字卡片(总用户/管理员/总访问)和"新增用户"按钮挪到
+         .admin-tab-viewport外面，固定在顶部不随下方用户列表滚动——用户
+         反馈"列表滚动时希望这些汇总信息和新增按钮保持可见"。只在
+         adminTab==='users'时显示，不影响数据管理/系统文档两个tab。
+         注意：不能挪到viewport内部再单独加一层sticky，那样容易跟viewport
+         本身的overflow:auto重演"外层内层抢滚动权"的问题（之前修复tab切换
+         高度跳动时已经踩过这个坑）——直接放在viewport外部、tab按钮同级，
+         是更简单可靠的"不参与滚动"方案。 */}
+      {adminTab === 'users' && (
+        <>
+          <div className="admin-stats">
+            <div className="stat"><span className="label-sm">总用户</span><strong>{stats.totalUsers}</strong></div>
+            <div className="stat"><span className="label-sm">管理员</span><strong>{stats.adminUsers}</strong></div>
+            <div className="stat"><span className="label-sm">总访问</span><strong>{stats.totalVisits}</strong></div>
+          </div>
+          <div className="mb-16">
+            <button className="btn-primary" onClick={() => setShowCreateModal(true)}>+ 新增用户</button>
+          </div>
+        </>
+      )}
+
       {/* 2026-06-21: 之前用min-height硬撑"系统文档"tab去对齐另外两个tab的
          高度，但用户管理/数据管理的表格内容随实际用户数/访问记录数动态变化
          （当前测试数据只有4个用户，未来会增长），固定min-height只是凑了
@@ -415,16 +438,6 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
 
       {adminTab === 'users' && (
         <>
-          <div className="admin-stats">
-            <div className="stat"><span className="label-sm">总用户</span><strong>{stats.totalUsers}</strong></div>
-            <div className="stat"><span className="label-sm">管理员</span><strong>{stats.adminUsers}</strong></div>
-            <div className="stat"><span className="label-sm">总访问</span><strong>{stats.totalVisits}</strong></div>
-          </div>
-
-          <div className="mb-16">
-            <button className="btn-primary" onClick={() => setShowCreateModal(true)}>+ 新增用户</button>
-          </div>
-
           {/* 2026-06-21: 桌面端表格保持不变。移动端(768px以下)改用卡片列表
              ——根因排查发现.data-table设了min-width:720px，是桌面表格的
              设计思路，移动端完全没有专属断点处理，导致表格被硬塞进手机屏幕、
@@ -463,11 +476,11 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             </table>
           </div>
 
-          <div className="user-cards mobile-only">
+          <div className="admin-user-cards mobile-only">
             {users.map((user) => {
               const isEditing = editingNameId === user.id;
               return (
-                <div key={user.id} className="user-card">
+                <div key={user.id} className="admin-user-card">
                   {isEditing ? (
                     <>
                       <div className="edit-input-row">
@@ -486,14 +499,14 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                     </>
                   ) : (
                     <>
-                      <div className="user-card-head">
-                        <div className="user-card-name-row">
-                          <span className="user-card-name">{names[user.id] ?? user.name}</span>
+                      <div className="admin-user-card-head">
+                        <div className="admin-user-card-name-row">
+                          <span className="admin-user-card-name">{names[user.id] ?? user.name}</span>
                           <button className="edit-link-btn" onClick={() => setEditingNameId(user.id)}>修改</button>
                         </div>
-                        <span className={`user-card-tag${user.is_admin ? ' is-admin' : ''}`}>{user.is_admin ? '管理员' : '普通用户'}</span>
+                        <span className={`admin-user-card-tag${user.is_admin ? ' is-admin' : ''}`}>{user.is_admin ? '管理员' : '普通用户'}</span>
                       </div>
-                      <div className="user-card-meta">
+                      <div className="admin-user-card-meta">
                         {user.username && `@${user.username} · `}创建于 {user.created_at.slice(0, 10)}
                       </div>
                       <div className="card-btn-row">
