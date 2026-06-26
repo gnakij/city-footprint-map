@@ -635,11 +635,21 @@ button { cursor: pointer; }
    不挤，且信息密度更高——已从那条规则里移除，移动端保持横排三栏，只在
    下方767px断点内单独做内边距/字号的紧凑化调整(不改列数)。 */
 .admin-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin-bottom: var(--space-4); }
-/* 2026-06-21: 桌面/移动端结构切换工具类，用于用户管理表格(桌面)/卡片
-   (移动端)的显示切换，不用JS判断设备类型，符合项目现有响应式风格。
-   默认(无媒体查询时)都显示，由下方767px断点二选一隐藏。 */
-.desktop-only { }
-.mobile-only { display: none; }
+/* 2026-06-21修正(真机F12排查后): 桌面/移动端结构切换工具类。原方案
+   .desktop-only留空规则、.mobile-only写display:none，依赖"这两条
+   工具类在源码里排在足够靠后位置、不被任何业务class覆盖"这个隐性假设。
+   但.admin-user-cards{display:grid}等业务样式选择器优先级跟.mobile-only
+   完全相同(都是单class)，谁在CSS文件里写得更靠后就赢——跟视口宽度、
+   媒体查询是否命中完全无关。真机复现：997px宽屏下.mobile-only的
+   display:none被.admin-user-cards的display:grid覆盖，导致移动端卡片
+   在桌面端也显示了出来(用浏览器"已计算"面板的display追溯链确认)。
+   修复时不能简单统一写display:block!important——.admin-user-cards
+   等业务class在"应显示"状态下本身需要grid，强制block会破坏布局排列。
+   只有"隐藏"这个状态用none!important绝对安全(不管原本该显示成block/
+   grid/flex，隐藏时都是none，不影响显示态具体取值)。所以默认态(桌面端)
+   .desktop-only不再赋值，交还给元素自身class决定(如.table-wrap走
+   默认block)；只有.mobile-only默认隐藏需要!important兜底。 */
+.mobile-only { display: none !important; }
 /* 2026-06-21: 移动端用户卡片列表样式。设计依据：用户提供截图标注，确认
    方向是把箭头指向的用户列表"往大调"去匹配数字卡片/Tab按钮的视觉重量，
    而不是反过来调小那两处被多个场景复用的组件(风险更大)。 */
@@ -1168,8 +1178,12 @@ button { cursor: pointer; }
      不会太挤，字号不变(--font-xl的20px在三栏布局下完全够用)。 */
   .admin-stats .stat { padding: var(--space-2) var(--space-1-5); }
   /* 桌面/移动端结构切换：767px以下隐藏桌面表格、显示移动端卡片列表。 */
-  .desktop-only { display: none; }
-  .mobile-only { display: block; }
+  /* 同理：移动端断点内.desktop-only需要隐藏，none!important绝对安全。
+     .mobile-only在移动端要显示，但不能统一写block!important，因为
+     .admin-user-cards需要的是grid——这里不再赋值，交还给业务class
+     自己的display(grid/block等)，只要desktop-only被正确隐藏，
+     mobile-only元素自然会用回自身class定义的display值。 */
+  .desktop-only { display: none !important; }
   .visit-editor { grid-template-columns: 1fr; }
   .inline-form { align-items: stretch; flex-direction: column; }
   .stats-panel { --stats-panel-pad-x: var(--space-3); --stats-panel-pad-y: var(--space-2-5); left: var(--space-2); right: var(--space-2); bottom: var(--space-2); width: auto; max-height: 42vh; overflow: auto; padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x); }
