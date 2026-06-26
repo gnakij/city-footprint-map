@@ -25,6 +25,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
+  { date: '2026-06-26', items: ['【重大】全项目按钮风格审计第一阶段：发现用户管理模块(AdminPanel.tsx)内部自建了一套平行于全局.btn-primary/.btn-outline/.btn-danger、互不统一的重复实现(.card-btn系/.edit-link-btn/.admin-user-card-action)。按业内成熟定乍(表格/列表行内并列多个常规操作用tertiary低强调文字样式，保存/取消这类确认动作仍保持primary/outline同样显眼程度)，全部收敛进本体系：新增.btn-tertiary(次要文字色)/.btn-tertiary-danger(error色但不加投影背景)/.btn-primary.compact、.btn-outline.compact(方角小尺寸)。颜色全部复用标准变量(--color-on-surface-variant/--color-error)，不引入任何color-mix混合出的派生值。已覆盖PC表格+移动端卡片全部入口。仍待处理：个人信息弹窗/访问记录表格/数据管理等模块仍未纳入，将另安排推进。', '表格样式三处修复：¹单元格文字vertical-align从 top 改为 middle(以前为适配换行内容设的top，现各列内容高度基本一致，top对齐反而偏上)；²修复数据行比表头明显高的问题，根因是按钮36px高度+<td>本身10pxpadding叠加，不缩小按钮(符合WCAG/Material触摸目标最小尺寸)，改为仅针对包含.row-actions的单元格单独收紧padding(用:has()选择器定位，2026年已全部主流浏览器支持）；³发现“新增用户”靠左、“查询/导出”等数据管理按钮组靠右的不一致，根因是.actions这个通用class默认justify-content为flex-end。按业内共识(默认靠左、靠右只是少数例外)确定项目规范：.actions默认改为flex-start，涉及AdminPanel/UserProfile/CityDrawer三个文件共9处。保留两个有独立设计理由的例外不动：分页器(.flex-between两端对齐)、已删除的海报预览弹窗(.flex-center居中)。', '清理未接入UI的死代码：PosterGenerator.tsx组件从未被任何地方import/触发(没有按钮能打开它，其依赖的posterOpen状态从未被设为true)，是个从未上线过的半成品。已删除该组件文件，并同步清理store(useStore.ts)里 posterOpen/setPosterOpen 相关定义、CSS里.poster-preview样式。用户确认这是死代码后才删除，不是喇默判断。'] },
   { date: '2026-06-26', items: ['【重大修复】用户管理移动端列表完全消失问题，是上一轮修复PC端断点失效问题时引入的回归。根因：上一轮把默认态的.mobile-only改为了display:none!important，但!important这个优先级在移动端断点内依然全局生效(它不在任何@media限制范围内)，而移动端断点内只写了隐藏desktop-only、没有任何规则去解除mobile-only这个!important，导致移动端下.admin-user-cards{display:grid}永远被!important压住、用户列表一直是隐藏状态(上一次以为"交还给业务class自决定"是可行的，但!important是全局生效、不跟视口宽度区分，这个假设本身不成立)。修复：不再依赖跨class自动回退，改为按每个实际用途分别明确补出该class本身需要的display值（.admin-user-cards.mobile-only补grid!important，.mb-16.mobile-only补block!important）。已由用户真机确认修复生效。'] },
   { date: '2026-06-26', items: ['用户管理PC端表头固定（sticky）一度仍未生效的问题继续补完：上一轮修复(补上.admin-tab-viewport的display:flex)后，.users-table-wrap高度能被正确压缩到父级分配的实际空间、不再被外层抢滚动权，但当时未由用户在真机上最终确认sticky是否真正生效。本轮经用户真机滚动验证确认、表头sticky现已真正固定生效。同时针对用户反馈“表头被浏览器默认滚动条压住”问题，先用.table-wrap::-webkit-scrollbar系列重制了表格区域的滚动条，改用项目CSS变量调色、宽度从浏览器默认细化到6px，五个主题下都能跟调性一致。滚动条“压住表头”这个更深层的视觉问题本轮尝试了两种方案(table本体padding+负 margin拉回；::-webkit-scrollbar-track 加margin-top)均未能真正解决（前者会干扰sticky计算、后者实测滚动条位置未变化），已按用户要求撤回这两次尝试、补上代码注释记录，暂抬后。后续若要彻底解决，需要把表头从<table>结构中拆出来单独做一层。'] },
   { date: '2026-06-26', items: ['【重大修复】PC端宽屏下“用户管理”页签曾错误显示移动端卡片列表而非桌面表格，根因排查耗时较长（此前曾误判为媒体查询/视口宽度问题，code review 反复确认 @media(max-width:767px) 本身闭合正确，但仍无法解释现象）。用F12“已计算(Computed)”面板追溯display属性完整层叠链后定位真正根因：.mobile-only{display:none} 与业务class（如.admin-user-cards{display:grid}）选择器优先级完全相同（都是单class），CSS层叠规则下“源码里写得更靠后的规则赢”，跟视口宽度、媒体查询是否命中完全无关——.admin-user-cards写在.mobile-only之后，导致即使在宽屏下，display:none也会被display:grid覆盖。修复方案：仅给.mobile-only的隐藏态加!important（隐藏态用none!important绝对安全，不影响显示态具体取值是block还是grid）；不能反过来给显示态统一指定block!important，会破坏需要grid布局的业务class。'] },
@@ -409,13 +410,9 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
     if (targets.length > 0) setPendingDelete(targets);
   };
 
-  const handleNameBlur = (userId: string) => {
-    const currentName = names[userId];
-    const originalName = users.find((u) => u.id === userId)?.name;
-    if (currentName !== undefined && currentName !== originalName) {
-      void updateAnyUserName(userId, currentName);
-    }
-  };
+  /* 2026-06-26: PC端用户名从失焦自动保存(handleNameBlur)改为按钮式“修改→
+     保存/取消”后，handleNameBlur不再被调用，已删除。下handleNameSave/
+     handleNameCancel现是PC端和移动端共享的唯一保存/取消逻辑。 */
 
   /* 2026-06-21: 移动端卡片"保存"按钮专用，复用PC端同一个updateAnyUserName
      接口，不另写一套保存逻辑——区别只在触发方式（明确点击保存，而不是
@@ -600,30 +597,55 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             <table className="data-table">
               <thead><tr><th>用户</th><th>类型</th><th>创建时间</th><th>操作</th></tr></thead>
               <tbody>
-                {users.map((user) => (
+                {users.map((user) => {
+                  const isEditing = editingNameId === user.id;
+                  return (
                   <tr key={user.id}>
                     <td>
-                      <div className="user-name-cell">
+                      {/* 2026-06-26: 用户名从内联输入框改为按钮式"修改→
+                         保存/取消"，跟移动端卡片的交互完全一致（不依赖
+                         PC端才有的"失焦自动保存"隐含习惯），复用同一套
+                         editingNameId/handleNameSave/handleNameCancel
+                         状态和逻辑，不另写一套。非编辑态显示用户名+
+                         @username+"修改"链接；编辑态显示输入框，保存/
+                         取消按钮挪到"操作"列跟重置密码/删除放在一起，
+                         三个操作统一在同一处，不再分散在两列。 */}
+                      {isEditing ? (
                         <input
                           className="input"
                           value={names[user.id] ?? user.name}
                           onChange={(event) => setNames({ ...names, [user.id]: event.target.value })}
-                          onBlur={() => handleNameBlur(user.id)}
                           placeholder="用户名称"
+                          autoFocus
                         />
-                        {user.username && <span className="muted">@{user.username}</span>}
-                      </div>
+                      ) : (
+                        <div className="user-name-cell">
+                          <span>{names[user.id] ?? user.name}</span>
+                          {user.username && <span className="muted">@{user.username}</span>}
+                        </div>
+                      )}
                     </td>
                     <td>{user.is_admin ? '管理员' : '普通用户'}</td>
                     <td>{user.created_at.slice(0, 10)}</td>
                     <td>
                       <div className="row-actions">
-                        <button className="card-btn card-btn-outline" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
-                        {!user.is_admin && <button className="card-btn card-btn-danger" onClick={() => removeUser(user.id)}>删除</button>}
+                        {isEditing ? (
+                          <>
+                            <button className="btn-primary compact" onClick={() => handleNameSave(user.id)}>保存</button>
+                            <button className="btn-outline compact" onClick={() => handleNameCancel(user.id, user.name)}>取消</button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="btn-tertiary" onClick={() => setEditingNameId(user.id)}>修改昵称</button>
+                            <button className="btn-tertiary" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
+                            {!user.is_admin && <button className="btn-tertiary-danger" onClick={() => removeUser(user.id)}>删除</button>}
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -691,8 +713,8 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                         />
                       </div>
                       <div className="card-btn-row">
-                        <button className="card-btn card-btn-primary" onClick={() => handleNameSave(user.id)}>保存</button>
-                        <button className="card-btn card-btn-ghost" onClick={() => handleNameCancel(user.id, user.name)}>取消</button>
+                        <button className="btn-primary compact" onClick={() => handleNameSave(user.id)}>保存</button>
+                        <button className="btn-outline compact" onClick={() => handleNameCancel(user.id, user.name)}>取消</button>
                       </div>
                     </>
                   ) : (
@@ -700,7 +722,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                       <div className="admin-user-card-head">
                         <div className="admin-user-card-name-row">
                           <span className="admin-user-card-name">{names[user.id] ?? user.name}</span>
-                          <button className="edit-link-btn" onClick={() => setEditingNameId(user.id)}>修改</button>
+                          <button className="btn-tertiary" onClick={() => setEditingNameId(user.id)}>修改</button>
                         </div>
                         <span className={`admin-user-card-tag${user.is_admin ? ' is-admin' : ''}`}>{user.is_admin ? '管理员' : '普通用户'}</span>
                       </div>
@@ -714,7 +736,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                          卡片下方提示"长按可批量删除"，告知这个隐藏交互
                          的存在。 */}
                       <div className="admin-user-card-footer">
-                        <button className="admin-user-card-action" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
+                        <button className="btn-tertiary" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
                         {!user.is_admin && <span className="admin-user-card-hint">长按可批量删除</span>}
                       </div>
                     </>

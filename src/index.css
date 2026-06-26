@@ -303,6 +303,14 @@ button { cursor: pointer; }
 .btn-primary:not(:disabled):hover, .btn-outline:not(:disabled):hover, .btn-danger:not(:disabled):hover { opacity: var(--state-hover-opacity); }
 .btn-primary:not(:disabled):active, .btn-outline:not(:disabled):active, .btn-danger:not(:disabled):active { transform: scale(var(--state-active-scale)); }
 .btn-primary:disabled, .btn-outline:disabled, .btn-danger:disabled { opacity: var(--state-disabled-opacity); cursor: not-allowed; }
+/* 2026-06-26全项目按钮风格审计：补上表格/列表行内专用的两个新档，彻底取代.card-btn系、.edit-link-btn、.admin-user-card-action这三个平行于本体系、互不统一的重复实现。设计依据(业内通用定位)：表格行内同时并列多个常规操作时用tertiary(低强调、文字为主)，避免每个都用边框/背景抢眼；删除这类行内危险操作用error色但仍保持tertiary的弱化视觉权重(不加投影/背景)，与primary/outline/danger这三个页面级主操作拉开区别。颜色全部复用本档现成标准变量(--color-on-surface-variant/--color-error)，不引入任何color-mix混合出的派生值。
+   “保存/取消”（行内编辑状态的确认动作，不是常规行内操作）不在这两档里，按业内共识继续保持primary/outline同样的显眼程度，只是外形改为方角(跟表格调性一致)、尺寸收粗适配表格行高，仍复用.btn-primary/.btn-outline本身的配色/投影逻辑，不重复定义。 */
+.btn-primary.compact, .btn-outline.compact { border-radius: var(--radius-sm); min-height: var(--size-btn-default); padding: 0 var(--space-3); }
+.btn-tertiary, .btn-tertiary-danger { height: var(--size-btn-default); border: none; background: transparent; border-radius: var(--radius-sm); font-size: var(--font-sm); font-weight: 600; padding: 0 var(--space-2-5); white-space: nowrap; transition: opacity .15s; }
+.btn-tertiary { color: var(--color-on-surface-variant); }
+.btn-tertiary-danger { color: var(--color-error); }
+.btn-tertiary:not(:disabled):hover, .btn-tertiary-danger:not(:disabled):hover { opacity: var(--state-hover-opacity); }
+.btn-tertiary:disabled, .btn-tertiary-danger:disabled { opacity: var(--state-disabled-opacity); cursor: not-allowed; }
 .back-btn { display: inline-flex; align-items: center; gap: var(--space-1); border: 0; background: transparent; color: var(--color-primary); font-weight: 600; font-size: var(--font-base); padding: var(--space-1) 0; }
 .icon-btn { width: var(--size-btn-default); height: var(--size-btn-default); padding: 0; border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-full); background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface)); color: var(--color-on-surface); font-size: var(--font-lg); transition: var(--transition-interactive); display: inline-flex; align-items: center; justify-content: center; }
 .icon-btn:hover { background: var(--color-surface-container-low); }
@@ -467,7 +475,8 @@ button { cursor: pointer; }
 .form-row { margin: var(--space-3) 0; display: grid; gap: var(--space-2); }
 .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2-5); }
 .textarea { min-height: 72px; padding-top: var(--space-2-5); resize: vertical; }
-.actions { display: flex; justify-content: flex-end; gap: var(--space-2-5); flex-wrap: wrap; }
+/* 2026-06-26项目规范确定：按钮组默认靠左(flex-start)，不再是flex-end。用户发现用户管理(靠左)跟数据管理(原本flex-end靠右)不一致，按业内共识（需要根据实际诺言，最常见是“默认靠左”，靠右只是少数例外场景）决定统一成靠左。为了不让以后新写代码又意外“滑回”靠右，不是另加一个“靠左”修饰符让大家记得加，而是直接把.actions本身的默认值改为flex-start——谁不加任何修饰符都是靠左，这才是能“消除差异”的正确方式。两个真正有独立设计理由的例外场景：分页器(.flex-between，信息+操作两端对齐)、海报预览弹窗(.flex-center，单一聚焦场景)——这两个修饰符本来就写在.actions之后(同优先级下源码更靠后的规则赢)，不受这次默认值变化的影响，不需要额外改动。 */
+.actions { display: flex; justify-content: flex-start; gap: var(--space-2-5); flex-wrap: wrap; }
 .visit-form { margin-top: var(--space-4); padding-top: var(--space-3-5); border-top: var(--space-xs) solid var(--color-outline-variant); }
 .visit-stack { display: grid; gap: var(--space-2-5); margin-top: var(--space-4); }
 .visit-card { display: grid; gap: var(--space-2-5); padding: var(--space-3); border-radius: var(--radius-panel); background: var(--color-surface-container-low); }
@@ -627,7 +636,6 @@ button { cursor: pointer; }
    90vh+overflow滚动，不会无限增高顶到屏幕外。 */
 .modal-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); }
 .settings-section { border-top: var(--space-xs) solid var(--color-outline-variant); padding-top: var(--space-4); margin-top: var(--space-4); display: grid; gap: var(--space-3); }
-.poster-preview { width: min(360px, 100%); aspect-ratio: 9/16; margin: auto; overflow: hidden; background: var(--color-background); border-radius: var(--radius-sm); border: var(--space-xs) solid var(--color-outline-variant); }
 .toast { position: fixed; left: 50%; top: 86px; transform: translateX(-50%); z-index: var(--z-toast); min-height: var(--size-input); padding: 0 var(--space-4); display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-full); animation: toastIn .22s ease-out; }
 
 /* 2026-06-21: .admin-stats此前被误归类进".form-grid-2"那条移动端规则
@@ -692,7 +700,6 @@ button { cursor: pointer; }
 .admin-user-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); gap: var(--space-2); }
 .admin-user-card-name-row { display: flex; align-items: center; gap: var(--space-1-5); min-width: 0; }
 .admin-user-card-name { font-size: var(--font-lg); font-weight: 700; color: var(--color-on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.edit-link-btn { border: none; background: none; color: var(--color-primary); font-size: var(--font-xs); font-weight: 600; padding: var(--space-0-5) var(--space-1-5); white-space: nowrap; }
 /* 2026-06-21: "管理员"(2字)和"普通用户"(4字)文字长度不同，原来背景框
    完全靠padding撑开，两个标签宽度参差不齐。加min-width统一最小宽度+
    text-align:center让文字在框内居中，视觉上两个标签长度一致更好看。 */
@@ -707,7 +714,6 @@ button { cursor: pointer; }
    ——改为靠左、宽度刚好包裹文字的紧凑按钮，搭配右侧"长按可删除"的
    提示文字(次要色、小字号，不抢眼，只是告知这个隐藏交互存在)。 */
 .admin-user-card-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
-.admin-user-card-action { height: var(--size-btn-default); padding: 0 var(--space-3); border-radius: var(--radius-sm); border: var(--space-xs) solid var(--color-outline-variant); background: var(--color-background); color: var(--color-on-surface); font-size: var(--font-sm); font-weight: 600; white-space: nowrap; }
 .admin-user-card-hint { font-size: var(--font-xs); color: var(--color-on-surface-variant); white-space: nowrap; }
 /* 2026-06-21: 批量删除多选模式样式（第二版交互，替换第一版"长按直接
    删除单个"）。顶部"取消"+"删除用户"按钮组。 */
@@ -785,11 +791,10 @@ button { cursor: pointer; }
    缺少white-space:nowrap，窄屏下flex:1分到的宽度不够容纳4个字，文字被
    迫换行，固定height又把两行内容挤压变形。加nowrap禁止换行，配合
    min-width:0让flex子项能正确收缩（避免撑爆父容器）而不是换行。 */
-.card-btn { flex: 1; min-width: 0; height: var(--size-btn-default); border-radius: var(--radius-sm); font-size: var(--font-sm); font-weight: 600; display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 var(--space-1); }
-.card-btn-outline { border: var(--space-xs) solid var(--color-outline-variant); background: var(--color-background); color: var(--color-on-surface); }
-.card-btn-danger { border: var(--space-xs) solid color-mix(in srgb, var(--color-error) 40%, var(--color-outline-variant)); background: var(--color-background); color: var(--color-error); }
-.card-btn-primary { border: none; background: var(--color-primary); color: var(--color-on-primary); }
-.card-btn-ghost { border: var(--space-xs) solid var(--color-outline-variant); background: var(--color-background); color: var(--color-on-surface-variant); }
+/* 2026-06-26: .card-btn/.card-btn-outline/.card-btn-danger/.card-btn-primary/
+   .card-btn-ghost 已删除——全项目按钮风格审计，改用上方
+   .btn-primary.compact/.btn-outline.compact/.btn-tertiary/.btn-tertiary-danger。
+   .card-btn-row仍保留(布局flex容器，不含任何配色，不在本次清理范围)。 */
 .edit-input-row { margin-bottom: var(--space-2); }
 .edit-input { width: 100%; height: var(--size-btn-default); border: 1.5px solid var(--color-primary) !important; }
 /* 2026-06-21: 系统文档整体改版。背景问题：最外层.modal本身是淡粉色底
@@ -836,8 +841,10 @@ button { cursor: pointer; }
 /* 2026-06-26: 滚动条轨道从容器顶部0px开始画，看上去像压在了sticky表头上面(用户反馈)，是已知未解决的视觉问题。曾尝试： 1) padding-top+负 margin把<table>本体拉回原位——真机实测sticky失效，已放弃； 2) ::-webkit-scrollbar-track margin-top:40px——真机实测表头仍保持固定，但滚动条偏移未生效(实际未看到轨道位置变化)，已撤回。用户决定暂时不再投入这个问题(下一步可能需要拆表头DOM结构、脱离<table>才能彻底避开，改动范围较大)。 */
 .table-wrap { width: 100%; overflow: auto; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 720px; }
-.data-table th, .data-table td { border-bottom: var(--space-xs) solid var(--color-outline-variant); padding: var(--space-2-5); text-align: left; vertical-align: top; font-size: var(--font-base); }
+/* 2026-06-26: vertical-align原value为top(是以前“用户名+@username”换行撑高单元格时的适配写法，让单/多行内容在顶部对齐不错位)。现在“用户名+@id”已同行展示、“操作”列也是单行按钮，各列内容高度基本一致，top对齐反而让文字看起来偏上。改为middle。 */
+.data-table th, .data-table td { border-bottom: var(--space-xs) solid var(--color-outline-variant); padding: var(--space-2-5); text-align: left; vertical-align: middle; font-size: var(--font-base); }
 .data-table th { color: var(--color-on-surface-variant); font-size: var(--font-sm); font-weight: 700; }
+/* 2026-06-26: 试过th单独居中、td保持靠左，用户反馈表头和数据行两种对齐方式并存反而更乱，已撤回。现表头与数据行统一保持靠左(跟th, td的基础规则保持一致)，不再单独处理。 */
 /* 2026-06-20: 表头字号从--font-xs(12px)调整为--font-sm(13px)，与页签(.mode-pill button)
    同一字号，呼应页面顶部的视觉语言；同时与表格内容(--font-base,14px)只差1px，
    不会显得头重脚轻。原12px被用户反馈"列表字体比表头都大"，确认是真实的数值差异。
@@ -878,8 +885,13 @@ button { cursor: pointer; }
    多选行的同款处理），避免纵向堆叠把每一行撑高、放大了"行很宽"的视觉
    压迫感。操作列合并"重置密码"+"删除"为同一列，去掉原本各占一列、
    分散在表格不同位置的三个操作入口。 */
+/* 2026-06-26修复：原意图是输入框+@username同行并排(baseline对齐)，但实测<input className="input">复用全局.input基础样式(width:100%)，在flex容器里独自占满整行宽度，导致@username被flex-wrap挤到下一行，反而让这一行变成两行、撞高了表格整体行高。给输入框限宽，让它只拿容器剩余空间(flex:1 1 auto)、不再独自占满100%，同时给@username加min-width:0防止被过度压缩。 */
+/* 2026-06-26: 用户名从内联输入框改为按钮式编辑后，该单元格
+   非编辑态只剩纯文本+修改链接，不再包含<input>，原有
+   .user-name-cell .input 规则已是死代码、删除。顺手合并两条重复的
+   .muted选择器。 */
 .data-table .user-name-cell { display: flex; align-items: baseline; gap: var(--space-1-5); flex-wrap: wrap; }
-.data-table .user-name-cell .muted { margin: 0; font-size: var(--font-sm); }
+.data-table .user-name-cell .muted { flex: 0 0 auto; margin: 0; font-size: var(--font-sm); }
 /* 2026-06-21修正: row-actions最初直接复用.btn-outline/.btn-danger，
    但这两个组件视觉权重天生不对等——.btn-danger带描边+投影是专门为
    modal里确认删除这种独立高风险操作强化警示感设计的，跟表格行内
@@ -889,8 +901,16 @@ button { cursor: pointer; }
    项目里已有的.card-btn体系（专为同一行内多个平级操作设计，原是给
    移动端卡片用的），不再为这个场景另造一套新样式，颜色区别用文字
    色而非实心/投影制造视觉差异。 */
+/* 2026-06-26: .row-actions .card-btn这条规则已删除——.card-btn本身在全项目按钮
+   风格审计中被.btn-tertiary等取代，现在没有任何元素再用这个class。
+   同时修复“数据行比表头高”问题：根因是按钮36px高度+<td>本身
+   --space-2-5(10px)上下padding叠加，表头只有文字没有这层高度，两者必然不一
+   致。不缩小按钮(36px符合WCAG/Material触摸目标最小尺寸建议)，改为仅针对
+   包含.row-actions的单元格单独收紧padding，让按钮自己的高度定义这一行高度，
+   不再叠加额外的单元格padding。只动“操作”这一列，其他纯文本列(用户名/
+   类型/创建时间)仍保持原本宽松的padding。 */
 .data-table .row-actions { display: flex; gap: var(--space-2); flex-wrap: nowrap; }
-.data-table .row-actions .card-btn { flex: none; width: auto; padding: 0 var(--space-3); }
+.data-table td:has(.row-actions) { padding-top: var(--space-1-5); padding-bottom: var(--space-1-5); }
 
 /* 间距工具类 */
 .mt-6 { margin-top: 6px; }
