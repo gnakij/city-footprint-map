@@ -617,7 +617,8 @@ button { cursor: pointer; }
 .modal-admin > .mb-16 {
   flex-shrink: 0;
 }
-.admin-tab-viewport { flex: 1; min-height: 0; overflow-y: auto; }
+/* 2026-06-26补一处关键遗漏：该class仅在作为.modal-admin的flex子元素时写flex:1，但它本身从未被display:flex化(默认仍block)，导致它的子元素.users-table-wrap写flex:1完全无效、只能跳回按内容高度自然撑开，这是修复sticky表头一度未生效的真正根因。用Playwright读取真实渲染后DOM数据验证确认：.admin-tab-viewport作为.modal-admin的flex子元素本身正确拿到316px，但它内部的.users-table-wrap却渲染出404.5px(跳过了flex限宽约束)，说明问题不在users-table-wrap本身跟父级的flex关系上，而是这一层父容器本身根本不是flex容器。补上display:flex+flex-direction:column后，users-table-wrap才能真正被压缩到父级分到的实际高度。补充验证：改动后数据管理/系统文档两个tab的内容块本身是普通<div>、未设自身height，作为flex item默认height:auto仍按内容自然高度(不会被拉伸)，不受此改动影响。 */
+.admin-tab-viewport { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
 /* 2026-06-20: 新增min-height。这个modal内部有4个tab(个人信息/访问记录/系统管理/
    系统设置)，内容量差异很大("个人信息"只有两个输入框，"系统管理"嵌套了完整的
    表格管理界面)，.modal本身只有max-height没有min-height，导致切换tab时modal
@@ -829,7 +830,10 @@ button { cursor: pointer; }
    滚动，sticky规则虽然写了但没有被触发的场景。.admin-tab-viewport本身
    也是滚动容器，但这次内层有自己独立的、明确更小的高度限制，跟外层不会
    抢同一段内容的滚动权（之前踩坑的场景是内外层试图滚动同一片内容）。 */
-.table-wrap.users-table-wrap { max-height: 420px; overflow-y: auto; }
+
+/* 2026-06-26修正(真机反馈sticky表头滚动时仍消失): 原写法给了一个孤立的max-height:420px，没考虑.users-table-wrap实际能从.admin-tab-viewport(flex:1，剩余空间随modal-head/数字卡片/按钮区高度变化而动态变化，实测远小于420px)分到多少空间——分到的空间小于420px时，.users-table-wrap还没撑到上限就被外层挤满，滚动条先出现在外层.admin-tab-viewport上，而sticky表头只认.users-table-wrap为滚动祖先，外层滚动时表格跟着一起跑，表现为“表头没固定”。改为flex:1占满父级分给的全部空间，不再孤立设一个可能对不上的固定数值，确保滚动只发生在.users-table-wrap内部、不会被外层抢走。 */
+.table-wrap.users-table-wrap { flex: 1; min-height: 0; overflow-y: auto; }
+/* 2026-06-26: 滚动条轨道从容器顶部0px开始画，看上去像压在了sticky表头上面(用户反馈)，是已知未解决的视觉问题。曾尝试： 1) padding-top+负 margin把<table>本体拉回原位——真机实测sticky失效，已放弃； 2) ::-webkit-scrollbar-track margin-top:40px——真机实测表头仍保持固定，但滚动条偏移未生效(实际未看到轨道位置变化)，已撤回。用户决定暂时不再投入这个问题(下一步可能需要拆表头DOM结构、脱离<table>才能彻底避开，改动范围较大)。 */
 .table-wrap { width: 100%; overflow: auto; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 720px; }
 .data-table th, .data-table td { border-bottom: var(--space-xs) solid var(--color-outline-variant); padding: var(--space-2-5); text-align: left; vertical-align: top; font-size: var(--font-base); }
@@ -860,6 +864,12 @@ button { cursor: pointer; }
 .danger-text { color: var(--color-error); }
 .sort-pill { width: max-content; margin-bottom: var(--space-3); }
 .table-wrap { border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-panel); }
+/* 2026-06-26: 用户反馈sticky表头生效后，浏览器默认滚动条看上去“压住”了表头那一行(滚动条轨道从容器顶部0px开始画，跳略表头有灮息)。用项目自己的CSS变量重制滚动条样式代替浏览器默认粗样式，更细、颜色跟主题调性一致，仅作用于.table-wrap类容器本身，不影响全局其他滚动区域。遵循WebKit标准写法(::-webkit-scrollbar系列)，Firefox用scrollbar-width/scrollbar-color两个标准属性做简化适配(不能细调轨道/滑块颜色，但能取得“细”这个核心效果)。 */
+.table-wrap::-webkit-scrollbar { width: 6px; }
+.table-wrap::-webkit-scrollbar-track { background: transparent; }
+.table-wrap::-webkit-scrollbar-thumb { background: var(--color-outline-variant); border-radius: var(--radius-full); }
+.table-wrap::-webkit-scrollbar-thumb:hover { background: var(--color-primary-container); }
+.table-wrap { scrollbar-width: thin; scrollbar-color: var(--color-outline-variant) transparent; }
 .table-wrap.compact { max-height: 220px; }
 /* sticky表头背景需要完全不透明（不能是带tint的混色变量），否则滚动时
    下方内容的文字会透过表头隐约可见，sticky的视觉效果大打折扣。 */
