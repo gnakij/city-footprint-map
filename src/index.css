@@ -813,6 +813,13 @@ button { cursor: pointer; }
 /* 描述文字比链接更浅、不加粗，强化"链接是标题、描述是说明"的层级关系，
    不让两者同等抢眼。 */
 .changelog-desc { color: var(--color-on-surface-variant); }
+/* 2026-06-21: 用户管理表格新增固定高度+内部滚动（专用class，不影响
+   其他场景复用的.table-wrap，如导入数据预览表）。固定高度让表头sticky
+   始终有实际意义——之前表格高度完全由内容撑开，数据量小时永远不会产生
+   滚动，sticky规则虽然写了但没有被触发的场景。.admin-tab-viewport本身
+   也是滚动容器，但这次内层有自己独立的、明确更小的高度限制，跟外层不会
+   抢同一段内容的滚动权（之前踩坑的场景是内外层试图滚动同一片内容）。 */
+.table-wrap.users-table-wrap { max-height: 420px; overflow-y: auto; }
 .table-wrap { width: 100%; overflow: auto; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 720px; }
 .data-table th, .data-table td { border-bottom: var(--space-xs) solid var(--color-outline-variant); padding: var(--space-2-5); text-align: left; vertical-align: top; font-size: var(--font-base); }
@@ -844,7 +851,26 @@ button { cursor: pointer; }
 .sort-pill { width: max-content; margin-bottom: var(--space-3); }
 .table-wrap { border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-panel); }
 .table-wrap.compact { max-height: 220px; }
-.data-table th { position: sticky; top: 0; background: var(--color-surface-container-low); }
+/* sticky表头背景需要完全不透明（不能是带tint的混色变量），否则滚动时
+   下方内容的文字会透过表头隐约可见，sticky的视觉效果大打折扣。 */
+.data-table th { position: sticky; top: 0; background: var(--color-surface-container-low); z-index: 1; }
+/* 2026-06-21: 用户名+用户名(@username)合并为同一行展示（参照移动端
+   多选行的同款处理），避免纵向堆叠把每一行撑高、放大了"行很宽"的视觉
+   压迫感。操作列合并"重置密码"+"删除"为同一列，去掉原本各占一列、
+   分散在表格不同位置的三个操作入口。 */
+.data-table .user-name-cell { display: flex; align-items: baseline; gap: var(--space-1-5); flex-wrap: wrap; }
+.data-table .user-name-cell .muted { margin: 0; font-size: var(--font-sm); }
+/* 2026-06-21修正: row-actions最初直接复用.btn-outline/.btn-danger，
+   但这两个组件视觉权重天生不对等——.btn-danger带描边+投影是专门为
+   modal里确认删除这种独立高风险操作强化警示感设计的，跟表格行内
+   重置密码这种平静的次要操作并排放，会显得一个朴素一个浮起、长短
+   不一，明显不协调。表格行内的删除应该跟重置密码同等克制——危险感
+   交给点击后弹出的确认modal去承担，列表本身不需要抢戏。改为复用
+   项目里已有的.card-btn体系（专为同一行内多个平级操作设计，原是给
+   移动端卡片用的），不再为这个场景另造一套新样式，颜色区别用文字
+   色而非实心/投影制造视觉差异。 */
+.data-table .row-actions { display: flex; gap: var(--space-2); flex-wrap: nowrap; }
+.data-table .row-actions .card-btn { flex: none; width: auto; padding: 0 var(--space-3); }
 
 /* 间距工具类 */
 .mt-6 { margin-top: 6px; }

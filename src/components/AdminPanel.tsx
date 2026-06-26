@@ -25,6 +25,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
+  { date: '2026-06-21', items: ['用户管理桌面表格三处整改：①"密码"列(重置密码)与"操作"列(删除)合并为统一的操作列，两个按钮并排，不再分散在两处；②用户名与@username合并同一行(baseline对齐)展示，不再纵向堆叠撑高每行；③新增固定高度+内部滚动，配合表头sticky，数据量增多时表头始终可见', '修正表格行内操作按钮视觉权重不统一的问题：此前直接复用.btn-outline/.btn-danger，但后者带描边+投影是专为弹窗"确认删除"这类独立高风险操作设计的，跟同行的"重置密码"并排显得一个朴素一个浮起、长短不一。改为复用项目已有的.card-btn体系（同一行内多个平级操作的既有方案），危险感交给点击后弹出的确认弹窗承担，列表本身保持克制', '管理员账号禁止从普通用户登录入口登录。根因：普通登录只加载该用户自己的足迹数据，不会像管理员登录那样额外拉取用户列表，导致管理员从普通入口登录后能进入系统、但"用户管理/数据管理"数据全是空的。现在普通登录检测到管理员账号会直接拒绝并提示改用管理员登录入口'] },
   { date: '2026-06-21', items: ['移动端批量删除交互（长按进入多选→勾选→统一删除）：原长按方案在真机测试中跟系统原生文本选择/分享菜单冲突，改为业内常见的长按进多选模式，勾选后批量删除。两轮真机踩坑：①需在touchstart时主动preventDefault才能真正拦住系统长按菜单，onContextMenu只能拦右键、拦不住移动端长按；②需用位移阈值区分长按手指轻微抖动和真实滑动/边缘返回手势，超出阈值才放行默认行为，否则会误拦正常滚动', '删除确认改用项目自有modal样式替代浏览器原生window.confirm，单个删除和批量删除共用同一套确认逻辑（pendingDelete统一为数组）。弹窗视觉效果经过四轮方案对比迭代：列表背景加深方向因色阶台阶过细、肉眼难辨而放弃，改为更符合业内惯例的浅底+左侧危险色细条强调，呼应下方确认按钮的危险色语义', '修复确认删除/取消按钮在浅色主题背景下因描边/背景色对比度不足而显得不清晰的问题：.btn-danger加自身加深描边+投影；.btn-outline全局描边改用主文字色半透明混色（影响所有用到该组件的场景，非局部打补丁）', '修复多选模式下相邻选中卡片描边贴在一起视觉上像连成一条线的问题：卡片间距从12px提到16px，选中态新增柔和外发光代替单纯硬边线分界'] },
   { date: '2026-06-21', items: ['「用户管理」移动端卡片真机验证后两轮修复：①卡片内容居中、大量空白——根因排查发现新增的.user-card与登录页"选择账号"组件的.user-card撞名（登录页那套是display:grid+justify-items:center的居中布局），两套规则叠加导致表现异常；这是开发时未先检索class名是否已被占用造成的命名冲突，不是间距数值问题。统一改名为admin-user-card-*前缀，与登录页组件完全隔离。②"重置密码"按钮文字换行折叠成两行——根因是.card-btn缺少white-space:nowrap，窄屏下flex:1分到的宽度不够容纳4个字被迫换行；已加nowrap+text-overflow:ellipsis+min-width:0修复。③数字卡片(总用户/管理员/总访问)和"新增用户"按钮挪到.admin-tab-viewport外部固定在顶部，不再随用户列表滚动——用户体验反馈"列表滚动时希望这些信息保持可见"；放在viewport外部、tab按钮同级是更简单可靠的方案，避免在viewport内部再嵌一层sticky可能重演"外层内层抢滚动权"的问题（此前修复tab切换高度跳动时已踩过这个坑）'] },
   { date: '2026-06-21', items: ['管理员面板「用户管理」页签移动端整改：①修复数字统计卡片(总用户/管理员/总访问)被误改为单列堆叠的问题——根因是.admin-stats被错误归类进".form-grid-2"这条移动端规则(本意是表单输入框分两栏改单列)，三个简短数字横排三栏完全不挤且信息密度更高，已从该规则移除独立处理，移动端保持横排三栏只收紧内边距。②用户列表移动端从表格改为卡片列表——根因排查发现.data-table设了min-width:720px(桌面表格设计思路)，移动端无任何专属断点处理，导致表格被硬塞进手机屏幕靠横向滚动适配，文字相对显得小、操作按钮也要滚动才能点到；用户截图标注确认调整方向是把用户列表"往大调"去匹配数字卡片的视觉重量，而非反向调小那些被多个场景复用、风险更大的组件。桌面端表格保持不变（用.desktop-only/.mobile-only配合767px断点切换，不用JS判断设备）。③新增移动端"修改昵称"按钮：PC端原是输入框失焦自动保存模式，移动端改为明确的"修改→保存/取消"确认式交互（不依赖PC端才有的隐含习惯），保存时复用与PC端完全相同的updateAnyUserName接口，不另写保存逻辑。④保存/取消按钮与重置密码/删除按钮统一为同一套按钮规格（同高度var(--size-btn-default)/同字号/同圆角/等宽flex布局），避免迭代过程中两套按钮各写一份互不对齐的问题'] },
@@ -586,29 +587,37 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
              调小圈出的数字卡片/Tab按钮（那两处被多个场景复用，风险更大）。
              两套结构通过.desktop-only/.mobile-only配合CSS媒体查询切换显示，
              不用JS判断设备类型，符合项目现有的响应式风格。 */}
-          <div className="table-wrap desktop-only">
+          {/* 2026-06-21: 桌面表格三处整改：①用户名+@username合并同一行
+             （baseline对齐），不再纵向堆叠撑高每行；②"密码"独立列(仅含重置
+             密码按钮)与"操作"独立列(仅含删除按钮)合并为统一的"操作"列，
+             不再让同一组对用户的操作分散在两个不相邻的列里；③.users-table-wrap
+             固定高度+内部滚动，配合.data-table th的sticky，让表头无论数据
+             量多少都保持可见，不依赖用户数将来是否增长到产生滚动的程度。 */}
+          <div className="table-wrap users-table-wrap desktop-only">
             <table className="data-table">
-              <thead><tr><th>用户</th><th>类型</th><th>创建时间</th><th>密码</th><th>操作</th></tr></thead>
+              <thead><tr><th>用户</th><th>类型</th><th>创建时间</th><th>操作</th></tr></thead>
               <tbody>
                 {users.map((user) => (
                   <tr key={user.id}>
                     <td>
-                      <input
-                        className="input"
-                        value={names[user.id] ?? user.name}
-                        onChange={(event) => setNames({ ...names, [user.id]: event.target.value })}
-                        onBlur={() => handleNameBlur(user.id)}
-                        placeholder="用户名称"
-                      />
-                      {user.username && <div className="muted">@{user.username}</div>}
+                      <div className="user-name-cell">
+                        <input
+                          className="input"
+                          value={names[user.id] ?? user.name}
+                          onChange={(event) => setNames({ ...names, [user.id]: event.target.value })}
+                          onBlur={() => handleNameBlur(user.id)}
+                          placeholder="用户名称"
+                        />
+                        {user.username && <span className="muted">@{user.username}</span>}
+                      </div>
                     </td>
                     <td>{user.is_admin ? '管理员' : '普通用户'}</td>
                     <td>{user.created_at.slice(0, 10)}</td>
                     <td>
-                      <button className="btn-outline small" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
-                    </td>
-                    <td>
-                      {!user.is_admin && <button className="btn-danger small" onClick={() => removeUser(user.id)}>删除</button>}
+                      <div className="row-actions">
+                        <button className="card-btn card-btn-outline" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
+                        {!user.is_admin && <button className="card-btn card-btn-danger" onClick={() => removeUser(user.id)}>删除</button>}
+                      </div>
                     </td>
                   </tr>
                 ))}

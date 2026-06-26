@@ -176,6 +176,18 @@ export const useStore = create<StoreState>((set, get) => ({
       set({ toast: { icon: '!', message: '用户名或密码错误' } });
       return false;
     }
+    // 2026-06-21: 管理员账号禁止走普通用户登录入口。根因——loginUser只
+    // 调用switchUser加载该用户自己的足迹数据，不会像loginAdmin那样额外
+    // getUsers()拉取用户列表，导致管理员从这条入口登录后能进系统、但
+    // 用户管理/数据管理里的数据全是空的(并非请求失败，是从未发起请求)。
+    // 用户明确要求限制登录方式而非自动补数据，因此这里直接拒绝并
+    // 提示改用管理员入口，同时clearToken()清掉verifyUser内部刚设置的
+    // token，避免出现前端拒绝登录但token已写入本地的不一致状态。
+    if (user.is_admin) {
+      clearToken();
+      set({ toast: { icon: '!', message: '管理员账号请使用管理员登录入口' } });
+      return false;
+    }
     await get().switchUser(user);
     set({ toast: { icon: '✓', message: '已登录' } });
     return true;
