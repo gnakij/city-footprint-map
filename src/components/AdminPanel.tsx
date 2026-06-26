@@ -5,6 +5,8 @@ import { adminExportVisits, adminImportVisits, createUser, getUsers } from '../a
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import FuzzySelect from './ui/FuzzySelect';
+import Table from './Table';
+import ImportPreviewTable from './ImportPreviewTable';
 import Icon from './Icon';
 import type { ImportVisitRow } from '../types';
 import type { AdminVisitExportRow } from '../api';
@@ -25,6 +27,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
+  { date: '2026-06-27', items: ['【重大】新增项目唯一的标准表格组件Table.tsx(src/components/，本地实现，不放进软链接到shared-ui-components共享库的src/components/ui/——重度绑定.data-table等项目专属CSS和Icon组件，不是行为通用的共享组件)。列配置驱动(参照MUI/PrimeReact/TanStack Table思路，但当前规模不需要排序/筛选/虚拟滚动，未引入任何表格库依赖)，封装表格结构、空状态(colSpan自动按列数算)、行级条件样式(rowClassName)、三种滚动模式：none(不限高，配合外部分页器)/fixed+maxHeight(固定像素高度滚动，如导入预览类小表)/fill(flex:1+min-height:0占满父级flex剩余空间，用于父容器高度本身是flex动态分配的场景，如用户管理表)。', '同步抽出ImportPreviewTable.tsx，合并AdminPanel(数据管理)和UserProfile(访问记录)两处此前几乎一字不差重复的导入预览表实现为一份，按error值(\'城市已存在\'/\'文件内重复\')统一判定警告/错误样式，不改变两边各自独立的导入校验逻辑(AdminPanel批量导入特有的\'文件内重复\'判定UserProfile从不会产生，该值在共享渲染规则里只是恒为false，不影响展示)。', '迁移全部5处表格(用户管理/数据管理总账表/数据管理导入预览/访问记录/访问记录导入预览)到新组件，删除从未被引用的死代码ScrollableTable.tsx。', '顺手修复CSS已知坑：.data-table的border-collapse从collapse改为separate(+border-spacing:0)——社区已知sticky表头在collapse模式下部分浏览器存在边框渲染异常的问题，跟本项目之前放弃修复的\'滚动条压表头\'是不同性质的问题，顺手处理。新增.is-row-warning/.is-row-error两个class替代原来两处导入预览表内联style硬编码color-mix颜色的写法。', '访问记录tab(UserProfile.tsx)三项调整：①表格补scroll="fixed"+maxHeight=320，此前该表没有任何独立滚动限制，只能靠整个.modal-xl弹窗在90vh触发滚动，表头sticky没有意义；②操作列\'编辑/删除\'从.btn-outline/.btn-danger改为.btn-tertiary/.btn-tertiary-danger，并将容器class从该表独有的.mini-actions(连带其专属尺寸覆盖规则一并删除)改为跟AdminPanel用户管理表统一的.row-actions，对齐\'表格行内并列操作用低强调样式\'规范；③调整布局顺序：操作按钮(添加访问/导入数据/导出数据/下载模板/清空所有数据/统计)及其触发的导入预览/添加表单面板移到表格上方，表格本身移到最下面，对齐AdminPanel数据管理tab\'操作按钮→条件面板→表格→分页器\'的既有顺序；表格补mt-12防止与上方按钮行贴在一起。'] },
   { date: '2026-06-26', items: ['【重大】全项目按钮风格审计第一阶段：发现用户管理模块(AdminPanel.tsx)内部自建了一套平行于全局.btn-primary/.btn-outline/.btn-danger、互不统一的重复实现(.card-btn系/.edit-link-btn/.admin-user-card-action)。按业内成熟定乍(表格/列表行内并列多个常规操作用tertiary低强调文字样式，保存/取消这类确认动作仍保持primary/outline同样显眼程度)，全部收敛进本体系：新增.btn-tertiary(次要文字色)/.btn-tertiary-danger(error色但不加投影背景)/.btn-primary.compact、.btn-outline.compact(方角小尺寸)。颜色全部复用标准变量(--color-on-surface-variant/--color-error)，不引入任何color-mix混合出的派生值。已覆盖PC表格+移动端卡片全部入口。仍待处理：个人信息弹窗/访问记录表格/数据管理等模块仍未纳入，将另安排推进。', '表格样式三处修复：¹单元格文字vertical-align从 top 改为 middle(以前为适配换行内容设的top，现各列内容高度基本一致，top对齐反而偏上)；²修复数据行比表头明显高的问题，根因是按钮36px高度+<td>本身10pxpadding叠加，不缩小按钮(符合WCAG/Material触摸目标最小尺寸)，改为仅针对包含.row-actions的单元格单独收紧padding(用:has()选择器定位，2026年已全部主流浏览器支持）；³发现“新增用户”靠左、“查询/导出”等数据管理按钮组靠右的不一致，根因是.actions这个通用class默认justify-content为flex-end。按业内共识(默认靠左、靠右只是少数例外)确定项目规范：.actions默认改为flex-start，涉及AdminPanel/UserProfile/CityDrawer三个文件共9处。保留两个有独立设计理由的例外不动：分页器(.flex-between两端对齐)、已删除的海报预览弹窗(.flex-center居中)。', '清理未接入UI的死代码：PosterGenerator.tsx组件从未被任何地方import/触发(没有按钮能打开它，其依赖的posterOpen状态从未被设为true)，是个从未上线过的半成品。已删除该组件文件，并同步清理store(useStore.ts)里 posterOpen/setPosterOpen 相关定义、CSS里.poster-preview样式。用户确认这是死代码后才删除，不是喇默判断。'] },
   { date: '2026-06-26', items: ['【重大修复】用户管理移动端列表完全消失问题，是上一轮修复PC端断点失效问题时引入的回归。根因：上一轮把默认态的.mobile-only改为了display:none!important，但!important这个优先级在移动端断点内依然全局生效(它不在任何@media限制范围内)，而移动端断点内只写了隐藏desktop-only、没有任何规则去解除mobile-only这个!important，导致移动端下.admin-user-cards{display:grid}永远被!important压住、用户列表一直是隐藏状态(上一次以为"交还给业务class自决定"是可行的，但!important是全局生效、不跟视口宽度区分，这个假设本身不成立)。修复：不再依赖跨class自动回退，改为按每个实际用途分别明确补出该class本身需要的display值（.admin-user-cards.mobile-only补grid!important，.mb-16.mobile-only补block!important）。已由用户真机确认修复生效。'] },
   { date: '2026-06-26', items: ['用户管理PC端表头固定（sticky）一度仍未生效的问题继续补完：上一轮修复(补上.admin-tab-viewport的display:flex)后，.users-table-wrap高度能被正确压缩到父级分配的实际空间、不再被外层抢滚动权，但当时未由用户在真机上最终确认sticky是否真正生效。本轮经用户真机滚动验证确认、表头sticky现已真正固定生效。同时针对用户反馈“表头被浏览器默认滚动条压住”问题，先用.table-wrap::-webkit-scrollbar系列重制了表格区域的滚动条，改用项目CSS变量调色、宽度从浏览器默认细化到6px，五个主题下都能跟调性一致。滚动条“压住表头”这个更深层的视觉问题本轮尝试了两种方案(table本体padding+负 margin拉回；::-webkit-scrollbar-track 加margin-top)均未能真正解决（前者会干扰sticky计算、后者实测滚动条位置未变化），已按用户要求撤回这两次尝试、补上代码注释记录，暂抬后。后续若要彻底解决，需要把表头从<table>结构中拆出来单独做一层。'] },
@@ -593,62 +596,71 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
              不再让同一组对用户的操作分散在两个不相邻的列里；③.users-table-wrap
              固定高度+内部滚动，配合.data-table th的sticky，让表头无论数据
              量多少都保持可见，不依赖用户数将来是否增长到产生滚动的程度。 */}
-          <div className="table-wrap users-table-wrap desktop-only">
-            <table className="data-table">
-              <thead><tr><th>用户</th><th>类型</th><th>创建时间</th><th>操作</th></tr></thead>
-              <tbody>
-                {users.map((user) => {
+          {/* 2026-06-27: 改用通用Table组件(scroll="fill")替代手写
+             table结构。父级.admin-tab-viewport是flex容器，本表格需要
+             占满它分配的剩余空间而不是用孤立的固定像素值——这正是
+             Table组件scroll='fill'模式存在的原因，机制跟之前手写的
+             .users-table-wrap完全一致，只是改名为通用的.table-wrap--fill。 */}
+          <Table
+            wrapClassName="desktop-only"
+            scroll="fill"
+            rowKey={(user) => user.id}
+            data={users}
+            columns={[
+              {
+                key: 'name',
+                header: '用户',
+                render: (user) => {
+                  const isEditing = editingNameId === user.id;
+                  /* 2026-06-26: 用户名从内联输入框改为按钮式"修改→保存/
+                     取消"，跟移动端卡片的交互完全一致（不依赖PC端才有的
+                     "失焦自动保存"隐含习惯），复用同一套editingNameId/
+                     handleNameSave/handleNameCancel状态和逻辑，不另写
+                     一套。非编辑态显示用户名+@username；编辑态显示输入框，
+                     保存/取消按钮挪到"操作"列跟重置密码/删除放在一起。 */
+                  return isEditing ? (
+                    <input
+                      className="input"
+                      value={names[user.id] ?? user.name}
+                      onChange={(event) => setNames({ ...names, [user.id]: event.target.value })}
+                      placeholder="用户名称"
+                      autoFocus
+                    />
+                  ) : (
+                    <div className="user-name-cell">
+                      <span>{names[user.id] ?? user.name}</span>
+                      {user.username && <span className="muted">@{user.username}</span>}
+                    </div>
+                  );
+                },
+              },
+              { key: 'type', header: '类型', render: (user) => (user.is_admin ? '管理员' : '普通用户') },
+              { key: 'created', header: '创建时间', render: (user) => user.created_at.slice(0, 10) },
+              {
+                key: 'actions',
+                header: '操作',
+                render: (user) => {
                   const isEditing = editingNameId === user.id;
                   return (
-                  <tr key={user.id}>
-                    <td>
-                      {/* 2026-06-26: 用户名从内联输入框改为按钮式"修改→
-                         保存/取消"，跟移动端卡片的交互完全一致（不依赖
-                         PC端才有的"失焦自动保存"隐含习惯），复用同一套
-                         editingNameId/handleNameSave/handleNameCancel
-                         状态和逻辑，不另写一套。非编辑态显示用户名+
-                         @username+"修改"链接；编辑态显示输入框，保存/
-                         取消按钮挪到"操作"列跟重置密码/删除放在一起，
-                         三个操作统一在同一处，不再分散在两列。 */}
+                    <div className="row-actions">
                       {isEditing ? (
-                        <input
-                          className="input"
-                          value={names[user.id] ?? user.name}
-                          onChange={(event) => setNames({ ...names, [user.id]: event.target.value })}
-                          placeholder="用户名称"
-                          autoFocus
-                        />
+                        <>
+                          <button className="btn-primary compact" onClick={() => handleNameSave(user.id)}>保存</button>
+                          <button className="btn-outline compact" onClick={() => handleNameCancel(user.id, user.name)}>取消</button>
+                        </>
                       ) : (
-                        <div className="user-name-cell">
-                          <span>{names[user.id] ?? user.name}</span>
-                          {user.username && <span className="muted">@{user.username}</span>}
-                        </div>
+                        <>
+                          <button className="btn-tertiary" onClick={() => setEditingNameId(user.id)}>修改昵称</button>
+                          <button className="btn-tertiary" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
+                          {!user.is_admin && <button className="btn-tertiary-danger" onClick={() => removeUser(user.id)}>删除</button>}
+                        </>
                       )}
-                    </td>
-                    <td>{user.is_admin ? '管理员' : '普通用户'}</td>
-                    <td>{user.created_at.slice(0, 10)}</td>
-                    <td>
-                      <div className="row-actions">
-                        {isEditing ? (
-                          <>
-                            <button className="btn-primary compact" onClick={() => handleNameSave(user.id)}>保存</button>
-                            <button className="btn-outline compact" onClick={() => handleNameCancel(user.id, user.name)}>取消</button>
-                          </>
-                        ) : (
-                          <>
-                            <button className="btn-tertiary" onClick={() => setEditingNameId(user.id)}>修改昵称</button>
-                            <button className="btn-tertiary" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
-                            {!user.is_admin && <button className="btn-tertiary-danger" onClick={() => removeUser(user.id)}>删除</button>}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                    </div>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
+                },
+              },
+            ]}
+          />
 
           <div className="admin-user-cards mobile-only">
             {users.map((user) => {
@@ -836,26 +848,10 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                   ✅ 有效 {importPreview.filter((row) => !row.error).length} 行 / ⚠️ 跳过 {importPreview.filter((row) => row.error === '城市已存在' || row.error === '文件内重复').length} 行 / ❌ 错误 {importPreview.filter((row) => row.error && row.error !== '城市已存在' && row.error !== '文件内重复').length} 行
                 </span>
               </div>
-              <div className="table-wrap compact">
-                <table className="data-table">
-                  <thead><tr><th>省份</th><th>城市</th><th>天数</th><th>最后停留</th><th>备注</th><th>状态</th></tr></thead>
-                  <tbody>
-                    {importPreview.map((row, index) => {
-                      const isDuplicate = row.error === '城市已存在' || row.error === '文件内重复';
-                      return (
-                        <tr key={`${row.city}-${index}`} style={isDuplicate ? { background: 'color-mix(in srgb, #f59e0b 12%, transparent)' } : row.error ? { background: 'color-mix(in srgb, var(--color-error) 10%, transparent)' } : undefined}>
-                          <td>{row.province || '-'}</td>
-                          <td>{row.city || '-'}</td>
-                          <td>{Number.isFinite(row.duration_days) ? row.duration_days : '-'}</td>
-                          <td>{row.last_stay_date || '-'}</td>
-                          <td>{row.notes || '-'}</td>
-                          <td className={row.error && !isDuplicate ? 'danger-text' : ''}>{row.error ?? '✓ 可导入'}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              {/* 2026-06-27: 改用通用ImportPreviewTable组件，跟UserProfile.tsx
+                 的访问记录导入预览共用同一份实现，不再各自维护一份几乎
+                 一字不差的表格代码。 */}
+              <ImportPreviewTable rows={importPreview} />
               <div className="actions mt-12">
                 <button className="btn-primary" disabled={importPreview.every((row) => row.error)} onClick={() => void confirmAdminImport()}>确认导入</button>
                 <button className="btn-outline" onClick={() => setImportPreview([])}>取消</button>
@@ -863,30 +859,28 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             </div>
           )}
 
-          <div className="table-wrap">
-            <table className="data-table" style={{ tableLayout: 'fixed', width: '100%' }}>
-              <thead><tr><th style={{ width: '12%' }}>用户名</th><th style={{ width: '10%' }}>昵称</th><th style={{ width: '10%' }}>省份</th><th style={{ width: '12%' }}>城市</th><th style={{ width: '8%' }}>停留天数</th><th style={{ width: '13%' }}>最后停留</th><th style={{ width: '20%' }}>备注</th><th style={{ width: '15%' }}>更新时间</th></tr></thead>
-              <tbody>
-                {ledgerVisits.length === 0 ? (
-                  <tr><td colSpan={8} className="muted text-center p-32">暂无访问记录</td></tr>
-                ) : pagedVisits.map((visit) => {
-                  const city = cityById.get(visit.city_id);
-                  return (
-                    <tr key={`${visit.user_id}-${visit.id}`}>
-                      <td>{visit.username || visit.name}</td>
-                      <td>{visit.name}</td>
-                      <td>{city?.province ?? '-'}</td>
-                      <td>{city?.city_name ?? visit.city_id}</td>
-                      <td>{visit.duration_days}</td>
-                      <td>{visit.last_stay_date}</td>
-                      <td>{visit.notes || '-'}</td>
-                      <td>{visit.updated_at.slice(0, 10)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {/* 2026-06-27: 改用通用Table组件，scroll保持'none'(沿用原状态，
+             配合下方分页器，不在这次抽象里顺手新增sticky表头——那是另一条
+             独立待办，等PC端断点问题排查完后再处理，不在这次混着做)。
+             data传pagedVisits而不是ledgerVisits：分页后的当页数据本来就是
+             实际渲染的内容，空状态判断在常规场景下跟原来对ledgerVisits判空
+             是等价的。 */}
+          <Table
+            tableStyle={{ tableLayout: 'fixed', width: '100%' }}
+            emptyText="暂无访问记录"
+            data={pagedVisits}
+            rowKey={(visit) => `${visit.user_id}-${visit.id}`}
+            columns={[
+              { key: 'username', header: '用户名', headerStyle: { width: '12%' }, render: (visit) => visit.username || visit.name },
+              { key: 'name', header: '昵称', headerStyle: { width: '10%' }, render: (visit) => visit.name },
+              { key: 'province', header: '省份', headerStyle: { width: '10%' }, render: (visit) => cityById.get(visit.city_id)?.province ?? '-' },
+              { key: 'city', header: '城市', headerStyle: { width: '12%' }, render: (visit) => cityById.get(visit.city_id)?.city_name ?? visit.city_id },
+              { key: 'duration', header: '停留天数', headerStyle: { width: '8%' }, render: (visit) => visit.duration_days },
+              { key: 'lastStay', header: '最后停留', headerStyle: { width: '13%' }, render: (visit) => visit.last_stay_date },
+              { key: 'notes', header: '备注', headerStyle: { width: '20%' }, render: (visit) => visit.notes || '-' },
+              { key: 'updated', header: '更新时间', headerStyle: { width: '15%' }, render: (visit) => visit.updated_at.slice(0, 10) },
+            ]}
+          />
 
           {ledgerVisits.length > 0 && (
             <div className="actions flex-between flex-wrap mt-8">

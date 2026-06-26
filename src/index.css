@@ -484,8 +484,9 @@ button { cursor: pointer; }
 .row-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .small { min-height: var(--size-btn-small); padding: 0 var(--space-2-5); font-size: var(--font-xs); }
 .btn-outline.small, .btn-danger.small { min-height: var(--size-btn-small); padding: 0 var(--space-2-5); font-size: var(--font-xs); white-space: nowrap; }
-.mini-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-.mini-actions .btn-outline, .mini-actions .btn-danger { min-height: var(--size-btn-small); padding: 0 var(--space-2-5); font-size: var(--font-xs); white-space: nowrap; }
+/* 2026-06-27: .mini-actions两条规则已删除——这是UserProfile.tsx访问记录表
+   操作列原来独有的写法，唯一引用处已改用.row-actions(复用AdminPanel用户
+   管理表统一过的同一套规则)，删除后没有任何元素再用这个class了。 */
 .stats-panel { --stats-panel-pad-x: var(--space-3-5); --stats-panel-pad-y: var(--space-3-5); position: fixed; right: var(--space-4-5); bottom: var(--space-4-5); z-index: var(--z-map-controls); width: 280px; padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x); max-height: min(640px, calc(100vh - var(--topbar-height) - var(--space-9))); overflow: auto; }
 .stats-panel { cursor: default; }
 .stats-panel > .panel-title { position: sticky; top: calc(-1 * var(--stats-panel-pad-y)); margin: calc(-1 * var(--stats-panel-pad-y)) calc(-1 * var(--stats-panel-pad-x)) var(--space-2); padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x) var(--space-2); background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface)); z-index: 1; }
@@ -837,10 +838,12 @@ button { cursor: pointer; }
    抢同一段内容的滚动权（之前踩坑的场景是内外层试图滚动同一片内容）。 */
 
 /* 2026-06-26修正(真机反馈sticky表头滚动时仍消失): 原写法给了一个孤立的max-height:420px，没考虑.users-table-wrap实际能从.admin-tab-viewport(flex:1，剩余空间随modal-head/数字卡片/按钮区高度变化而动态变化，实测远小于420px)分到多少空间——分到的空间小于420px时，.users-table-wrap还没撑到上限就被外层挤满，滚动条先出现在外层.admin-tab-viewport上，而sticky表头只认.users-table-wrap为滚动祖先，外层滚动时表格跟着一起跑，表现为“表头没固定”。改为flex:1占满父级分给的全部空间，不再孤立设一个可能对不上的固定数值，确保滚动只发生在.users-table-wrap内部、不会被外层抢走。 */
-.table-wrap.users-table-wrap { flex: 1; min-height: 0; overflow-y: auto; }
+/* 2026-06-27: 原名.users-table-wrap，绑定了"用户管理"这一具体场景的命名。抽出通用Table组件(scroll='fill'模式)时改为语义化的通用名，机制不变：flex:1占满父级flex容器分给的剩余空间，不依赖猜测的固定像素值——这是之前"sticky表头一度失效"问题的真正修复方式，父容器必须是display:flex且自身有明确高度来源这一前提，不因改名而改变。 */
+.table-wrap--fill { flex: 1; min-height: 0; overflow-y: auto; }
 /* 2026-06-26: 滚动条轨道从容器顶部0px开始画，看上去像压在了sticky表头上面(用户反馈)，是已知未解决的视觉问题。曾尝试： 1) padding-top+负 margin把<table>本体拉回原位——真机实测sticky失效，已放弃； 2) ::-webkit-scrollbar-track margin-top:40px——真机实测表头仍保持固定，但滚动条偏移未生效(实际未看到轨道位置变化)，已撤回。用户决定暂时不再投入这个问题(下一步可能需要拆表头DOM结构、脱离<table>才能彻底避开，改动范围较大)。 */
 .table-wrap { width: 100%; overflow: auto; }
-.data-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+/* 2026-06-27: border-collapse从ollapse改为separate，是社区已知坑(TanStack table issue#4471等)——position:sticky的th在collapse模式下，部分浏览器存在sticky定位与边框渲染路径冲突的已知问题。这不是修复最早那个"滚动条压表头"的视觉问题(那是滚动条轨道画法导致的完全不同问题)，是顺手修复的一个更底层的潜在隐患。border-spacing:0是separate模式下需要显式补齐的，防止默认产生单元格间隙。 */
+.data-table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 720px; }
 /* 2026-06-26: vertical-align原value为top(是以前“用户名+@username”换行撑高单元格时的适配写法，让单/多行内容在顶部对齐不错位)。现在“用户名+@id”已同行展示、“操作”列也是单行按钮，各列内容高度基本一致，top对齐反而让文字看起来偏上。改为middle。 */
 .data-table th, .data-table td { border-bottom: var(--space-xs) solid var(--color-outline-variant); padding: var(--space-2-5); text-align: left; vertical-align: middle; font-size: var(--font-base); }
 .data-table th { color: var(--color-on-surface-variant); font-size: var(--font-sm); font-weight: 700; }
@@ -878,6 +881,9 @@ button { cursor: pointer; }
 .table-wrap::-webkit-scrollbar-thumb:hover { background: var(--color-primary-container); }
 .table-wrap { scrollbar-width: thin; scrollbar-color: var(--color-outline-variant) transparent; }
 .table-wrap.compact { max-height: 220px; }
+/* 2026-06-27: 原来两处导入预览表(AdminPanel/UserProfile)各自用内联style硬编码color-mix来标记重复/错误行，抽成ImportPreviewTable组件时改用class，不在TSX里散落硬编码颜色值。 */
+.data-table tr.is-row-warning { background: color-mix(in srgb, #f59e0b 12%, transparent); }
+.data-table tr.is-row-error { background: color-mix(in srgb, var(--color-error) 10%, transparent); }
 /* sticky表头背景需要完全不透明（不能是带tint的混色变量），否则滚动时
    下方内容的文字会透过表头隐约可见，sticky的视觉效果大打折扣。 */
 .data-table th { position: sticky; top: 0; background: var(--color-surface-container-low); z-index: 1; }

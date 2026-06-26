@@ -2,6 +2,8 @@ import { ChangeEvent, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import DateInput from './ui/DateInput';
 import FuzzySelect from './ui/FuzzySelect';
+import Table from './Table';
+import ImportPreviewTable from './ImportPreviewTable';
 import DrillDownStats from './DrillDownStats';
 import Icon from './Icon';
 
@@ -308,30 +310,10 @@ export default function UserProfile() {
 
         {tab === 'visits' && !showStats && (
           <>
-            {/* 访问记录列表 */}
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead><tr><th>省份</th><th>城市</th><th>天数</th><th>最后停留</th><th>备注</th><th>操作</th></tr></thead>
-                <tbody>
-                  {rows.length === 0 ? (
-                    <tr><td colSpan={6} className="muted text-center p-32">暂无访问记录</td></tr>
-                  ) : rows.map(({ visit, city, days }) => (
-                    <tr key={visit.id}>
-                      <td>{city?.province ?? '-'}</td>
-                      <td>{city?.city_name ?? visit.city_id}</td>
-                      <td><strong>{days}</strong> 天</td>
-                      <td>{visit.last_stay_date}</td>
-                      <td>{visit.notes || '-'}</td>
-                      <td className="mini-actions">
-                        <button className="btn-outline" onClick={() => startEdit(visit)}>编辑</button>
-                        <button className="btn-danger" onClick={() => void deleteVisit(visit.id)}>删除</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
+            {/* 2026-06-27: 调整顺序——操作按钮(及由按钮触发的导入预览/添加表单
+               面板)放到表格上方，表格本身放最下面，跟AdminPanel数据管理tab的
+               "筛选/操作按钮→条件面板→表格→分页器"结构保持一致。原来是表格在
+               最上面、按钮在下面，跟项目里已经确立的这套约定不一致。 */}
             {/* 操作按钮行 */}
             <div className="actions mt-12">
               <button className="btn-primary" onClick={() => setShowForm(true)}><Icon name="plus" /> 添加访问</button>
@@ -350,26 +332,9 @@ export default function UserProfile() {
                     <Icon name="check" /> 有效 {preview.filter((row) => !row.error).length} 行 / <Icon name="warning" /> 跳过 {preview.filter((row) => row.error === '城市已存在').length} 行 / <Icon name="error" /> 错误 {preview.filter((row) => row.error && row.error !== '城市已存在').length} 行
                   </span>
                 </div>
-                <div className="table-wrap compact">
-                  <table className="data-table">
-                    <thead><tr><th>省份</th><th>城市</th><th>天数</th><th>最后停留</th><th>备注</th><th>状态</th></tr></thead>
-                    <tbody>
-                      {preview.map((row, index) => {
-                        const isDuplicate = row.error === '城市已存在';
-                        return (
-                          <tr key={`${row.city}-${index}`} style={isDuplicate ? { background: 'color-mix(in srgb, #f59e0b 12%, transparent)' } : row.error ? { background: 'color-mix(in srgb, var(--color-error) 10%, transparent)' } : undefined}>
-                            <td>{row.province || '-'}</td>
-                            <td>{row.city || '-'}</td>
-                            <td>{Number.isFinite(row.duration_days) ? row.duration_days : '-'}</td>
-                            <td>{row.last_stay_date || '-'}</td>
-                            <td>{row.notes || '-'}</td>
-                            <td className={row.error && !isDuplicate ? 'danger-text' : ''}>{row.error ?? <><Icon name="check" /> 可导入</>}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                {/* 2026-06-27: 改用通用ImportPreviewTable组件，跟AdminPanel.tsx
+                   的数据管理导入预览共用同一份实现。 */}
+                <ImportPreviewTable rows={preview} />
                 <div className="actions mt-12">
                   <button className="btn-primary" disabled={preview.every((row) => row.error)} onClick={() => void confirmImport()}>确认导入</button>
                   <button className="btn-outline" onClick={() => setPreview([])}>取消</button>
@@ -432,6 +397,54 @@ export default function UserProfile() {
                 </div>
               </div>
             )}
+
+            {/* 访问记录列表 */}
+            {/* 2026-06-27: 改用通用Table组件替代手写table结构。新增scroll="fixed"
+               +maxHeight：之前这张表没有任何独立的滚动限制，数据多时只能靠整个
+               .modal-xl弹窗本身在90vh处触发滚动(.modal的max-height+overflow:auto)，
+               表格区域永远不会单独滚动、表头也就没有sticky的意义。这里给表格本身
+               一个独立的固定高度滚动区域，配合.data-table th的全局sticky规则，
+               让表头在列表内部滚动时保持可见。操作列按钮从.btn-outline/.btn-danger
+               改为.btn-tertiary/.btn-tertiary-danger，跟AdminPanel用户管理表格已经
+               统一过的"表格行内并列操作用低强调样式"规范保持一致——这两个表格的
+               操作列定位完全相同(行内常规操作+危险操作并列)，没有理由用不同样式。 */}
+            {/* 2026-06-27: 调整顺序后，表格变成排在按钮行(或导入预览/添加表单
+               面板)下方，原来按钮自己的mt-12只解决了"按钮跟它上面的元素"的间距，
+               表格本身跟它上面的元素之间没有间距来源，紧贴在一起。这里给表格
+               补一个mt-12，跟按钮行原来用的间距值保持一致。 */}
+            <Table
+              wrapClassName="mt-12"
+              emptyText="暂无访问记录"
+              data={rows}
+              rowKey={(row) => row.visit.id}
+              scroll="fixed"
+              maxHeight={320}
+              columns={[
+                { key: 'province', header: '省份', render: (row) => row.city?.province ?? '-' },
+                { key: 'city', header: '城市', render: (row) => row.city?.city_name ?? row.visit.city_id },
+                { key: 'days', header: '天数', render: (row) => <><strong>{row.days}</strong> 天</> },
+                { key: 'lastStay', header: '最后停留', render: (row) => row.visit.last_stay_date },
+                { key: 'notes', header: '备注', render: (row) => row.visit.notes || '-' },
+                {
+                  key: 'actions',
+                  header: '操作',
+                  // 2026-06-27: 改用row-actions而不是.mini-actions——
+                  // .mini-actions是这张表独有的旧写法，专门给.btn-outline/
+                  // .btn-danger做了缩小处理，跟AdminPanel用户管理表统一过的
+                  // 做法不是同一套(那边是默认尺寸的.btn-tertiary+收紧单元格
+                  // padding，不缩小按钮本身)。这张表的操作列定位跟那边完全
+                  // 一样，改用同一个.row-actions class，直接复用已有的全局
+                  // .data-table .row-actions/td:has(.row-actions)规则。
+                  cellClassName: 'row-actions',
+                  render: (row) => (
+                    <>
+                      <button className="btn-tertiary" onClick={() => startEdit(row.visit)}>编辑</button>
+                      <button className="btn-tertiary-danger" onClick={() => void deleteVisit(row.visit.id)}>删除</button>
+                    </>
+                  ),
+                },
+              ]}
+            />
 
             <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={onFile} />
           </>
