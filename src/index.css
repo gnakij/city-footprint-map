@@ -1188,12 +1188,20 @@ button { cursor: pointer; }
      不会太挤，字号不变(--font-xl的20px在三栏布局下完全够用)。 */
   .admin-stats .stat { padding: var(--space-2) var(--space-1-5); }
   /* 桌面/移动端结构切换：767px以下隐藏桌面表格、显示移动端卡片列表。 */
-  /* 同理：移动端断点内.desktop-only需要隐藏，none!important绝对安全。
-     .mobile-only在移动端要显示，但不能统一写block!important，因为
-     .admin-user-cards需要的是grid——这里不再赋值，交还给业务class
-     自己的display(grid/block等)，只要desktop-only被正确隐藏，
-     mobile-only元素自然会用回自身class定义的display值。 */
+  /* 2026-06-26补一处重大遗漏(导致移动端用户列表完全消失)：
+     上轮修复PC端断点失效问题时，把默认态(桢位时)的
+     .mobile-only改为了display:none!important，但忘记考虑这个!important在
+     移动端断点内也依然生效(它不在任何@media限制范围内，是
+     全局默认规则)，移动端断点内只写了desktop-only隐藏、没有
+     任何规则去解除mobile-only这个!important，导致移动端下
+     .admin-user-cards{display:grid}永远被!important压住、用户列表一直是隐藏
+     状态。补上两条明确的复合选择器规则，取代之前"交还给业务
+     class自决定"这个不成立的假设(!important是全局生效、不跟视口宽度
+     区分)：按每个实际用途分别明确补出该class本身需要的display值，
+     不再依赖"跨.mobile-only通用规则自动回退"这个不可靠机制。 */
   .desktop-only { display: none !important; }
+  .admin-user-cards.mobile-only { display: grid !important; }
+  .mb-16.mobile-only { display: block !important; }
   .visit-editor { grid-template-columns: 1fr; }
   .inline-form { align-items: stretch; flex-direction: column; }
   .stats-panel { --stats-panel-pad-x: var(--space-3); --stats-panel-pad-y: var(--space-2-5); left: var(--space-2); right: var(--space-2); bottom: var(--space-2); width: auto; max-height: 42vh; overflow: auto; padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x); }
