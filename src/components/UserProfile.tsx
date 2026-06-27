@@ -1,4 +1,5 @@
 import { ChangeEvent, useMemo, useRef, useState } from 'react';
+import { useScrollIntoViewOnChange } from '../hooks/useScrollIntoViewOnChange';
 import * as XLSX from 'xlsx';
 import DateInput from './ui/DateInput';
 import FuzzySelect from './ui/FuzzySelect';
@@ -67,6 +68,7 @@ export default function UserProfile() {
   const setProfileOpen = useStore((s) => s.setProfileOpen);
   const showToast = useStore((s) => s.showToast);
   const fileRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<ProfileTab>(profileTab);
   const [name, setName] = useState(currentUser?.name ?? '');
   const [newPw, setNewPw] = useState('');
@@ -108,6 +110,8 @@ export default function UserProfile() {
     setCitySearchText('');
     setCitySearchLabel(label);
   };
+
+  useScrollIntoViewOnChange(formRef, editingVisit);
 
   const startEdit = (visit: VisitRecord) => {
     setEditingVisit(visit);
@@ -268,6 +272,14 @@ export default function UserProfile() {
               <input className="input" value={currentUser.username} readOnly style={{ cursor: 'not-allowed' }} />
             </div>
 
+            {/* 2026-06-27: 重构为"区块自包含"模式——参照业内成熟做法
+               (section-level editing：每个字段是独立区块，触发按钮跟字段
+               本身绑定在一起，编辑态原地替换触发按钮，而不是另起一行/
+               另一张卡片)，对齐AdminPanel表格行内编辑(.row-actions里
+               [修改昵称/重置密码]<->[保存/取消]原地切换)的既有机制。
+               之前的问题："修改昵称"和"修改密码"被塞进一个跟字段本身
+               脱节的公共操作行，导致点击后编辑态分别出现在按钮上方(昵称)
+               和下方(密码)，方向不一致且跟触发点本身脱节。 */}
             <div className="form-row">
               <span className="label-sm">昵称</span>
               {editingName ? (
@@ -279,31 +291,43 @@ export default function UserProfile() {
                   </div>
                 </>
               ) : (
-                <input className="input" value={currentUser.name} readOnly style={{ cursor: 'default' }} />
+                <>
+                  <input className="input" value={currentUser.name} readOnly style={{ cursor: 'default' }} />
+                  <div className="actions">
+                    <button className="btn-outline" onClick={() => { setName(currentUser.name); setEditingName(true); }}>修改昵称</button>
+                  </div>
+                </>
               )}
             </div>
 
-            <div className="actions">
-              <button className="btn-primary" onClick={() => { setName(currentUser.name); setEditingName(true); }}>修改昵称</button>
-              <button className="btn-primary" onClick={() => setEditingPassword(true)}>修改密码</button>
+            <div className="form-row">
+              <span className="label-sm">密码</span>
+              {editingPassword ? (
+                <div className="card p-16">
+                  <div className="form-row">
+                    <span className="label-sm">新密码</span>
+                    <input className="input" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="至少6位" />
+                  </div>
+                  <div className="form-row">
+                    <span className="label-sm">确认密码</span>
+                    <input className="input" type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="再次输入新密码" />
+                  </div>
+                  <div className="actions">
+                    <button className="btn-primary" onClick={async () => { await changePassword(); setEditingPassword(false); }}>更新密码</button>
+                    <button className="btn-outline" onClick={() => { setNewPw(''); setConfirmPw(''); setEditingPassword(false); }}>取消</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* 密码没有"当前值"可展示(出于安全不能明文显示)，用掩码占位
+                     仅作视觉对齐，不是真实密码长度的提示 */}
+                  <input className="input" value="••••••••" readOnly style={{ cursor: 'default' }} />
+                  <div className="actions">
+                    <button className="btn-outline" onClick={() => setEditingPassword(true)}>修改密码</button>
+                  </div>
+                </>
+              )}
             </div>
-
-            {editingPassword && (
-              <div className="card p-16">
-                <div className="form-row">
-                  <span className="label-sm">新密码</span>
-                  <input className="input" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="至少6位" />
-                </div>
-                <div className="form-row">
-                  <span className="label-sm">确认密码</span>
-                  <input className="input" type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="再次输入新密码" />
-                </div>
-                <div className="actions">
-                  <button className="btn-primary" onClick={async () => { await changePassword(); setEditingPassword(false); }}>更新密码</button>
-                  <button className="btn-outline" onClick={() => { setNewPw(''); setConfirmPw(''); setEditingPassword(false); }}>取消</button>
-                </div>
-              </div>
-            )}
 
             <p className="muted">
               {currentUser.is_admin ? <><Icon name="key" /> 管理员</> : <><Icon name="user" /> 普通用户</>} · 于 {new Date(currentUser.created_at).toLocaleDateString('zh-CN')} 创建
@@ -326,7 +350,7 @@ export default function UserProfile() {
             <div className="actions">
               <button className="btn-primary" onClick={() => setShowForm(true)}><Icon name="plus" /> 添加访问</button>
               <button className="btn-outline" onClick={() => fileRef.current?.click()}><Icon name="download" /> 导入数据</button>
-              <button className="btn-primary" onClick={download}><Icon name="upload" /> 导出数据</button>
+              <button className="btn-outline" onClick={download}><Icon name="upload" /> 导出数据</button>
               <button className="btn-outline" onClick={downloadTemplate}><Icon name="download" /> 下载模板</button>
               <button className="btn-danger" onClick={confirmClear}>清空所有数据</button>
               <button className="btn-outline" onClick={() => setShowStats(true)} style={{ marginLeft: 'auto' }}><Icon name="chart" /> 统计</button>
@@ -352,10 +376,11 @@ export default function UserProfile() {
 
             {/* 添加/编辑表单 */}
             {showForm && (
-              <div className="card p-16">
+              <div className="card p-16" ref={formRef}>
                 <div className="form-row">
                   <span className="label-sm">搜索并选择城市</span>
                   <FuzzySelect
+                    className="input"
                     options={CITY_IDS}
                     optionLabels={CITY_LABELS}
                     searchKeys={CITY_PINYINS}

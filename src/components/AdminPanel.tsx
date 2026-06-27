@@ -27,6 +27,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
+  { date: '2026-06-27', items: ['【重大】构件层②按钮全项目铺开第一批：UserProfile个人信息tab"修改昵称/修改密码"、访问记录tab"导出数据"原来误判为主操作(.btn-primary)——一组并列操作里只有"创建新内容/确认提交"性质的动作才该是主操作，其余辅助性操作(导入/导出/下载/统计/常态编辑入口)统一降级为.btn-outline，跟AdminPanel数据管理tab"查询=primary，导出/导入/下载模板=outline"的既有判断对齐，不是颜色token问题，是场景分类问题。', '【重大】UserProfile个人信息tab"昵称/密码"区块重构：参照业内成熟做法(section-level editing)——每个字段应是独立自包含区块，触发按钮跟字段本身绑定，编辑态原地替换触发按钮，不是另起一行/另一张卡片。修复前的问题：两个字段的触发按钮被塞进一个跟字段脱节的公共操作行，导致编辑态分别出现在按钮上方(昵称)和下方(密码)，方向不一致且跟点击位置脱节。改完后对齐AdminPanel用户管理表格"修改昵称"原地切换([修改昵称/重置密码/删除]<->[保存/取消]同一容器内切换)的既有机制，密码字段用"••••••••"掩码占位展示(没有真实当前值可显示，仅做视觉对齐)。', '访问记录"编辑"体验优化：点击表格深处某一行的编辑按钮，结果表单固定渲染在表格外部上方，列表自身的独立滚动(scroll="fixed")可能让点击位置和表单位置产生距离感。新增项目首个可复用hook —— src/hooks/useScrollIntoViewOnChange.ts，监听驱动表单的状态、自动平滑滚动表单到可见区域。明确这不是Table组件的能力(Table管不到外部表单的位置)，而是跟Table配套使用的独立工具，以后任何"列表内部滚动+结果渲染在外部"的场景都可以一行接入复用。', 'shared-ui-components共享库收口两处遗留问题：①FuzzySelect.tsx默认渲染路径的className不再兜底成项目专属的\'input\'(原写法跟"共享库只管行为不管样式"原则矛盾，跟DateInput.tsx之前犯的是同一个问题)，本项目5处调用点(AdminPanel数据管理4个筛选框+UserProfile城市搜索)同步补上显式className="input"，视觉效果不变；②删除已放弃的"首字母匹配"残留死代码(getInitials函数未被调用、matchScore里两行因变量重复判断永远执行不到的判断分支)，匹配优先级文档注释同步更新。'] },
   { date: '2026-06-27', items: ['【重大】地基层design tokens收尾：表格/表单与周围元素的间距统一改用.stack(CSS grid的gap机制)而不是每个元素各自补mt-12/mb-8之类的margin。UserProfile访问记录tab：原来按钮行/添加表单卡片/Table各自手写的mt-12(三处数值恰好都等于.stack默认gap=12px)，改为外层包一层.stack统一管理，数值不变、纯粹换机制，跟\'个人信息\'tab(一直在用.stack)保持一致。AdminPanel数据管理tab：原来mb-8/mb-12/mt-8三处不同数值不是随便选的——复核后发现是有意义的区分(筛选区+按钮、表格+分页器是关系紧密的同一组，用更紧的8px；控制区跟内容区之间是独立区块，用12px)，没有强行拉平成一个数字，而是用外层.stack(12%)嵌套两个内层.stack gap-8(8px)的结构保留这层区分，复用项目里已有的.gap-8修饰符。顺手修复一个隐藏bug：原来\'导入工具\'面板和\'导入预览\'面板同时展开时完全没有间距(漏写margin)，改用父容器gap后，不论当前是哪几个条件面板同时渲染，相邻可见元素间距都会自动补全，不会再有漏的组合。'] },
   { date: '2026-06-27', items: ['【重大】主题色color-mix比例系统化梳理(地基层design tokens第一阶段)：①交互边框强调类——.stats-collapsed-pill静止边框(原34%)/聚焦outline(原38%)/.admin-user-card与.changelog-entry悬停边框(原40%)三处原是各自写的裸数字，复核发现34%/38%旁边都没有任何说明取值理由的注释，跟--topbar-tint-pct那种\'故意偏离、写明原因\'的命名变量不是一个待遇，统一提炼为--interactive-border-tint-pct(40%，已被验证过的值)，四处引用统一变量；②.mt-6/8/12/16、.mb-8/12/16/20八个间距class原来写裸像素值，数值本身跟--space-*token体系完全对应，改为引用对应变量，数值不变，纯粹收紧来源，避免以后token调整时这些class不会跟着联动。', '【重大】移除项目内完全未被使用的Tailwind依赖：排查确认整套样式系统是完全自建的(--color-*/--space-*等变量+.btn-*/.card等自定义class)，项目代码里没有任何地方用到Tailwind专属语法(颜色色阶/响应式前缀/任意值写法)。但@tailwind base/components/utilities三条指令一直在生效，JIT扫描器扫描.tsx文件里的className字符串，导致项目自己按像素直觉命名的class(如.mt-12=12px、.p-16=16px)跟Tailwind自己的步进编号命名(如mt-12=3rem、p-16=4rem)发生名字相同但数值天差地别的撞车，此前完全靠源码顺序运气才让项目自己的规则生效，没有任何保障。已移除@tailwind指令、删除tailwind.config.js、postcss.config.js去掉tailwindcss插件(保留autoprefixer)、npm uninstall tailwindcss(连带移除50个间接依赖)。构建产物CSS体积从57.74KB降到51.78KB(gzip 10.77KB→9.25KB)，证实之前确实在打包大量未使用的CSS。'] },
   { date: '2026-06-27', items: ['弹窗内表单/输入框颜色跟主题色脱节问题修复(三处)：①.input默认背景用--color-background(各主题下都接近纯白)，跟.card/.modal统一用的8%主题tint公式脱节，改为.card .input/.modal .input统一用--color-surface-container-low(已有的、每个主题下有明显色相偏移的标准色阶变量)，顺手删除UserProfile两处只读输入框上变成多余的内联background style；②.modal内嵌套.card(添加访问/修改密码/导入预览等表单卡片)原跟.modal用完全相同的8%混色公式，背景几乎融为一体看不出卡片边界，新增命名变量--modal-card-tint-pct(16%，--card-tint-pct的两倍)，写明跟--topbar-tint-pct同属\'故意偏离默认值、且写明原因\'的命名变量，不是裸数字；③--color-focus-ring(输入框聚焦光晕)原是写死在:root全局块里的rgba(0,102,255,.12)蓝色，没有放进5个主题各自的变量块，导致除冰河主题外其余4个主题点击输入框都会冒出跟主题色不搭的蓝色光晕，改用color-mix引用--color-primary，透明度保留12%，色相自动跟随当前主题。'] },
@@ -778,6 +779,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
           <div className="flex-start flex-wrap gap-8">
             <div className="col-username">
               <FuzzySelect
+                className="input"
                 options={usernameOptions}
                 searchKeys={usernamePinyinMap}
                 value={filterUsername}
@@ -788,6 +790,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             </div>
             <div className="col-username">
               <FuzzySelect
+                className="input"
                 options={nameOptions}
                 searchKeys={namePinyinMap}
                 value={filterName}
@@ -798,6 +801,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             </div>
             <div className="col-username">
               <FuzzySelect
+                className="input"
                 options={provinceOptionsList}
                 searchKeys={PROVINCE_PINYIN}
                 value={filterProvince}
@@ -808,6 +812,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
             </div>
             <div className="col-nickname">
               <FuzzySelect
+                className="input"
                 options={cityOptionsList}
                 searchKeys={cityPinyinMap}
                 value={filterCity}
