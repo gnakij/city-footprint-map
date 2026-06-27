@@ -1,6 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* 2026-06-27: 已移除@tailwind base/components/utilities三条指令。
+   排查发现项目里没有任何地方真正用到Tailwind专属语法(颜色色阶、
+   响应式前缀、任意值写法等)，整套样式系统是完全自建的(本文件里的
+   --color-系列/--space-系列/.btn-系列/.card等)。但Tailwind的JIT扫描器会扫描
+   所有.tsx文件里的className字符串，只要项目自己写的class名字(如
+   .mt-12/.p-16/.p-32，基于像素直觉命名)凑巧也是Tailwind自己的命名
+   (Tailwind用的是步进编号，12步=3rem，跟12px完全不是一个含义)，就会
+   生成两份数值天差地别的同名规则，谁生效全看CSS源码顺序，纯属运气、
+   没有任何保障。整个移除，不只是绕开冲突。 */
 
 *, body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
@@ -71,6 +77,14 @@
      同样是"故意偏离默认值、且写明原因"的命名变量)是同一种处理方式，
      不是临时拍的裸数字。 */
   --modal-card-tint-pct: 16%;
+  /* 2026-06-27: 统一"主题色边框/outline强调"用的混色比例。原来三处
+     各写了字面值(34%/38%/40%)，曾经的理由是"语义角色不同(常驻装饰边框/
+     聚焦outline/悬停强调)，不需要相同"，但复核后发现34%/38%旁边都没有
+     任何说明取值理由的注释，跟--topbar-tint-pct那种"故意偏离、写明原因"
+     的命名变量不是一个待遇，更像是当时手感调出来的数字，没有非如此不可
+     的理由。统一到40%(已被.admin-user-card/.changelog-entry验证过的值)，
+     往更明显的方向统一，不影响可读性。 */
+  --interactive-border-tint-pct: 40%;
   --shadow-color: rgba(19,27,46,1);
   --color-card-border: rgba(194,198,216,.6);
   /* 2026-06-27: 原来是写死的rgba(0,102,255,.12)蓝色，没有放进5个主题各自
@@ -533,7 +547,7 @@ button { cursor: pointer; }
   gap: var(--space-2);
   min-height: var(--size-icon);
   padding: 0 var(--space-5-5);
-  border: var(--space-xs) solid color-mix(in srgb, var(--color-primary) 34%, var(--color-outline-variant));
+  border: var(--space-xs) solid color-mix(in srgb, var(--color-primary) var(--interactive-border-tint-pct), var(--color-outline-variant));
   border-radius: var(--radius-full);
   background: color-mix(in srgb, var(--color-surface) 90%, var(--color-background));
   color: var(--color-on-surface);
@@ -551,7 +565,7 @@ button { cursor: pointer; }
   box-shadow: 0 var(--space-4) 42px color-mix(in srgb, var(--shadow-color) 20%, transparent), 0 0 0 var(--space-2) color-mix(in srgb, var(--color-primary) 14%, transparent);
 }
 .stats-collapsed-pill:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--color-primary) 38%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--color-primary) var(--interactive-border-tint-pct), transparent);
   outline-offset: 3px;
 }
 .stats-pill-icon { font-size: var(--font-lg); line-height: 1; }
@@ -727,7 +741,7 @@ button { cursor: pointer; }
 }
 .admin-user-card.is-interactive:hover,
 .admin-user-card.is-interactive:focus-within {
-  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-outline-variant));
+  border-color: color-mix(in srgb, var(--color-primary) var(--interactive-border-tint-pct), var(--color-outline-variant));
   box-shadow: var(--elevation-low);
 }
 .admin-user-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); gap: var(--space-2); }
@@ -852,7 +866,7 @@ button { cursor: pointer; }
   transition: border-color .15s ease, box-shadow .15s ease;
 }
 .changelog-entry:hover, .changelog-entry:focus-visible {
-  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-outline-variant));
+  border-color: color-mix(in srgb, var(--color-primary) var(--interactive-border-tint-pct), var(--color-outline-variant));
   box-shadow: var(--elevation-low);
 }
 .changelog-date { font-weight: 700; font-size: var(--font-base); color: var(--color-on-surface-variant); }
@@ -951,14 +965,21 @@ button { cursor: pointer; }
 .data-table td:has(.row-actions) { padding-top: var(--space-1-5); padding-bottom: var(--space-1-5); }
 
 /* 间距工具类 */
-.mt-6 { margin-top: 6px; }
-.mt-8 { margin-top: 8px; }
-.mt-12 { margin-top: 12px; }
-.mt-16 { margin-top: 16px; }
-.mb-8 { margin-bottom: 8px; }
-.mb-12 { margin-bottom: 12px; }
-.mb-16 { margin-bottom: 16px; }
-.mb-20 { margin-bottom: 20px; }
+/* 2026-06-27: 这8个class原来全部写裸像素值，但数值本身跟--space-*
+   token体系完全对应(12px=--space-3, 16px=--space-4等)，只是没有引用
+   变量——等于同一个数字有两份独立来源，以后调整token体系这些class不会
+   跟着联动。改为引用对应变量，数值不变，纯粹收紧来源。class名本身保留
+   像素数字命名(而不是改成.mt-space-3这种)，因为调用处已经大量使用
+   这套基于像素直觉的命名，重命名class名的改动成本和收益不成比例，
+   不在这次范围内。 */
+.mt-6 { margin-top: var(--space-1-5); }
+.mt-8 { margin-top: var(--space-2); }
+.mt-12 { margin-top: var(--space-3); }
+.mt-16 { margin-top: var(--space-4); }
+.mb-8 { margin-bottom: var(--space-2); }
+.mb-12 { margin-bottom: var(--space-3); }
+.mb-16 { margin-bottom: var(--space-4); }
+.mb-20 { margin-bottom: var(--space-5-5); }
 .p-16 { padding: var(--space-4); }
 .p-24 { padding: var(--space-5); }
 .p-32 { padding: var(--space-6); }
