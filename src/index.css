@@ -870,6 +870,13 @@ button { cursor: pointer; }
   box-shadow: var(--elevation-low);
 }
 .changelog-date { font-weight: 700; font-size: var(--font-base); color: var(--color-on-surface-variant); }
+/* 2026-06-27: 补上缺失的.changelog-items reset——这条class之前没有任何
+   CSS规则，一直靠Tailwind的@tailwind base全局reset(默认清空ul的list-style
+   /margin/padding)兜底，移除Tailwind依赖后这层隐藏的reset也跟着消失，
+   暴露出浏览器原生<ul>的圆点标记，跟代码里手写的"{j+1}. "文本前缀叠在一起
+   变成"圆点+数字"的双重序号。该列表本身的序号完全由文本内容提供，不需要
+   <ul>默认的视觉标记，也不需要保留浏览器默认的左侧缩进。 */
+.changelog-items { list-style: none; margin: 0; padding: 0; }
 .changelog-body { font-size: var(--font-sm); line-height: 1.6; }
 .changelog-link { color: var(--color-primary); text-decoration: none; font-weight: 600; }
 .changelog-link:hover { text-decoration: underline; }
