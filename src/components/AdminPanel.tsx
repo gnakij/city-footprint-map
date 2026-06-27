@@ -27,6 +27,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const CHANGELOG = [
+  { date: '2026-06-27', items: ['【重大】地基层design tokens收尾：表格/表单与周围元素的间距统一改用.stack(CSS grid的gap机制)而不是每个元素各自补mt-12/mb-8之类的margin。UserProfile访问记录tab：原来按钮行/添加表单卡片/Table各自手写的mt-12(三处数值恰好都等于.stack默认gap=12px)，改为外层包一层.stack统一管理，数值不变、纯粹换机制，跟\'个人信息\'tab(一直在用.stack)保持一致。AdminPanel数据管理tab：原来mb-8/mb-12/mt-8三处不同数值不是随便选的——复核后发现是有意义的区分(筛选区+按钮、表格+分页器是关系紧密的同一组，用更紧的8px；控制区跟内容区之间是独立区块，用12px)，没有强行拉平成一个数字，而是用外层.stack(12%)嵌套两个内层.stack gap-8(8px)的结构保留这层区分，复用项目里已有的.gap-8修饰符。顺手修复一个隐藏bug：原来\'导入工具\'面板和\'导入预览\'面板同时展开时完全没有间距(漏写margin)，改用父容器gap后，不论当前是哪几个条件面板同时渲染，相邻可见元素间距都会自动补全，不会再有漏的组合。'] },
   { date: '2026-06-27', items: ['【重大】主题色color-mix比例系统化梳理(地基层design tokens第一阶段)：①交互边框强调类——.stats-collapsed-pill静止边框(原34%)/聚焦outline(原38%)/.admin-user-card与.changelog-entry悬停边框(原40%)三处原是各自写的裸数字，复核发现34%/38%旁边都没有任何说明取值理由的注释，跟--topbar-tint-pct那种\'故意偏离、写明原因\'的命名变量不是一个待遇，统一提炼为--interactive-border-tint-pct(40%，已被验证过的值)，四处引用统一变量；②.mt-6/8/12/16、.mb-8/12/16/20八个间距class原来写裸像素值，数值本身跟--space-*token体系完全对应，改为引用对应变量，数值不变，纯粹收紧来源，避免以后token调整时这些class不会跟着联动。', '【重大】移除项目内完全未被使用的Tailwind依赖：排查确认整套样式系统是完全自建的(--color-*/--space-*等变量+.btn-*/.card等自定义class)，项目代码里没有任何地方用到Tailwind专属语法(颜色色阶/响应式前缀/任意值写法)。但@tailwind base/components/utilities三条指令一直在生效，JIT扫描器扫描.tsx文件里的className字符串，导致项目自己按像素直觉命名的class(如.mt-12=12px、.p-16=16px)跟Tailwind自己的步进编号命名(如mt-12=3rem、p-16=4rem)发生名字相同但数值天差地别的撞车，此前完全靠源码顺序运气才让项目自己的规则生效，没有任何保障。已移除@tailwind指令、删除tailwind.config.js、postcss.config.js去掉tailwindcss插件(保留autoprefixer)、npm uninstall tailwindcss(连带移除50个间接依赖)。构建产物CSS体积从57.74KB降到51.78KB(gzip 10.77KB→9.25KB)，证实之前确实在打包大量未使用的CSS。'] },
   { date: '2026-06-27', items: ['弹窗内表单/输入框颜色跟主题色脱节问题修复(三处)：①.input默认背景用--color-background(各主题下都接近纯白)，跟.card/.modal统一用的8%主题tint公式脱节，改为.card .input/.modal .input统一用--color-surface-container-low(已有的、每个主题下有明显色相偏移的标准色阶变量)，顺手删除UserProfile两处只读输入框上变成多余的内联background style；②.modal内嵌套.card(添加访问/修改密码/导入预览等表单卡片)原跟.modal用完全相同的8%混色公式，背景几乎融为一体看不出卡片边界，新增命名变量--modal-card-tint-pct(16%，--card-tint-pct的两倍)，写明跟--topbar-tint-pct同属\'故意偏离默认值、且写明原因\'的命名变量，不是裸数字；③--color-focus-ring(输入框聚焦光晕)原是写死在:root全局块里的rgba(0,102,255,.12)蓝色，没有放进5个主题各自的变量块，导致除冰河主题外其余4个主题点击输入框都会冒出跟主题色不搭的蓝色光晕，改用color-mix引用--color-primary，透明度保留12%，色相自动跟随当前主题。'] },
   { date: '2026-06-27', items: ['【重大】新增项目唯一的标准表格组件Table.tsx(src/components/，本地实现，不放进软链接到shared-ui-components共享库的src/components/ui/——重度绑定.data-table等项目专属CSS和Icon组件，不是行为通用的共享组件)。列配置驱动(参照MUI/PrimeReact/TanStack Table思路，但当前规模不需要排序/筛选/虚拟滚动，未引入任何表格库依赖)，封装表格结构、空状态(colSpan自动按列数算)、行级条件样式(rowClassName)、三种滚动模式：none(不限高，配合外部分页器)/fixed+maxHeight(固定像素高度滚动，如导入预览类小表)/fill(flex:1+min-height:0占满父级flex剩余空间，用于父容器高度本身是flex动态分配的场景，如用户管理表)。', '同步抽出ImportPreviewTable.tsx，合并AdminPanel(数据管理)和UserProfile(访问记录)两处此前几乎一字不差重复的导入预览表实现为一份，按error值(\'城市已存在\'/\'文件内重复\')统一判定警告/错误样式，不改变两边各自独立的导入校验逻辑(AdminPanel批量导入特有的\'文件内重复\'判定UserProfile从不会产生，该值在共享渲染规则里只是恒为false，不影响展示)。', '迁移全部5处表格(用户管理/数据管理总账表/数据管理导入预览/访问记录/访问记录导入预览)到新组件，删除从未被引用的死代码ScrollableTable.tsx。', '顺手修复CSS已知坑：.data-table的border-collapse从collapse改为separate(+border-spacing:0)——社区已知sticky表头在collapse模式下部分浏览器存在边框渲染异常的问题，跟本项目之前放弃修复的\'滚动条压表头\'是不同性质的问题，顺手处理。新增.is-row-warning/.is-row-error两个class替代原来两处导入预览表内联style硬编码color-mix颜色的写法。', '访问记录tab(UserProfile.tsx)三项调整：①表格补scroll="fixed"+maxHeight=320，此前该表没有任何独立滚动限制，只能靠整个.modal-xl弹窗在90vh触发滚动，表头sticky没有意义；②操作列\'编辑/删除\'从.btn-outline/.btn-danger改为.btn-tertiary/.btn-tertiary-danger，并将容器class从该表独有的.mini-actions(连带其专属尺寸覆盖规则一并删除)改为跟AdminPanel用户管理表统一的.row-actions，对齐\'表格行内并列操作用低强调样式\'规范；③调整布局顺序：操作按钮(添加访问/导入数据/导出数据/下载模板/清空所有数据/统计)及其触发的导入预览/添加表单面板移到表格上方，表格本身移到最下面，对齐AdminPanel数据管理tab\'操作按钮→条件面板→表格→分页器\'的既有顺序；表格补mt-12防止与上方按钮行贴在一起。'] },
@@ -763,8 +764,18 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       )}
 
       {adminTab === 'data' && (
-        <div>
-          <div className="flex-start flex-wrap gap-8 mb-8">
+        /* 2026-06-27: 外层改用.stack(默认gap=12px)统一管理顶层区块间距，
+           不再每个区块各自补mt-8/mb-8/mb-12——原来这套手动margin还有个
+           隐藏bug：如果"导入工具"面板和"导入预览"同时展开，两者之间完全
+           没有间距(漏写了)，改用父容器gap后，不管当前具体是哪几个条件
+           面板同时渲染，相邻可见元素之间的间距都会自动补全，不会再有
+           漏的组合。筛选区+按钮是关系紧密的"操作控制区"，表格+分页器是
+           关系紧密的"表格自身的一套"，这两组各自用更紧的gap-8(8px)，
+           跟外层12px做出区分——不是所有间距都拉平成一个数字，是用项目里
+           已有的.gap-8修饰符明确表达"这一组关系更紧密"。 */
+        <div className="stack">
+          <div className="stack gap-8">
+          <div className="flex-start flex-wrap gap-8">
             <div className="col-username">
               <FuzzySelect
                 options={usernameOptions}
@@ -806,21 +817,22 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
               />
             </div>
           </div>
-          <div className="actions flex-wrap mb-12">
-            <button
-              className="btn-primary"
-              onClick={() => setAppliedFilters({
-                username: filterUsername,
-                name: filterName,
-                province: filterProvince,
-                city: filterCity,
-              })}
-            >
-              <Icon name="search" /> 查询
-            </button>
-            <button className="btn-outline" onClick={downloadCurrentLedger}><Icon name="upload" /> 导出当前视图</button>
-            <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
-            <button className="btn-outline" onClick={downloadAdminTemplate}><Icon name="download" /> 下载模板</button>
+          <div className="actions flex-wrap">
+              <button
+                className="btn-primary"
+                onClick={() => setAppliedFilters({
+                  username: filterUsername,
+                  name: filterName,
+                  province: filterProvince,
+                  city: filterCity,
+                })}
+              >
+                <Icon name="search" /> 查询
+              </button>
+              <button className="btn-outline" onClick={downloadCurrentLedger}><Icon name="upload" /> 导出当前视图</button>
+              <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
+              <button className="btn-outline" onClick={downloadAdminTemplate}><Icon name="download" /> 下载模板</button>
+            </div>
           </div>
 
           {showImportTools && (
@@ -867,46 +879,48 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
              data传pagedVisits而不是ledgerVisits：分页后的当页数据本来就是
              实际渲染的内容，空状态判断在常规场景下跟原来对ledgerVisits判空
              是等价的。 */}
-          <Table
-            tableStyle={{ tableLayout: 'fixed', width: '100%' }}
-            emptyText="暂无访问记录"
-            data={pagedVisits}
-            rowKey={(visit) => `${visit.user_id}-${visit.id}`}
-            columns={[
-              { key: 'username', header: '用户名', headerStyle: { width: '12%' }, render: (visit) => visit.username || visit.name },
-              { key: 'name', header: '昵称', headerStyle: { width: '10%' }, render: (visit) => visit.name },
-              { key: 'province', header: '省份', headerStyle: { width: '10%' }, render: (visit) => cityById.get(visit.city_id)?.province ?? '-' },
-              { key: 'city', header: '城市', headerStyle: { width: '12%' }, render: (visit) => cityById.get(visit.city_id)?.city_name ?? visit.city_id },
-              { key: 'duration', header: '停留天数', headerStyle: { width: '8%' }, render: (visit) => visit.duration_days },
-              { key: 'lastStay', header: '最后停留', headerStyle: { width: '13%' }, render: (visit) => visit.last_stay_date },
-              { key: 'notes', header: '备注', headerStyle: { width: '20%' }, render: (visit) => visit.notes || '-' },
-              { key: 'updated', header: '更新时间', headerStyle: { width: '15%' }, render: (visit) => visit.updated_at.slice(0, 10) },
-            ]}
-          />
+          <div className="stack gap-8">
+            <Table
+              tableStyle={{ tableLayout: 'fixed', width: '100%' }}
+              emptyText="暂无访问记录"
+              data={pagedVisits}
+              rowKey={(visit) => `${visit.user_id}-${visit.id}`}
+              columns={[
+                { key: 'username', header: '用户名', headerStyle: { width: '12%' }, render: (visit) => visit.username || visit.name },
+                { key: 'name', header: '昵称', headerStyle: { width: '10%' }, render: (visit) => visit.name },
+                { key: 'province', header: '省份', headerStyle: { width: '10%' }, render: (visit) => cityById.get(visit.city_id)?.province ?? '-' },
+                { key: 'city', header: '城市', headerStyle: { width: '12%' }, render: (visit) => cityById.get(visit.city_id)?.city_name ?? visit.city_id },
+                { key: 'duration', header: '停留天数', headerStyle: { width: '8%' }, render: (visit) => visit.duration_days },
+                { key: 'lastStay', header: '最后停留', headerStyle: { width: '13%' }, render: (visit) => visit.last_stay_date },
+                { key: 'notes', header: '备注', headerStyle: { width: '20%' }, render: (visit) => visit.notes || '-' },
+                { key: 'updated', header: '更新时间', headerStyle: { width: '15%' }, render: (visit) => visit.updated_at.slice(0, 10) },
+              ]}
+            />
 
-          {ledgerVisits.length > 0 && (
-            <div className="actions flex-between flex-wrap mt-8">
-              <span className="muted">
-                共 {ledgerVisits.length} 条，当前第 {ledgerPage} / {totalLedgerPages} 页
-              </span>
-              <div className="actions">
-                <button
-                  className="btn-outline small"
-                  disabled={ledgerPage <= 1}
-                  onClick={() => setLedgerPage((page) => Math.max(1, page - 1))}
-                >
-                  上一页
-                </button>
-                <button
-                  className="btn-outline small"
-                  disabled={ledgerPage >= totalLedgerPages}
-                  onClick={() => setLedgerPage((page) => Math.min(totalLedgerPages, page + 1))}
-                >
-                  下一页
-                </button>
+            {ledgerVisits.length > 0 && (
+              <div className="actions flex-between flex-wrap">
+                <span className="muted">
+                  共 {ledgerVisits.length} 条，当前第 {ledgerPage} / {totalLedgerPages} 页
+                </span>
+                <div className="actions">
+                  <button
+                    className="btn-outline small"
+                    disabled={ledgerPage <= 1}
+                    onClick={() => setLedgerPage((page) => Math.max(1, page - 1))}
+                  >
+                    上一页
+                  </button>
+                  <button
+                    className="btn-outline small"
+                    disabled={ledgerPage >= totalLedgerPages}
+                    onClick={() => setLedgerPage((page) => Math.min(totalLedgerPages, page + 1))}
+                  >
+                    下一页
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 

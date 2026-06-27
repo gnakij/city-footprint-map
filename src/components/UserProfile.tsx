@@ -312,13 +312,18 @@ export default function UserProfile() {
         )}
 
         {tab === 'visits' && !showStats && (
-          <>
-            {/* 2026-06-27: 调整顺序——操作按钮(及由按钮触发的导入预览/添加表单
-               面板)放到表格上方，表格本身放最下面，跟AdminPanel数据管理tab的
-               "筛选/操作按钮→条件面板→表格→分页器"结构保持一致。原来是表格在
-               最上面、按钮在下面，跟项目里已经确立的这套约定不一致。 */}
+          /* 2026-06-27: 调整顺序——操作按钮(及由按钮触发的导入预览/添加表单
+             面板)放到表格上方，表格本身放最下面，跟AdminPanel数据管理tab的
+             "筛选/操作按钮→条件面板→表格→分页器"结构保持一致。原来是表格在
+             最上面、按钮在下面，跟项目里已经确立的这套约定不一致。
+             外层改用.stack(gap机制)而不是手动给每个子元素补mt-12——
+             这几个mt-12原来的数值正好都等于.stack的gap(--space-3=12px)，
+             改用gap后视觉效果不变，但从"每个孩子各自记得加margin"变成
+             "父容器统一管理子元素间距"，跟"个人信息"tab(同一个组件，
+             一直用.stack)保持一致，不是两套并行的间距机制。 */
+          <div className="stack">
             {/* 操作按钮行 */}
-            <div className="actions mt-12">
+            <div className="actions">
               <button className="btn-primary" onClick={() => setShowForm(true)}><Icon name="plus" /> 添加访问</button>
               <button className="btn-outline" onClick={() => fileRef.current?.click()}><Icon name="download" /> 导入数据</button>
               <button className="btn-primary" onClick={download}><Icon name="upload" /> 导出数据</button>
@@ -347,7 +352,7 @@ export default function UserProfile() {
 
             {/* 添加/编辑表单 */}
             {showForm && (
-              <div className="card mt-12 p-16">
+              <div className="card p-16">
                 <div className="form-row">
                   <span className="label-sm">搜索并选择城市</span>
                   <FuzzySelect
@@ -411,12 +416,9 @@ export default function UserProfile() {
                改为.btn-tertiary/.btn-tertiary-danger，跟AdminPanel用户管理表格已经
                统一过的"表格行内并列操作用低强调样式"规范保持一致——这两个表格的
                操作列定位完全相同(行内常规操作+危险操作并列)，没有理由用不同样式。 */}
-            {/* 2026-06-27: 调整顺序后，表格变成排在按钮行(或导入预览/添加表单
-               面板)下方，原来按钮自己的mt-12只解决了"按钮跟它上面的元素"的间距，
-               表格本身跟它上面的元素之间没有间距来源，紧贴在一起。这里给表格
-               补一个mt-12，跟按钮行原来用的间距值保持一致。 */}
+            {/* 2026-06-27: 外层改用.stack后，表格跟上方元素的间距已经由父容器
+               的gap统一处理，不再需要单独给表格补margin。 */}
             <Table
-              wrapClassName="mt-12"
               emptyText="暂无访问记录"
               data={rows}
               rowKey={(row) => row.visit.id}
@@ -450,7 +452,7 @@ export default function UserProfile() {
             />
 
             <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={onFile} />
-          </>
+          </div>
         )}
 
         {tab === 'visits' && showStats && (
