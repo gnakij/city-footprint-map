@@ -262,7 +262,10 @@ export default function UserProfile() {
           <div className="stack">
             <div className="form-row">
               <span className="label-sm">用户名（登录用）</span>
-              <input className="input" value={currentUser.username} readOnly style={{ background: 'var(--color-surface-container-low)', cursor: 'not-allowed' }} />
+              {/* 2026-06-27: background内联style已删除——.card .input现在全局
+                 统一用--color-surface-container-low，跟这里原来手动指定的值
+                 完全相同，不需要再单独覆盖一次，只保留cursor。 */}
+              <input className="input" value={currentUser.username} readOnly style={{ cursor: 'not-allowed' }} />
             </div>
 
             <div className="form-row">
@@ -276,7 +279,7 @@ export default function UserProfile() {
                   </div>
                 </>
               ) : (
-                <input className="input" value={currentUser.name} readOnly style={{ background: 'var(--color-surface-container-low)', cursor: 'default' }} />
+                <input className="input" value={currentUser.name} readOnly style={{ cursor: 'default' }} />
               )}
             </div>
 

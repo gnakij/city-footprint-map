@@ -65,9 +65,21 @@
      --color-primary做混色源，不引入新的独立色值变量，未来主色调整时
      顶栏会自动跟随。 */
   --topbar-tint-pct: 4%;
+  /* 2026-06-27: .modal内嵌套.card(添加访问/修改密码/导入预览等表单卡片)
+     需要比.modal自身的8%(--card-tint-pct)更深一档，否则卡片跟弹窗背景
+     融为一体看不出边界。跟--topbar-tint-pct(主动比--card-tint-pct浅一档，
+     同样是"故意偏离默认值、且写明原因"的命名变量)是同一种处理方式，
+     不是临时拍的裸数字。 */
+  --modal-card-tint-pct: 16%;
   --shadow-color: rgba(19,27,46,1);
   --color-card-border: rgba(194,198,216,.6);
-  --color-focus-ring: rgba(0,102,255,.12);
+  /* 2026-06-27: 原来是写死的rgba(0,102,255,.12)蓝色，没有放进5个主题各自
+     的变量块里，导致除了本来就是蓝色调的"冰河"主题外，其余4个主题点击
+     输入框聚焦时都会冒出一圈跟主题色完全不搭的蓝色光晕(用户截图反馈
+     "周围浮了一个蓝色的阴影"，当时是樱花/Rose主题)。改用color-mix引用
+     --color-primary，每个主题下聚焦光晕自动跟随当前主题的强调色，不用
+     再为每个主题单独定义一份。透明度保留原来的12%，只换色相来源。 */
+  --color-focus-ring: color-mix(in srgb, var(--color-primary) 12%, transparent);
 
   /* 圆角语义层：按视觉层级命名，而非按数值大小命名。
      卡片/面板统一用 --radius-panel，避免 .card 和 .modal 各用各的、互不呼应。 */
@@ -336,12 +348,32 @@ button { cursor: pointer; }
    这些全部共用--card-tint-pct这一个变量，调整比例时只需要改:root里这一个
    变量定义，不需要逐个改这11处规则，也不需要逐主题单独覆盖。 */
 .card { background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface)); border: var(--space-xs) solid var(--color-card-border); border-radius: var(--radius-panel); box-shadow: var(--shadow-card); }
+/* 2026-06-27: .modal内嵌套.card(如"添加访问"/"修改密码"/导入预览这类
+   表单卡片)原本跟.modal用完全相同的8%混色公式，背景几乎融为一体、看不出
+   卡片边界，用户反馈"新弹出来的页面底色和原来的底色太接近"。这里给嵌套
+   场景单独提高混色比例到16%(概念上是--card-tint-pct的两倍，写成字面值
+   而非calc()表达式，避免color-mix()嵌套calc()百分比参数在不同浏览器下的
+   兼容性不确定性)，让卡片在弹窗里有更明显的"浮在上层"的层次感，参照
+   Material 3的surface-container层级惯例(elevation越高，主题色混入越多，
+   不是越少)。只在.modal嵌套场景生效，地图上悬浮的.card(图层切换/搜索
+   结果等)不受影响，维持原有8%。 */
+.modal .card { background: color-mix(in srgb, var(--color-primary) var(--modal-card-tint-pct), var(--color-surface)); }
 .glass { background: var(--glass-bg); backdrop-filter: blur(var(--space-4-5)); border: var(--space-xs) solid var(--glass-border); }
 /* 2026-06-21: 删除Linear后，原来给linear/stripe各写一条重复.glass规则的
    做法（仅用于垫高选择器特异性，内容与上面.glass完全相同）不再需要逐主题
    复制——五主题全部共用这一条.glass即可，特异性问题在下方.topbar.glass等
    具体场景里通过专属高特异性选择器单独解决（见.topbar.glass的注释）。 */
 .input { width: 100%; min-height: var(--size-input); border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-sm); padding: 0 var(--space-3); color: var(--color-on-surface); background: var(--color-background); outline: none; }
+/* 2026-06-27: .input默认背景用--color-background，这个变量在5个主题下
+   几乎都是接近纯白(只有极细微色差)，跟.card/.modal统一用color-mix(primary
+   8%, surface)的暖色调形成明显脱节——输入框嵌在卡片里时显得像一块没套上
+   主题色的死白方块。改用--color-surface-container-low：这个变量本身已经
+   是每个主题下有明显色相偏移的值(而不是另外发明一个新的tint比例)，且已经
+   被.visit-card/hover态等场景使用过，是项目里已确立的"比卡片浅一级、但
+   仍带主题色"的层级。只在.card/.modal内生效，不影响地图悬浮搜索框等
+   独立语境下的输入框(那些保留原来的纯色背景，本来就不在暖色卡片语境里，
+   不存在脱节问题)。 */
+.card .input, .modal .input { background: var(--color-surface-container-low); }
 .input:focus { border-color: var(--color-primary-container); box-shadow: 0 0 0 3px var(--color-focus-ring); }
 .label-sm { font-size: var(--font-xs); color: var(--color-on-surface-variant); font-weight: 500; }
 
