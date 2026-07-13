@@ -6,6 +6,7 @@ import Table from './Table';
 import ImportPreviewTable from './ImportPreviewTable';
 import DrillDownStats from './DrillDownStats';
 import ConfirmDialog from './ConfirmDialog';
+import Modal from './Modal';
 import Icon from './Icon';
 
 // 仅管理员可见，按需加载，避免普通用户打开个人资料时也下载这部分代码
@@ -251,13 +252,7 @@ export default function UserProfile() {
   ];
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true">
-      <section className="modal modal-xl">
-        <div className="modal-head">
-          <h2>{currentUser.name}</h2>
-          <button className="icon-btn" onClick={() => setProfileOpen(false)}><Icon name="close" /></button>
-        </div>
-
+    <Modal title={currentUser.name} className="modal-xl" onClose={() => setProfileOpen(false)}>
         <div className="mode-pill profile-tabs mb-20">
           {tabs.map((item) => (
             <button key={item.id} className={tab === item.id ? 'active' : ''} onClick={() => { setTab(item.id); setShowStats(false); }}>{item.label}</button>
@@ -500,7 +495,6 @@ export default function UserProfile() {
             onCancel={() => setClearConfirmOpen(false)}
           />
         )}
-      </section>
-    </div>
+    </Modal>
   );
 }

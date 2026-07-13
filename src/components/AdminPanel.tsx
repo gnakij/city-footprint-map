@@ -8,6 +8,7 @@ import FuzzySelect from './ui/FuzzySelect';
 import Table from './Table';
 import ImportPreviewTable from './ImportPreviewTable';
 import ConfirmDialog from './ConfirmDialog';
+import Modal from './Modal';
 import Icon from './Icon';
 import type { ImportVisitRow } from '../types';
 import type { AdminVisitExportRow } from '../api';
@@ -940,28 +941,22 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       )}
 
       {pendingReset && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <section className="modal modal-sm">
-            <div className="modal-head">
-              <h2>重置密码 · {pendingReset.name}</h2>
-              <button className="icon-btn" onClick={() => setPendingReset(null)}><Icon name="close" /></button>
+        <Modal title={`重置密码 · ${pendingReset.name}`} className="modal-sm" onClose={() => setPendingReset(null)}>
+          <div className="stack gap-10 mb-16">
+            <div className="form-row">
+              <span className="label-sm">新密码</span>
+              <input className="input" type="password" autoFocus value={resetPw} onChange={(e) => setResetPw(e.target.value)} placeholder="至少6位" />
             </div>
-            <div className="stack gap-10 mb-16">
-              <div className="form-row">
-                <span className="label-sm">新密码</span>
-                <input className="input" type="password" autoFocus value={resetPw} onChange={(e) => setResetPw(e.target.value)} placeholder="至少6位" />
-              </div>
-              <div className="form-row">
-                <span className="label-sm">确认密码</span>
-                <input className="input" type="password" value={resetConfirm} onChange={(e) => setResetConfirm(e.target.value)} placeholder="再次输入" onKeyDown={(e) => { if (e.key === 'Enter') void handleResetPassword(); }} />
-              </div>
+            <div className="form-row">
+              <span className="label-sm">确认密码</span>
+              <input className="input" type="password" value={resetConfirm} onChange={(e) => setResetConfirm(e.target.value)} placeholder="再次输入" onKeyDown={(e) => { if (e.key === 'Enter') void handleResetPassword(); }} />
             </div>
-            <div className="flex-end gap-8">
-              <button className="btn-outline" onClick={() => setPendingReset(null)}>取消</button>
-              <button className="btn-primary" onClick={() => void handleResetPassword()}>确认重置</button>
-            </div>
-          </section>
-        </div>
+          </div>
+          <div className="flex-end gap-8">
+            <button className="btn-outline" onClick={() => setPendingReset(null)}>取消</button>
+            <button className="btn-primary" onClick={() => void handleResetPassword()}>确认重置</button>
+          </div>
+        </Modal>
       )}
 
       {/* 2026-06-21: 删除确认改用项目自己的modal样式，替代之前的
@@ -989,47 +984,35 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       )}
 
       {showCreateModal && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <section className="modal">
-            <div className="modal-head">
-              <h2>新增用户</h2>
-              <button className="icon-btn" onClick={() => setShowCreateModal(false)}><Icon name="close" /></button>
-            </div>
-            <div className="form-grid-2 mb-16">
-              <input className="input" value={newUsername} onChange={(event) => setNewUsername(event.target.value)} placeholder="用户名" />
-              <input className="input" value={newNickname} onChange={(event) => setNewNickname(event.target.value)} placeholder="昵称" />
-              <input className="input" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="密码" />
-            </div>
-            <div className="flex-end gap-8">
-              <button className="btn-outline" onClick={() => { setShowCreateModal(false); setNewUsername(''); setNewNickname(''); setNewPassword(''); }}>取消</button>
-              <button className="btn-primary" onClick={() => void handleCreateUser()}>确认创建</button>
-            </div>
-          </section>
-        </div>
+        <Modal title="新增用户" onClose={() => setShowCreateModal(false)}>
+          <div className="form-grid-2 mb-16">
+            <input className="input" value={newUsername} onChange={(event) => setNewUsername(event.target.value)} placeholder="用户名" />
+            <input className="input" value={newNickname} onChange={(event) => setNewNickname(event.target.value)} placeholder="昵称" />
+            <input className="input" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="密码" />
+          </div>
+          <div className="flex-end gap-8">
+            <button className="btn-outline" onClick={() => { setShowCreateModal(false); setNewUsername(''); setNewNickname(''); setNewPassword(''); }}>取消</button>
+            <button className="btn-primary" onClick={() => void handleCreateUser()}>确认创建</button>
+          </div>
+        </Modal>
       )}
 
       {showChangelog && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <section className="modal modal-wide">
-            <div className="modal-head">
-              <h2>系统升级记录</h2>
-              <button className="icon-btn" onClick={() => setShowChangelog(false)}><Icon name="close" /></button>
-            </div>
-            <div className="changelog-list">
-              {changelog.length === 0 && <p className="muted">升级记录加载中…</p>}
-              {changelog.map((entry, i) => (
-                <div key={i} className="changelog-entry">
-                  <div className="changelog-date">{entry.date}</div>
-                  <ul className="changelog-items">
-                    {entry.items.map((item, j) => (
-                      <li key={j}>{j + 1}. {item}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
+        <Modal title="系统升级记录" className="modal-wide" onClose={() => setShowChangelog(false)}>
+          <div className="changelog-list">
+            {changelog.length === 0 && <p className="muted">升级记录加载中…</p>}
+            {changelog.map((entry, i) => (
+              <div key={i} className="changelog-entry">
+                <div className="changelog-date">{entry.date}</div>
+                <ul className="changelog-items">
+                  {entry.items.map((item, j) => (
+                    <li key={j}>{j + 1}. {item}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </Modal>
       )}
       </div>
     </>
@@ -1038,14 +1021,13 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
   if (embedded) return <div className="embedded-panel">{content}</div>;
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true">
-      <section className="modal modal-admin" style={{ width: 'min(1280px, calc(100vw - 32px))', maxWidth: 'none' }}>
-        <div className="modal-head">
-          <h2>管理员面板</h2>
-          <button className="icon-btn" onClick={() => setAdminOpen(false)}><Icon name="close" /></button>
-        </div>
-        {content}
-      </section>
-    </div>
+    <Modal
+      title="管理员面板"
+      className="modal-admin"
+      style={{ width: 'min(1280px, calc(100vw - 32px))', maxWidth: 'none' }}
+      onClose={() => setAdminOpen(false)}
+    >
+      {content}
+    </Modal>
   );
 }

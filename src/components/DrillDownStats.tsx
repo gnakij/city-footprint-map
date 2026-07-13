@@ -3,7 +3,7 @@ import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import type { SortMode } from '../types';
 import { visitDays } from '../utils/date';
-import Icon from './Icon';
+import Modal from './Modal';
 
 export default function DrillDownStats({ embedded = false }: { embedded?: boolean }) {
   const visits = useStore((state) => state.visits);
@@ -35,16 +35,19 @@ export default function DrillDownStats({ embedded = false }: { embedded?: boolea
 
   const recordRows = useMemo(() => visits.filter((visit) => visit.city_id === cityId).sort((a, b) => b.last_stay_date.localeCompare(a.last_stay_date)), [cityId, visits]);
   const activeCity = CITIES.find((city) => city.city_id === cityId);
+  const title = cityId ? activeCity?.city_name ?? '城市统计' : province ?? '省份统计';
 
   const content = (
     <>
-      <div className="modal-head embedded-head">
-        <div>
-          <h2>{cityId ? activeCity?.city_name : province ?? '省份统计'}</h2>
-          {(province || cityId) && <button className="back-btn" onClick={() => cityId ? setCityId(null) : setProvince(null)}>← 返回</button>}
+      {embedded && (
+        <div className="modal-head embedded-head">
+          <div>
+            <h2>{title}</h2>
+            {(province || cityId) && <button className="back-btn" onClick={() => cityId ? setCityId(null) : setProvince(null)}>← 返回</button>}
+          </div>
         </div>
-        {!embedded && <button className="icon-btn" onClick={() => setStatsOpen(false)}><Icon name="close" /></button>}
-      </div>
+      )}
+      {!embedded && (province || cityId) && <button className="back-btn mb-12" onClick={() => cityId ? setCityId(null) : setProvince(null)}>← 返回</button>}
       <div className="mode-pill sort-pill">
         <button className={sort === 'days' ? 'active' : ''} onClick={() => setSort('days')}>按天数</button>
         <button className={sort === 'name' ? 'active' : ''} onClick={() => setSort('name')}>按名称</button>
@@ -74,10 +77,8 @@ export default function DrillDownStats({ embedded = false }: { embedded?: boolea
   if (embedded) return <div className="embedded-panel">{content}</div>;
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true">
-      <section className="modal stats-modal">
-        {content}
-      </section>
-    </div>
+    <Modal title={title} className="stats-modal" onClose={() => setStatsOpen(false)}>
+      {content}
+    </Modal>
   );
 }
