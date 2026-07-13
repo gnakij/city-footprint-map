@@ -1,6 +1,5 @@
 import { ChangeEvent, useMemo, useRef, useState } from 'react';
 import { useScrollIntoViewOnChange } from '../hooks/useScrollIntoViewOnChange';
-import * as XLSX from 'xlsx';
 import DateInput from './ui/DateInput';
 import FuzzySelect from './ui/FuzzySelect';
 import Table from './Table';
@@ -18,6 +17,7 @@ import { visitDays } from '../utils/date';
 
 type ProfileTab = 'profile' | 'visits';
 const FUZZY_SELECT_CLASSES = { dropdown: 'card', option: 'btn-outline small', activeOption: 'active' };
+type XlsxModule = typeof import('xlsx');
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -25,10 +25,10 @@ function normalize(value: unknown) {
   return String(value ?? '').trim();
 }
 
-function dateValue(value: unknown) {
+function dateValue(value: unknown, xlsx: XlsxModule) {
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   if (typeof value === 'number') {
-    const parsed = XLSX.SSF.parse_date_code(value);
+    const parsed = xlsx.SSF.parse_date_code(value);
     if (parsed) return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`;
   }
   return normalize(value).replace(/\//g, '-');
@@ -52,11 +52,12 @@ function findCity(province: string, city: string) {
     ?? CITIES.find((item) => item.province === shortProvince && (item.city_name.includes(shortCity) || shortCity.includes(item.city_name)));
 }
 
-function writeWorkbook(filename: string, rows: Array<Record<string, string | number | undefined>>) {
-  const worksheet = XLSX.utils.json_to_sheet(rows, { header: ['省份', '城市', '停留天数', '最后停留日期', '备注'] });
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, '访问记录');
-  XLSX.writeFile(workbook, filename);
+async function writeWorkbook(filename: string, rows: Array<Record<string, string | number | undefined>>) {
+  const xlsx = await import('xlsx');
+  const worksheet = xlsx.utils.json_to_sheet(rows, { header: ['省份', '城市', '停留天数', '最后停留日期', '备注'] });
+  const workbook = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(workbook, worksheet, '访问记录');
+  xlsx.writeFile(workbook, filename);
 }
 
 export default function UserProfile() {
@@ -175,8 +176,8 @@ export default function UserProfile() {
     }
   };
 
-  const download = () => {
-    writeWorkbook('城市足迹备份.xlsx', rows.map(({ visit, city, days }) => ({
+  const download = async () => {
+    await writeWorkbook('城市足迹备份.xlsx', rows.map(({ visit, city, days }) => ({
       省份: city?.province ?? '',
       城市: city?.city_name ?? visit.city_id,
       停留天数: days,
@@ -185,8 +186,8 @@ export default function UserProfile() {
     })));
   };
 
-  const downloadTemplate = () => {
-    writeWorkbook('城市足迹导入模板.xlsx', [{
+  const downloadTemplate = async () => {
+    await writeWorkbook('城市足迹导入模板.xlsx', [{
       省份: '广东',
       城市: '广州',
       停留天数: 365,
@@ -198,15 +199,16 @@ export default function UserProfile() {
   const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+    const xlsx = await import('xlsx');
+    const workbook = xlsx.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const records = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+    const records = xlsx.utils.sheet_to_json<Record<string, unknown>>(sheet);
     const existingCityIds = new Set(visits.map((visit) => visit.city_id));
     setPreview(records.map((record) => {
       const province = normalize(record['省份']);
       const city = normalize(record['城市']);
       const duration_days = numberValue(record['停留天数']);
-      const last_stay_date = dateValue(record['最后停留日期']);
+      const last_stay_date = dateValue(record['最后停留日期'], xlsx);
       const notesValue = normalize(record['备注']);
       const matched = city ? findCity(province, city) : undefined;
       const row: ImportVisitRow = { province, city, duration_days, last_stay_date, notes: notesValue || undefined, city_id: matched?.city_id };
@@ -350,8 +352,8 @@ export default function UserProfile() {
             <div className="actions">
               <button className="btn-primary" onClick={() => setShowForm(true)}><Icon name="plus" /> 添加访问</button>
               <button className="btn-outline" onClick={() => fileRef.current?.click()}><Icon name="download" /> 导入数据</button>
-              <button className="btn-outline" onClick={download}><Icon name="upload" /> 导出数据</button>
-              <button className="btn-outline" onClick={downloadTemplate}><Icon name="download" /> 下载模板</button>
+              <button className="btn-outline" onClick={() => void download()}><Icon name="upload" /> 导出数据</button>
+              <button className="btn-outline" onClick={() => void downloadTemplate()}><Icon name="download" /> 下载模板</button>
               <button className="btn-danger" onClick={() => setClearConfirmOpen(true)}>清空所有数据</button>
               <button className="btn-outline" onClick={() => setShowStats(true)} style={{ marginLeft: 'auto' }}><Icon name="chart" /> 统计</button>
             </div>

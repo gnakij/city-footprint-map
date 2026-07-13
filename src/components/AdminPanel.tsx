@@ -1,5 +1,4 @@
 import { ChangeEvent, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent, useEffect, useMemo, useRef, useState } from 'react';
-import * as XLSX from 'xlsx';
 import { pinyin } from 'pinyin-pro';
 import { adminExportVisits, adminImportVisits, createManagedUser, getUsers } from '../api';
 import { CITIES } from '../data/cities';
@@ -28,6 +27,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 
 const LEDGER_PAGE_SIZE = 10;
 const FUZZY_SELECT_CLASSES = { dropdown: 'card', option: 'btn-outline small', activeOption: 'active' };
+type XlsxModule = typeof import('xlsx');
 const CHANGELOG = [
   { date: '2026-06-27', items: ['修复系统升级记录"双重序号"问题：.changelog-items这个class此前没有任何CSS规则，一直靠Tailwind的@tailwind base全局reset(默认清空ul的list-style)隐性兜底，本次会话早些移除Tailwind依赖后这层reset也跟着消失，暴露出浏览器原生<ul>圆点标记，跟代码里手写的"序号. "文本前缀叠在一起变成"圆点+数字"。补上.changelog-items{list-style:none;margin:0;padding:0}即可，序号本身完全由文本内容提供，不依赖<ul>默认样式。顺手排查过项目里另外两处<ul>/<ol>(.admin-delete-list/.ranking-list)，均已各自定义过list-style:none，不受影响，确认是单独一处遗漏，不是系统性问题。'] },
   { date: '2026-06-27', items: ['【重大】构件层②按钮全项目铺开第一批：UserProfile个人信息tab"修改昵称/修改密码"、访问记录tab"导出数据"原来误判为主操作(.btn-primary)——一组并列操作里只有"创建新内容/确认提交"性质的动作才该是主操作，其余辅助性操作(导入/导出/下载/统计/常态编辑入口)统一降级为.btn-outline，跟AdminPanel数据管理tab"查询=primary，导出/导入/下载模板=outline"的既有判断对齐，不是颜色token问题，是场景分类问题。', '【重大】UserProfile个人信息tab"昵称/密码"区块重构：参照业内成熟做法(section-level editing)——每个字段应是独立自包含区块，触发按钮跟字段本身绑定，编辑态原地替换触发按钮，不是另起一行/另一张卡片。修复前的问题：两个字段的触发按钮被塞进一个跟字段脱节的公共操作行，导致编辑态分别出现在按钮上方(昵称)和下方(密码)，方向不一致且跟点击位置脱节。改完后对齐AdminPanel用户管理表格"修改昵称"原地切换([修改昵称/重置密码/删除]<->[保存/取消]同一容器内切换)的既有机制，密码字段用"••••••••"掩码占位展示(没有真实当前值可显示，仅做视觉对齐)。', '访问记录"编辑"体验优化：点击表格深处某一行的编辑按钮，结果表单固定渲染在表格外部上方，列表自身的独立滚动(scroll="fixed")可能让点击位置和表单位置产生距离感。新增项目首个可复用hook —— src/hooks/useScrollIntoViewOnChange.ts，监听驱动表单的状态、自动平滑滚动表单到可见区域。明确这不是Table组件的能力(Table管不到外部表单的位置)，而是跟Table配套使用的独立工具，以后任何"列表内部滚动+结果渲染在外部"的场景都可以一行接入复用。', 'shared-ui-components共享库收口两处遗留问题：①FuzzySelect.tsx默认渲染路径的className不再兜底成项目专属的\'input\'(原写法跟"共享库只管行为不管样式"原则矛盾，跟DateInput.tsx之前犯的是同一个问题)，本项目5处调用点(AdminPanel数据管理4个筛选框+UserProfile城市搜索)同步补上显式className="input"，视觉效果不变；②删除已放弃的"首字母匹配"残留死代码(getInitials函数未被调用、matchScore里两行因变量重复判断永远执行不到的判断分支)，匹配优先级文档注释同步更新。'] },
@@ -115,10 +115,10 @@ function normalize(value: unknown) {
   return String(value ?? '').trim();
 }
 
-function dateValue(value: unknown) {
+function dateValue(value: unknown, xlsx: XlsxModule) {
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   if (typeof value === 'number') {
-    const parsed = XLSX.SSF.parse_date_code(value);
+    const parsed = xlsx.SSF.parse_date_code(value);
     if (parsed) return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`;
   }
   return normalize(value).replace(/\//g, '-');
@@ -142,11 +142,12 @@ function findCity(province: string, city: string) {
     ?? CITIES.find((item) => item.province === shortProvince && (item.city_name.includes(shortCity) || shortCity.includes(item.city_name)));
 }
 
-function writeAdminWorkbook(filename: string, rows: Array<Record<string, string | number | undefined>>) {
-  const worksheet = XLSX.utils.json_to_sheet(rows, { header: ['用户名', '昵称', '省份', '城市', '停留天数', '最后停留日期', '备注', '更新时间'] });
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, '访问记录');
-  XLSX.writeFile(workbook, filename);
+async function writeAdminWorkbook(filename: string, rows: Array<Record<string, string | number | undefined>>) {
+  const xlsx = await import('xlsx');
+  const worksheet = xlsx.utils.json_to_sheet(rows, { header: ['用户名', '昵称', '省份', '城市', '停留天数', '最后停留日期', '备注', '更新时间'] });
+  const workbook = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(workbook, worksheet, '访问记录');
+  xlsx.writeFile(workbook, filename);
 }
 
 export default function AdminPanel({ embedded = false }: { embedded?: boolean }) {
@@ -441,8 +442,8 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
     setEditingNameId(null);
   };
 
-  const downloadCurrentLedger = () => {
-    writeAdminWorkbook('城市足迹当前视图.xlsx', ledgerVisits.map((visit) => {
+  const downloadCurrentLedger = async () => {
+    await writeAdminWorkbook('城市足迹当前视图.xlsx', ledgerVisits.map((visit) => {
       const city = cityById.get(visit.city_id);
       return {
         用户名: visit.username,
@@ -458,8 +459,8 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
     useStore.getState().showToast({ icon: '✓', message: `已导出 ${ledgerVisits.length} 条访问记录` });
   };
 
-  const downloadAdminTemplate = () => {
-    writeAdminWorkbook('城市足迹导入模板.xlsx', [{
+  const downloadAdminTemplate = async () => {
+    await writeAdminWorkbook('城市足迹导入模板.xlsx', [{
       用户名: targetUser?.username ?? '',
       昵称: targetUser?.name ?? '',
       省份: '广东',
@@ -479,12 +480,13 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       return;
     }
 
+    const xlsx = await import('xlsx');
     const [workbook, existingData] = await Promise.all([
-      file.arrayBuffer().then((buffer) => XLSX.read(buffer, { type: 'array', cellDates: true })),
+      file.arrayBuffer().then((buffer) => xlsx.read(buffer, { type: 'array', cellDates: true })),
       adminExportVisits([targetUserId]),
     ]);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const records = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+    const records = xlsx.utils.sheet_to_json<Record<string, unknown>>(sheet);
     const existingCityIds = new Set(existingData.visits.map((visit) => visit.city_id));
     const seenCityIds = new Set<string>();
 
@@ -492,7 +494,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       const province = normalize(record['省份']);
       const city = normalize(record['城市']);
       const duration_days = numberValue(record['停留天数']);
-      const last_stay_date = dateValue(record['最后停留日期']);
+      const last_stay_date = dateValue(record['最后停留日期'], xlsx);
       const notesValue = normalize(record['备注']);
       const matched = city ? findCity(province, city) : undefined;
       const row: ImportVisitRow = { province, city, duration_days, last_stay_date, notes: notesValue || undefined, city_id: matched?.city_id };
@@ -841,9 +843,9 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
               >
                 <Icon name="search" /> 查询
               </button>
-              <button className="btn-outline" onClick={downloadCurrentLedger}><Icon name="upload" /> 导出当前视图</button>
+              <button className="btn-outline" onClick={() => void downloadCurrentLedger()}><Icon name="upload" /> 导出当前视图</button>
               <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
-              <button className="btn-outline" onClick={downloadAdminTemplate}><Icon name="download" /> 下载模板</button>
+              <button className="btn-outline" onClick={() => void downloadAdminTemplate()}><Icon name="download" /> 下载模板</button>
             </div>
           </div>
 
