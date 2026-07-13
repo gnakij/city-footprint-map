@@ -94,7 +94,7 @@ export default function CityDrawer({ city }: { city: CityData }) {
           </label>
           <label className="form-row">
             <span className="label-sm">最后停留日期</span>
-            <DateInput value={lastStay} onChange={setLastStay} />
+            <DateInput value={lastStay} onChange={setLastStay} className="input" />
           </label>
           <label className="form-row">
             <span className="label-sm">备注</span>

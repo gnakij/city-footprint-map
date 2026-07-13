@@ -17,6 +17,7 @@ import type { ImportVisitRow, VisitRecord } from '../types';
 import { visitDays } from '../utils/date';
 
 type ProfileTab = 'profile' | 'visits';
+const FUZZY_SELECT_CLASSES = { dropdown: 'card', option: 'btn-outline small', activeOption: 'active' };
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -393,6 +394,7 @@ export default function UserProfile() {
                     onSelect={(id) => pickCity(id)}
                     placeholder="搜索选择城市"
                     maxResults={12}
+                    classNames={FUZZY_SELECT_CLASSES}
                   />
                   {selectedCityName && cityId && (
                     <p className="muted mt-6">已选：{selectedCityName}</p>
@@ -415,7 +417,7 @@ export default function UserProfile() {
                   </div>
                   <div className="form-row">
                     <span className="label-sm">最后停留日期</span>
-                    <DateInput value={lastStay} onChange={setLastStay} />
+                    <DateInput value={lastStay} onChange={setLastStay} className="input" />
                   </div>
                   <div className="form-row">
                     <span className="label-sm">备注</span>

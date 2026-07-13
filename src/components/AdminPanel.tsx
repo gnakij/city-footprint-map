@@ -27,6 +27,7 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 }
 
 const LEDGER_PAGE_SIZE = 10;
+const FUZZY_SELECT_CLASSES = { dropdown: 'card', option: 'btn-outline small', activeOption: 'active' };
 const CHANGELOG = [
   { date: '2026-06-27', items: ['修复系统升级记录"双重序号"问题：.changelog-items这个class此前没有任何CSS规则，一直靠Tailwind的@tailwind base全局reset(默认清空ul的list-style)隐性兜底，本次会话早些移除Tailwind依赖后这层reset也跟着消失，暴露出浏览器原生<ul>圆点标记，跟代码里手写的"序号. "文本前缀叠在一起变成"圆点+数字"。补上.changelog-items{list-style:none;margin:0;padding:0}即可，序号本身完全由文本内容提供，不依赖<ul>默认样式。顺手排查过项目里另外两处<ul>/<ol>(.admin-delete-list/.ranking-list)，均已各自定义过list-style:none，不受影响，确认是单独一处遗漏，不是系统性问题。'] },
   { date: '2026-06-27', items: ['【重大】构件层②按钮全项目铺开第一批：UserProfile个人信息tab"修改昵称/修改密码"、访问记录tab"导出数据"原来误判为主操作(.btn-primary)——一组并列操作里只有"创建新内容/确认提交"性质的动作才该是主操作，其余辅助性操作(导入/导出/下载/统计/常态编辑入口)统一降级为.btn-outline，跟AdminPanel数据管理tab"查询=primary，导出/导入/下载模板=outline"的既有判断对齐，不是颜色token问题，是场景分类问题。', '【重大】UserProfile个人信息tab"昵称/密码"区块重构：参照业内成熟做法(section-level editing)——每个字段应是独立自包含区块，触发按钮跟字段本身绑定，编辑态原地替换触发按钮，不是另起一行/另一张卡片。修复前的问题：两个字段的触发按钮被塞进一个跟字段脱节的公共操作行，导致编辑态分别出现在按钮上方(昵称)和下方(密码)，方向不一致且跟点击位置脱节。改完后对齐AdminPanel用户管理表格"修改昵称"原地切换([修改昵称/重置密码/删除]<->[保存/取消]同一容器内切换)的既有机制，密码字段用"••••••••"掩码占位展示(没有真实当前值可显示，仅做视觉对齐)。', '访问记录"编辑"体验优化：点击表格深处某一行的编辑按钮，结果表单固定渲染在表格外部上方，列表自身的独立滚动(scroll="fixed")可能让点击位置和表单位置产生距离感。新增项目首个可复用hook —— src/hooks/useScrollIntoViewOnChange.ts，监听驱动表单的状态、自动平滑滚动表单到可见区域。明确这不是Table组件的能力(Table管不到外部表单的位置)，而是跟Table配套使用的独立工具，以后任何"列表内部滚动+结果渲染在外部"的场景都可以一行接入复用。', 'shared-ui-components共享库收口两处遗留问题：①FuzzySelect.tsx默认渲染路径的className不再兜底成项目专属的\'input\'(原写法跟"共享库只管行为不管样式"原则矛盾，跟DateInput.tsx之前犯的是同一个问题)，本项目5处调用点(AdminPanel数据管理4个筛选框+UserProfile城市搜索)同步补上显式className="input"，视觉效果不变；②删除已放弃的"首字母匹配"残留死代码(getInitials函数未被调用、matchScore里两行因变量重复判断永远执行不到的判断分支)，匹配优先级文档注释同步更新。'] },
@@ -788,6 +789,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                 onChange={setFilterUsername}
                 onSelect={setFilterUsername}
                 placeholder="搜索选择用户名"
+                classNames={FUZZY_SELECT_CLASSES}
               />
             </div>
             <div className="col-username">
@@ -799,6 +801,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                 onChange={setFilterName}
                 onSelect={setFilterName}
                 placeholder="搜索选择昵称"
+                classNames={FUZZY_SELECT_CLASSES}
               />
             </div>
             <div className="col-username">
@@ -810,6 +813,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                 onChange={setFilterProvince}
                 onSelect={setFilterProvince}
                 placeholder="搜索选择省份"
+                classNames={FUZZY_SELECT_CLASSES}
               />
             </div>
             <div className="col-nickname">
@@ -821,6 +825,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                 onChange={setFilterCity}
                 onSelect={setFilterCity}
                 placeholder="搜索选择城市"
+                classNames={FUZZY_SELECT_CLASSES}
               />
             </div>
           </div>
