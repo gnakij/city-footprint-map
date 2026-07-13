@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 import re
 import sqlite3
@@ -13,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -34,6 +32,10 @@ SECRET_KEY = _raw_secret
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
+VALID_THEMES = {"rose", "stripe", "amber", "turquoise", "azure"}
+MAX_IMPORT_VISITS = 2000
+MAX_NOTES_LENGTH = 500
+_CITY_IDS_CACHE: set[str] | None = None
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer = HTTPBearer()
@@ -55,6 +57,97 @@ def get_db() -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
     return conn
+
+
+def city_ids() -> set[str]:
+    global _CITY_IDS_CACHE
+    if _CITY_IDS_CACHE is None:
+        _CITY_IDS_CACHE = {city["city_id"] for city in load_cities()}
+    return _CITY_IDS_CACHE
+
+
+def validate_city_id(value: str) -> str:
+    if value not in city_ids():
+        raise ValueError("Unknown city_id")
+    return value
+
+
+def validate_date_text(value: str) -> str:
+    try:
+        parsed = datetime.strptime(value, "%Y-%m-%d")
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Date must use YYYY-MM-DD format") from exc
+    if parsed.strftime("%Y-%m-%d") != value:
+        raise ValueError("Date must use YYYY-MM-DD format")
+    return value
+
+
+def validate_theme(value: str) -> str:
+    if value not in VALID_THEMES:
+        raise ValueError("Unknown theme")
+    return value
+
+
+def normalize_notes(value: str | None) -> str | None:
+    if value is None:
+        return None
+    stripped = value.strip()
+    if not stripped:
+        return None
+    if len(stripped) > MAX_NOTES_LENGTH:
+        raise ValueError(f"notes must be {MAX_NOTES_LENGTH} characters or fewer")
+    return stripped
+
+
+def import_error(index: int, message: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail=f"Invalid import visit at row {index + 1}: {message}",
+    )
+
+
+def normalize_import_visit(visit: dict[str, Any], index: int) -> dict[str, Any]:
+    if not isinstance(visit, dict):
+        raise import_error(index, "visit must be an object")
+
+    try:
+        city_id = validate_city_id(visit["city_id"])
+    except KeyError as exc:
+        raise import_error(index, "city_id is required") from exc
+    except ValueError as exc:
+        raise import_error(index, str(exc)) from exc
+
+    if "duration_days" in visit and "last_stay_date" in visit:
+        duration = visit["duration_days"]
+        last_stay = visit["last_stay_date"]
+    elif "arrival_date" in visit and "departure_date" in visit:
+        try:
+            start = datetime.strptime(visit["arrival_date"], "%Y-%m-%d")
+            end = datetime.strptime(visit["departure_date"], "%Y-%m-%d")
+            duration = max((end - start).days + 1, 1)
+            last_stay = visit["departure_date"]
+        except (TypeError, ValueError) as exc:
+            raise import_error(index, "arrival_date/departure_date must use YYYY-MM-DD format") from exc
+    else:
+        raise import_error(index, "duration_days and last_stay_date are required")
+
+    if not isinstance(duration, int) or duration < 1:
+        raise import_error(index, "duration_days must be a positive integer")
+    try:
+        last_stay = validate_date_text(last_stay)
+        notes = normalize_notes(visit.get("notes"))
+    except ValueError as exc:
+        raise import_error(index, str(exc)) from exc
+
+    return {
+        "id": visit.get("id") or str(uuid.uuid4()),
+        "city_id": city_id,
+        "duration_days": duration,
+        "last_stay_date": last_stay,
+        "notes": notes,
+        "created_at": visit.get("created_at"),
+        "updated_at": visit.get("updated_at"),
+    }
 
 
 # ── Pydantic 模型 ─────────────────────────────────────────────────────────
@@ -84,6 +177,21 @@ class VisitCreate(BaseModel):
     last_stay_date: str = Field(description="最后一次停留的日期 YYYY-MM-DD")
     notes: str | None = None
 
+    @field_validator("city_id")
+    @classmethod
+    def city_id_exists(cls, value: str) -> str:
+        return validate_city_id(value)
+
+    @field_validator("last_stay_date")
+    @classmethod
+    def last_stay_date_is_date(cls, value: str) -> str:
+        return validate_date_text(value)
+
+    @field_validator("notes")
+    @classmethod
+    def notes_are_reasonable(cls, value: str | None) -> str | None:
+        return normalize_notes(value)
+
 
 class VisitUpdate(BaseModel):
     city_id: str | None = None
@@ -91,9 +199,29 @@ class VisitUpdate(BaseModel):
     last_stay_date: str | None = None
     notes: str | None = None
 
+    @field_validator("city_id")
+    @classmethod
+    def city_id_exists(cls, value: str | None) -> str | None:
+        return validate_city_id(value) if value is not None else None
+
+    @field_validator("last_stay_date")
+    @classmethod
+    def last_stay_date_is_date(cls, value: str | None) -> str | None:
+        return validate_date_text(value) if value is not None else None
+
+    @field_validator("notes")
+    @classmethod
+    def notes_are_reasonable(cls, value: str | None) -> str | None:
+        return normalize_notes(value)
+
 
 class SettingsPayload(BaseModel):
     theme: str = "rose"
+
+    @field_validator("theme")
+    @classmethod
+    def theme_is_supported(cls, value: str) -> str:
+        return validate_theme(value)
 
 
 class AchievementPayload(BaseModel):
@@ -105,9 +233,16 @@ class ImportPayload(BaseModel):
 
     version: str | None = None
     exported_at: str | None = None
-    visits: list[dict[str, Any]] = []
-    achievements: list[str] = []
-    settings: dict[str, Any] = {"theme": "rose"}
+    visits: list[dict[str, Any]] = Field(default_factory=list)
+    achievements: list[str] = Field(default_factory=list)
+    settings: dict[str, Any] = Field(default_factory=lambda: {"theme": "rose"})
+
+    @field_validator("visits")
+    @classmethod
+    def import_size_is_reasonable(cls, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        if len(value) > MAX_IMPORT_VISITS:
+            raise ValueError(f"visits may contain at most {MAX_IMPORT_VISITS} records")
+        return value
 
 
 class AdminDataExportPayload(BaseModel):
@@ -117,6 +252,13 @@ class AdminDataExportPayload(BaseModel):
 class AdminDataImportPayload(BaseModel):
     user_id: str
     visits: list[VisitCreate]
+
+    @field_validator("visits")
+    @classmethod
+    def import_size_is_reasonable(cls, value: list[VisitCreate]) -> list[VisitCreate]:
+        if len(value) > MAX_IMPORT_VISITS:
+            raise ValueError(f"visits may contain at most {MAX_IMPORT_VISITS} records")
+        return value
 
 
 # ── 数据转换 ──────────────────────────────────────────────────────────────
@@ -308,7 +450,7 @@ init_db()
 @app.post("/api/auth/register", status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 def register(request: Request, payload: UserCreate) -> dict[str, Any]:
-    return create_user_record(payload.username, payload.password, payload.name, payload.is_admin)
+    return create_user_record(payload.username, payload.password, payload.name, False)
 
 
 @app.post("/api/auth/login")
@@ -337,6 +479,11 @@ def list_users(_: sqlite3.Row = Depends(admin_user)) -> list[dict[str, Any]]:
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM users ORDER BY is_admin DESC, created_at ASC").fetchall()
     return [row_to_user(row) for row in rows]
+
+
+@app.post("/api/users", status_code=status.HTTP_201_CREATED)
+def create_managed_user(payload: UserCreate, _: sqlite3.Row = Depends(admin_user)) -> dict[str, Any]:
+    return create_user_record(payload.username, payload.password, payload.name, payload.is_admin)
 
 
 @app.put("/api/users/{user_id}")
@@ -402,7 +549,7 @@ def create_visit(payload: VisitCreate, user: sqlite3.Row = Depends(current_user)
         conn.execute(
             "INSERT INTO visits (id, user_id, city_id, duration_days, last_stay_date, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (visit_id, user["id"], payload.city_id, payload.duration_days, payload.last_stay_date,
-             payload.notes.strip() if payload.notes else None, timestamp, timestamp),
+             payload.notes, timestamp, timestamp),
         )
         row = conn.execute("SELECT * FROM visits WHERE id = ?", (visit_id,)).fetchone()
     return row_to_visit(row)
@@ -418,10 +565,11 @@ def update_visit(visit_id: str, payload: VisitUpdate, user: sqlite3.Row = Depend
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Visit not found")
         duration = payload.duration_days if payload.duration_days is not None else existing["duration_days"]
         last_stay = payload.last_stay_date if payload.last_stay_date is not None else existing["last_stay_date"]
+        notes = payload.notes if "notes" in payload.model_fields_set else existing["notes"]
         conn.execute(
             "UPDATE visits SET city_id = ?, duration_days = ?, last_stay_date = ?, notes = ?, updated_at = ? WHERE id = ? AND user_id = ?",
             (payload.city_id or existing["city_id"], duration, last_stay,
-             payload.notes.strip() if payload.notes is not None and payload.notes.strip() else None,
+             notes,
              now_iso(), visit_id, user["id"]),
         )
         row = conn.execute("SELECT * FROM visits WHERE id = ? AND user_id = ?", (visit_id, user["id"])).fetchone()
@@ -470,28 +618,19 @@ def export_data(user: sqlite3.Row = Depends(current_user)) -> dict[str, Any]:
 @app.post("/api/data/import")
 def import_data(payload: ImportPayload, user: sqlite3.Row = Depends(current_user)) -> dict[str, Any]:
     """导入使用 INSERT OR REPLACE，幂等安全。兼容旧版 arrival_date/departure_date 导出文件。"""
+    normalized_visits = [normalize_import_visit(visit, index) for index, visit in enumerate(payload.visits)]
+    try:
+        theme = validate_theme(payload.settings.get("theme", "rose") if isinstance(payload.settings, dict) else "rose")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
     with get_db() as conn:
-        for visit in payload.visits:
+        for visit in normalized_visits:
             timestamp = now_iso()
-            if "duration_days" in visit and "last_stay_date" in visit:
-                duration = visit["duration_days"]
-                last_stay = visit["last_stay_date"]
-            elif "arrival_date" in visit and "departure_date" in visit:
-                # 兼容旧版导出文件：自动换算
-                try:
-                    start = datetime.strptime(visit["arrival_date"], "%Y-%m-%d")
-                    end = datetime.strptime(visit["departure_date"], "%Y-%m-%d")
-                    duration = max((end - start).days + 1, 1)
-                except (ValueError, TypeError):
-                    duration = 1
-                last_stay = visit.get("departure_date") or visit.get("arrival_date") or timestamp[:10]
-            else:
-                duration = 1
-                last_stay = timestamp[:10]
             conn.execute(
                 "INSERT OR REPLACE INTO visits (id, user_id, city_id, duration_days, last_stay_date, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (visit.get("id") or str(uuid.uuid4()), user["id"], visit["city_id"],
-                 duration, last_stay, visit.get("notes"),
+                (visit["id"], user["id"], visit["city_id"],
+                 visit["duration_days"], visit["last_stay_date"], visit["notes"],
                  visit.get("created_at") or timestamp, visit.get("updated_at") or timestamp),
             )
         for achievement_id in payload.achievements:
@@ -499,7 +638,6 @@ def import_data(payload: ImportPayload, user: sqlite3.Row = Depends(current_user
                 "INSERT OR IGNORE INTO achievements (id, user_id, achievement_id, unlocked_at) VALUES (?, ?, ?, ?)",
                 (str(uuid.uuid4()), user["id"], achievement_id, now_iso()),
             )
-        theme = payload.settings.get("theme", "rose") if isinstance(payload.settings, dict) else "rose"
         conn.execute("INSERT OR REPLACE INTO settings (user_id, theme) VALUES (?, ?)", (user["id"], theme))
     return export_data(user)
 

@@ -1,7 +1,7 @@
 import { ChangeEvent, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent, useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { pinyin } from 'pinyin-pro';
-import { adminExportVisits, adminImportVisits, createUser, getUsers } from '../api';
+import { adminExportVisits, adminImportVisits, createManagedUser, getUsers } from '../api';
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import FuzzySelect from './ui/FuzzySelect';
@@ -284,7 +284,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       useStore.getState().showToast({ icon: '!', message: '请填写所有字段' });
       return;
     }
-    await createUser(name, { username, password: newPassword, is_admin: false });
+    await createManagedUser(name, { username, password: newPassword, is_admin: false });
     setNewUsername('');
     setNewNickname('');
     setNewPassword('');

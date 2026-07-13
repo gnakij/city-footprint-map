@@ -14,5 +14,5 @@ backend/.env
 *.db-wal
 
 # 服务器级共享组件库（符号链接，真实内容存放在
-# /root/.openclaw/workspace/shared-ui-components，不属于这个项目仓库）
+# /opt/shared-ui-components，不属于这个项目仓库）
 src/components/ui

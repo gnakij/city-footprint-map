@@ -9,6 +9,7 @@ import {
   changePassword,
   clearAllData,
   clearToken,
+  createManagedUser,
   createUser,
   deleteUser,
   deleteVisit as dbDeleteVisit,
@@ -203,7 +204,7 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   createRegularUser: async (name) => {
-    const user = await createUser(name);
+    const user = await createManagedUser(name);
     set({ users: await getUsers(), toast: { icon: '✓', message: '用户已创建' } });
     return user;
   },

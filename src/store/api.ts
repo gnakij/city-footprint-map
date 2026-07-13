@@ -24,8 +24,8 @@ const TOKEN_KEY = 'cityprint-token';
 const defaultSettings: AppSettings = { theme: 'rose' };
 
 function _lsGet(k: string) { try { return localStorage.getItem(k); } catch { return null; } }
-function _lsSet(k: string, v: string) { try { localStorage.setItem(k, v); } catch {} }
-function _lsDel(k: string) { try { localStorage.removeItem(k); } catch {} }
+function _lsSet(k: string, v: string) { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } }
+function _lsDel(k: string) { try { localStorage.removeItem(k); } catch { /* storage unavailable */ } }
 
 function setToken(token: string) { _lsSet(TOKEN_KEY, token); }
 export function hasToken() { return Boolean(_lsGet(TOKEN_KEY)); }
@@ -53,7 +53,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       if (body?.detail) {
         if (Array.isArray(body.detail)) {
           // Pydantic 验证错误 → 提取可读消息
-          detail = body.detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ');
+          detail = body.detail.map((item: unknown) => {
+            if (item && typeof item === 'object' && 'msg' in item) return String(item.msg);
+            return JSON.stringify(item);
+          }).join('; ');
         } else {
           detail = String(body.detail);
         }
@@ -83,6 +86,19 @@ export async function createUser(name: string, options?: { username?: string; pa
   const username = options?.username?.trim() || name.trim();
   const password = options?.password || 'changeme123';
   return request<User>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({
+      username,
+      password,
+      name: name.trim(),
+    }),
+  });
+}
+
+export async function createManagedUser(name: string, options?: { username?: string; password?: string; is_admin?: boolean }) {
+  const username = options?.username?.trim() || name.trim();
+  const password = options?.password || 'changeme123';
+  return request<User>('/users', {
     method: 'POST',
     body: JSON.stringify({
       username,

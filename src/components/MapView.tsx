@@ -223,6 +223,7 @@ export default function MapView() {
   }, [syncOutlineToMainLayer]);
 
   const renderMap = useCallback(async () => {
+    void theme;
     const chart = chartRef.current;
     if (!chart) return;
     const mapName = activeProvince ? `province-${activeProvince.adcode}` : 'china-cities-footprint';
@@ -676,8 +677,6 @@ export default function MapView() {
           return;
         }
 
-        const rect = dom.getBoundingClientRect();
-
         if (e.touches.length === 1) {
           // 单指拖拽
           const dx = cur[0].x - prevTouches[0].x;
@@ -688,8 +687,6 @@ export default function MapView() {
           }
         } else if (e.touches.length === 2) {
           const newDist = Math.hypot(cur[0].x - cur[1].x, cur[0].y - cur[1].y);
-          const midX = (cur[0].x + cur[1].x) / 2 - rect.left;
-          const midY = (cur[0].y + cur[1].y) / 2 - rect.top;
 
           if (prevDist > 0 && newDist > 0) {
             // 帧间增量

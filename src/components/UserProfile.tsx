@@ -171,8 +171,8 @@ export default function UserProfile() {
       showToast({ icon: '✓', message: '密码已更新' });
       setNewPw('');
       setConfirmPw('');
-    } catch (err: any) {
-      showToast({ icon: '!', message: err?.message || '密码更新失败' });
+    } catch (err: unknown) {
+      showToast({ icon: '!', message: err instanceof Error ? err.message : '密码更新失败' });
     }
   };
 

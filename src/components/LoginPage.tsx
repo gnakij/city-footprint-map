@@ -62,8 +62,8 @@ export default function LoginPage() {
       await createUser(nickname.trim(), { username: username.trim(), password, is_admin: false });
       await loginUser(username.trim(), password);
       setLoading(false);
-    } catch (err: any) {
-      const msg = err?.message || '注册失败';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '注册失败';
       useStore.getState().showToast({ icon: '!', message: msg });
       setLoading(false);
     }
