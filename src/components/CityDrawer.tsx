@@ -40,9 +40,7 @@ export default function CityDrawer({ city }: { city: CityData }) {
     const days = Number(duration);
     if (!days || days < 1) return;
     if (!lastStay) return;
-    await saveVisit(city, { id: editing?.id, duration_days: Math.floor(days), last_stay_date: lastStay, notes });
-    const nowVisits = useStore.getState().visits;
-    if (nowVisits.length > visits.length || editing) {
+    if (await saveVisit(city, { id: editing?.id, duration_days: Math.floor(days), last_stay_date: lastStay, notes })) {
       resetForm();
     }
   };

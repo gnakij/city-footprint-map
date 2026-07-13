@@ -6,6 +6,7 @@ import FuzzySelect from './ui/FuzzySelect';
 import Table from './Table';
 import ImportPreviewTable from './ImportPreviewTable';
 import DrillDownStats from './DrillDownStats';
+import ConfirmDialog from './ConfirmDialog';
 import Icon from './Icon';
 
 // 仅管理员可见，按需加载，避免普通用户打开个人资料时也下载这部分代码
@@ -86,6 +87,7 @@ export default function UserProfile() {
   const [editingName, setEditingName] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
   const [preview, setPreview] = useState<ImportVisitRow[]>([]);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
   // 城市映射：值/标签分离，供 FuzzySelect 使用
   const CITY_LABELS = useMemo(() => Object.fromEntries(CITIES.map((c) => [c.city_id, `${c.province} · ${c.city_name}`])), []);
@@ -144,35 +146,31 @@ export default function UserProfile() {
     if (!lastStay) { showToast({ icon: '!', message: '请选择最后停留日期' }); return; }
     const city = CITIES.find((c) => c.city_id === cityId);
     if (!city) return;
-    await saveVisit(city, { id: editingVisit?.id, duration_days: Math.floor(days), last_stay_date: lastStay, notes });
-    // saveVisit returns after success OR failure (toast shown either way).
-    // Check if visits actually changed — if so, it succeeded.
-    const nowVisits = useStore.getState().visits;
-    const oldLen = visits.length;
-    if (nowVisits.length > oldLen || editingVisit) {
+    if (await saveVisit(city, { id: editingVisit?.id, duration_days: Math.floor(days), last_stay_date: lastStay, notes })) {
       resetForm();
     }
   };
 
-  const updateName = () => {
-    if (!name.trim()) { showToast({ icon: '!', message: '名称不能为空' }); return; }
+  const updateName = async () => {
+    if (!name.trim()) { showToast({ icon: '!', message: '名称不能为空' }); return false; }
     const store = useStore.getState();
-    if (store.currentUser) store.updateUserName(name.trim());
-    showToast({ icon: '✓', message: '名称已更新' });
+    return store.currentUser ? store.updateUserName(name.trim()) : false;
   };
 
   const changePassword = async () => {
-    if (newPw.length < 6) { showToast({ icon: '!', message: '新密码至少6位' }); return; }
-    if (newPw !== confirmPw) { showToast({ icon: '!', message: '两次密码不一致' }); return; }
+    if (newPw.length < 6) { showToast({ icon: '!', message: '新密码至少6位' }); return false; }
+    if (newPw !== confirmPw) { showToast({ icon: '!', message: '两次密码不一致' }); return false; }
     const store = useStore.getState();
-    if (!store.currentUser) return;
+    if (!store.currentUser) return false;
     try {
       await updateMe({ password: newPw });
       showToast({ icon: '✓', message: '密码已更新' });
       setNewPw('');
       setConfirmPw('');
+      return true;
     } catch (err: unknown) {
       showToast({ icon: '!', message: err instanceof Error ? err.message : '密码更新失败' });
+      return false;
     }
   };
 
@@ -231,8 +229,9 @@ export default function UserProfile() {
     setPreview([]);
   };
 
-  const confirmClear = () => {
-    if (window.confirm('确定清空所有数据？此操作不可恢复。')) void clearData();
+  const confirmClear = async () => {
+    await clearData();
+    setClearConfirmOpen(false);
   };
 
   if (!currentUser) return null;
@@ -286,7 +285,7 @@ export default function UserProfile() {
                 <>
                   <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="输入新昵称" />
                   <div className="actions">
-                    <button className="btn-primary" onClick={() => { updateName(); setEditingName(false); }}>保存</button>
+                    <button className="btn-primary" onClick={async () => { if (await updateName()) setEditingName(false); }}>保存</button>
                     <button className="btn-outline" onClick={() => { setName(currentUser.name); setEditingName(false); }}>取消</button>
                   </div>
                 </>
@@ -313,7 +312,7 @@ export default function UserProfile() {
                     <input className="input" type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="再次输入新密码" />
                   </div>
                   <div className="actions">
-                    <button className="btn-primary" onClick={async () => { await changePassword(); setEditingPassword(false); }}>更新密码</button>
+                    <button className="btn-primary" onClick={async () => { if (await changePassword()) setEditingPassword(false); }}>更新密码</button>
                     <button className="btn-outline" onClick={() => { setNewPw(''); setConfirmPw(''); setEditingPassword(false); }}>取消</button>
                   </div>
                 </div>
@@ -352,7 +351,7 @@ export default function UserProfile() {
               <button className="btn-outline" onClick={() => fileRef.current?.click()}><Icon name="download" /> 导入数据</button>
               <button className="btn-outline" onClick={download}><Icon name="upload" /> 导出数据</button>
               <button className="btn-outline" onClick={downloadTemplate}><Icon name="download" /> 下载模板</button>
-              <button className="btn-danger" onClick={confirmClear}>清空所有数据</button>
+              <button className="btn-danger" onClick={() => setClearConfirmOpen(true)}>清空所有数据</button>
               <button className="btn-outline" onClick={() => setShowStats(true)} style={{ marginLeft: 'auto' }}><Icon name="chart" /> 统计</button>
             </div>
 
@@ -487,6 +486,16 @@ export default function UserProfile() {
           </>
         )}
 
+        {clearConfirmOpen && (
+          <ConfirmDialog
+            title="清空所有数据"
+            message="确定清空你的所有访问记录与成就数据？此操作不可恢复。"
+            confirmLabel="确认清空"
+            danger
+            onConfirm={() => void confirmClear()}
+            onCancel={() => setClearConfirmOpen(false)}
+          />
+        )}
       </section>
     </div>
   );

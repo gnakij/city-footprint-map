@@ -7,6 +7,7 @@ import { useStore } from '../store/useStore';
 import FuzzySelect from './ui/FuzzySelect';
 import Table from './Table';
 import ImportPreviewTable from './ImportPreviewTable';
+import ConfirmDialog from './ConfirmDialog';
 import Icon from './Icon';
 import type { ImportVisitRow } from '../types';
 import type { AdminVisitExportRow } from '../api';
@@ -995,24 +996,22 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
          不需要两套确认逻辑。批量删除时汇总展示全部待删除用户名列表，
          让用户确认前能清楚看到具体删的是谁。 */}
       {pendingDelete && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <section className="modal modal-sm">
-            <div className="modal-head">
-              <h2>{pendingDelete.length > 1 ? `删除 ${pendingDelete.length} 个用户` : `删除用户 · ${pendingDelete[0].name}`}</h2>
-              <button className="icon-btn" onClick={() => setPendingDelete(null)}><Icon name="close" /></button>
-            </div>
+        <ConfirmDialog
+          title={pendingDelete.length > 1 ? `删除 ${pendingDelete.length} 个用户` : `删除用户 · ${pendingDelete[0].name}`}
+          confirmLabel="确认删除"
+          danger
+          onConfirm={confirmDeleteUser}
+          onCancel={() => setPendingDelete(null)}
+        >
+          <>
             {pendingDelete.length > 1 && (
               <ul className="admin-delete-list mb-16">
                 {pendingDelete.map((item) => <li key={item.userId}>{item.name}</li>)}
               </ul>
             )}
             <p className="mb-16">确定删除{pendingDelete.length > 1 ? '以上用户' : '该用户'}及其所有数据？此操作不可恢复。</p>
-            <div className="flex-end gap-8">
-              <button className="btn-outline" onClick={() => setPendingDelete(null)}>取消</button>
-              <button className="btn-danger" onClick={confirmDeleteUser}>确认删除</button>
-            </div>
-          </section>
-        </div>
+          </>
+        </ConfirmDialog>
       )}
 
       {showCreateModal && (

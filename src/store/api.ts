@@ -177,41 +177,26 @@ export async function getAllVisits(_userId?: string) {
   return request<VisitRecord[]>('/visits');
 }
 
-/**
- * 修复：不再用 try/catch 区分新建和更新。
- * - 有 id 且非新建 → PUT 更新
- * - 无 id 或明确新建 → POST 创建
- * 后端已保证 PUT 严格校验归属，不会静默创建重复记录。
- */
-export async function saveVisit(_userId: string, visit: VisitRecord) {
-  const payload = {
+function visitPayload(visit: Pick<VisitRecord, 'city_id' | 'duration_days' | 'last_stay_date' | 'notes'>) {
+  return {
     city_id: visit.city_id,
     duration_days: visit.duration_days,
     last_stay_date: visit.last_stay_date,
     notes: visit.notes ?? null,
   };
+}
 
-  // 判断是更新还是新建：如果 visit.id 存在且不是客户端刚生成的临时 ID
-  // 实际上 useStore 中新建时就生成了 uuid，所以有 id 就用 PUT，
-  // 如果后端返回 404（visit 不存在）则说明是新记录，改用 POST
-  if (visit.id) {
-    try {
-      return await request<VisitRecord>(`/visits/${visit.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(payload),
-      });
-    } catch (err) {
-      // 只有 404（记录不存在）时才回退到 POST，其他错误直接抛出
-      const msg = err instanceof Error ? err.message : String(err);
-      if (!msg.includes('404') && !msg.includes('not found')) {
-        throw err;
-      }
-    }
-  }
-
+export async function createVisit(_userId: string, visit: Pick<VisitRecord, 'city_id' | 'duration_days' | 'last_stay_date' | 'notes'>) {
   return request<VisitRecord>('/visits', {
     method: 'POST',
-    body: JSON.stringify({ ...payload, id: visit.id }),
+    body: JSON.stringify(visitPayload(visit)),
+  });
+}
+
+export async function updateVisit(_userId: string, visitId: string, visit: Pick<VisitRecord, 'city_id' | 'duration_days' | 'last_stay_date' | 'notes'>) {
+  return request<VisitRecord>(`/visits/${visitId}`, {
+    method: 'PUT',
+    body: JSON.stringify(visitPayload(visit)),
   });
 }
 
