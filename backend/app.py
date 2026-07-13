@@ -170,6 +170,10 @@ class UserUpdate(BaseModel):
     is_admin: bool | None = None
 
 
+class BootstrapStatusPayload(BaseModel):
+    requires_admin_setup: bool
+
+
 # ── 访问记录模型：改为「时长 + 最后停留日期」，不再要求精确到达日期 ────────
 class VisitCreate(BaseModel):
     city_id: str
@@ -300,6 +304,11 @@ def get_user_by_id(user_id: str) -> sqlite3.Row | None:
         return conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
 
 
+def admin_count() -> int:
+    with get_db() as conn:
+        return int(conn.execute("SELECT COUNT(*) AS count FROM users WHERE is_admin = 1").fetchone()["count"])
+
+
 def current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer)) -> sqlite3.Row:
     """验证 JWT 并返回当前登录用户"""
     try:
@@ -385,10 +394,21 @@ def init_db() -> None:
             conn.execute("ALTER TABLE visits ADD COLUMN duration_days INTEGER NOT NULL DEFAULT 1")
         if "last_stay_date" not in cols:
             conn.execute("ALTER TABLE visits ADD COLUMN last_stay_date TEXT NOT NULL DEFAULT (date('now'))")
-        count = conn.execute("SELECT COUNT(*) AS count FROM users").fetchone()["count"]
-    if count == 0:
-        create_user_record("admin", "admin123456", "管理员", True)
-        print("INFO: Default admin created — username: admin, password: admin123456. Change immediately after login.")
+        admins = conn.execute("SELECT COUNT(*) AS count FROM users WHERE is_admin = 1").fetchone()["count"]
+    if admins == 0:
+        username = os.getenv("CITYPRINT_ADMIN_USERNAME", "").strip()
+        password = os.getenv("CITYPRINT_ADMIN_PASSWORD", "")
+        name = os.getenv("CITYPRINT_ADMIN_NAME", "管理员").strip() or "管理员"
+        if username and password:
+            create_user_record(username, password, name, True)
+            print("INFO: Initial admin created from CITYPRINT_ADMIN_USERNAME/CITYPRINT_ADMIN_PASSWORD.")
+        elif username or password:
+            raise RuntimeError(
+                "CITYPRINT_ADMIN_USERNAME and CITYPRINT_ADMIN_PASSWORD must be set together "
+                "to initialize an admin from environment variables."
+            )
+        else:
+            print("INFO: No users found. Use POST /api/bootstrap/admin to create the first admin.")
 
 
 def load_cities() -> list[dict[str, Any]]:
@@ -447,6 +467,19 @@ init_db()
 
 
 # ── 认证 ──────────────────────────────────────────────────────────────────
+@app.get("/api/bootstrap/status")
+def bootstrap_status() -> BootstrapStatusPayload:
+    return BootstrapStatusPayload(requires_admin_setup=admin_count() == 0)
+
+
+@app.post("/api/bootstrap/admin", status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
+def bootstrap_admin(request: Request, payload: UserCreate) -> dict[str, Any]:
+    if admin_count() > 0:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Admin already initialized")
+    return create_user_record(payload.username, payload.password, payload.name, True)
+
+
 @app.post("/api/auth/register", status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 def register(request: Request, payload: UserCreate) -> dict[str, Any]:

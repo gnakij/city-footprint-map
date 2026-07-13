@@ -9,8 +9,8 @@ import {
   changePassword,
   clearAllData,
   clearToken,
+  createInitialAdmin,
   createManagedUser,
-  createUser,
   deleteUser,
   deleteVisit as dbDeleteVisit,
   exportAll,
@@ -18,6 +18,7 @@ import {
   getAllVisits,
   getSettings,
   getCurrentUser,
+  getBootstrapStatus,
   hasToken,
   getUsers,
   importAll,
@@ -122,7 +123,15 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
       document.documentElement.dataset.theme = 'rose';
       if (!hasToken()) {
-        set({ users: [], adminSetupRequired: false, currentUser: null, visits: [], achievements: [], hydrated: true });
+        const bootstrap = await getBootstrapStatus();
+        set({
+          users: [],
+          adminSetupRequired: bootstrap.requires_admin_setup,
+          currentUser: null,
+          visits: [],
+          achievements: [],
+          hydrated: true,
+        });
         return;
       }
       const currentUser = await getCurrentUser();
@@ -141,7 +150,7 @@ export const useStore = create<StoreState>((set, get) => ({
       set({ toast: { icon: '!', message: '管理员用户名和密码不能为空，密码至少6位' } });
       return;
     }
-    await createUser('管理员', { username, password, is_admin: true });
+    await createInitialAdmin('管理员', { username, password });
     const admin = await verifyAdmin(username, password);
     if (!admin) {
       set({ toast: { icon: '!', message: '管理员创建后登录失败' } });

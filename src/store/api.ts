@@ -78,6 +78,10 @@ export async function getCurrentUser() {
   return request<User>('/users/me');
 }
 
+export async function getBootstrapStatus() {
+  return request<{ requires_admin_setup: boolean }>('/bootstrap/status');
+}
+
 export async function getUsers() {
   return request<User[]>('/users');
 }
@@ -105,6 +109,18 @@ export async function createManagedUser(name: string, options?: { username?: str
       password,
       name: name.trim(),
       is_admin: Boolean(options?.is_admin),
+    }),
+  });
+}
+
+export async function createInitialAdmin(name: string, options: { username: string; password: string }) {
+  return request<User>('/bootstrap/admin', {
+    method: 'POST',
+    body: JSON.stringify({
+      username: options.username.trim(),
+      password: options.password,
+      name: name.trim(),
+      is_admin: true,
     }),
   });
 }

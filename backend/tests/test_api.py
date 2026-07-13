@@ -60,6 +60,9 @@ class ASGITestClient:
 def make_client(tmp_path, monkeypatch):
     monkeypatch.setenv("CITYPRINT_DB_PATH", str(tmp_path / "cityprint-test.db"))
     monkeypatch.setenv("CITYPRINT_SECRET_KEY", "test-secret")
+    monkeypatch.delenv("CITYPRINT_ADMIN_USERNAME", raising=False)
+    monkeypatch.delenv("CITYPRINT_ADMIN_PASSWORD", raising=False)
+    monkeypatch.delenv("CITYPRINT_ADMIN_NAME", raising=False)
     monkeypatch.setattr(uuid, "uuid4", deterministic_uuid4)
     # The Codex sandbox used for these tests has no usable /dev/urandom.
     # Importing stdlib crypt can fail while passlib initializes optional
@@ -78,6 +81,16 @@ def make_client(tmp_path, monkeypatch):
     return ASGITestClient(app_module.app)
 
 
+def bootstrap_admin(client: ASGITestClient, username="admin", password="admin123456"):
+    response = client.post(
+        "/api/bootstrap/admin",
+        json={"username": username, "password": password, "name": "管理员", "is_admin": False},
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["is_admin"] is True
+    return response.json()
+
+
 def auth_headers(client: ASGITestClient, username="admin", password="admin123456"):
     response = client.post("/api/auth/login", json={"username": username, "password": password})
     assert response.status_code == 200, response.text
@@ -85,8 +98,22 @@ def auth_headers(client: ASGITestClient, username="admin", password="admin123456
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_default_admin_and_auth_flow(tmp_path, monkeypatch):
+def test_empty_db_requires_bootstrap_and_auth_flow(tmp_path, monkeypatch):
     client = make_client(tmp_path, monkeypatch)
+
+    status = client.get("/api/bootstrap/status")
+    assert status.status_code == 200
+    assert status.json()["requires_admin_setup"] is True
+
+    response = client.post("/api/auth/login", json={"username": "admin", "password": "admin123456"})
+    assert response.status_code == 401
+
+    created = bootstrap_admin(client)
+    assert created["username"] == "admin"
+
+    status = client.get("/api/bootstrap/status")
+    assert status.status_code == 200
+    assert status.json()["requires_admin_setup"] is False
 
     response = client.post("/api/auth/login", json={"username": "admin", "password": "admin123456"})
     assert response.status_code == 200
@@ -99,6 +126,12 @@ def test_default_admin_and_auth_flow(tmp_path, monkeypatch):
     me = client.get("/api/users/me", headers={"Authorization": f"Bearer {body['access_token']}"})
     assert me.status_code == 200
     assert me.json()["name"] == "管理员"
+
+    duplicate_bootstrap = client.post(
+        "/api/bootstrap/admin",
+        json={"username": "other-admin", "password": "secret123", "name": "Other"},
+    )
+    assert duplicate_bootstrap.status_code == 409
 
 
 def test_register_login_update_current_user(tmp_path, monkeypatch):
@@ -136,8 +169,31 @@ def test_public_register_cannot_create_admin(tmp_path, monkeypatch):
     assert created.json()["is_admin"] is False
 
 
+def test_bootstrap_admin_remains_available_after_public_register(tmp_path, monkeypatch):
+    client = make_client(tmp_path, monkeypatch)
+
+    user = client.post(
+        "/api/auth/register",
+        json={"username": "first-user", "password": "secret123", "name": "First User"},
+    )
+    assert user.status_code == 201
+    assert user.json()["is_admin"] is False
+
+    status = client.get("/api/bootstrap/status")
+    assert status.status_code == 200
+    assert status.json()["requires_admin_setup"] is True
+
+    admin = bootstrap_admin(client, username="owner", password="owner123456")
+    assert admin["is_admin"] is True
+
+    status = client.get("/api/bootstrap/status")
+    assert status.status_code == 200
+    assert status.json()["requires_admin_setup"] is False
+
+
 def test_admin_user_management_requires_admin(tmp_path, monkeypatch):
     client = make_client(tmp_path, monkeypatch)
+    bootstrap_admin(client)
     user = client.post(
         "/api/auth/register",
         json={"username": "bob", "password": "secret123", "name": "Bob", "is_admin": False},
@@ -211,6 +267,7 @@ def test_visits_are_scoped_to_current_user(tmp_path, monkeypatch):
 
 def test_core_input_validation_rejects_bad_city_date_theme_and_import(tmp_path, monkeypatch):
     client = make_client(tmp_path, monkeypatch)
+    bootstrap_admin(client)
     headers = auth_headers(client)
 
     bad_city = client.post(
@@ -263,6 +320,7 @@ def test_core_input_validation_rejects_bad_city_date_theme_and_import(tmp_path, 
 
 def test_data_export_import_clear_and_cities(tmp_path, monkeypatch):
     client = make_client(tmp_path, monkeypatch)
+    bootstrap_admin(client)
     headers = auth_headers(client)
 
     cities = client.get("/api/cities")
