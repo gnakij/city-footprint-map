@@ -134,6 +134,18 @@ def test_empty_db_requires_bootstrap_and_auth_flow(tmp_path, monkeypatch):
     assert duplicate_bootstrap.status_code == 409
 
 
+def test_allowed_origins_parse_defaults_and_custom_values(tmp_path, monkeypatch):
+    make_client(tmp_path, monkeypatch)
+    import backend.app as app_module
+
+    assert app_module.parse_allowed_origins(None) == app_module.DEFAULT_ALLOWED_ORIGINS
+    assert app_module.parse_allowed_origins("") == app_module.DEFAULT_ALLOWED_ORIGINS
+    assert app_module.parse_allowed_origins(" https://a.example ,,https://b.example ") == [
+        "https://a.example",
+        "https://b.example",
+    ]
+
+
 def test_register_login_update_current_user(tmp_path, monkeypatch):
     client = make_client(tmp_path, monkeypatch)
 

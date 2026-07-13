@@ -36,6 +36,12 @@ VALID_THEMES = {"rose", "stripe", "amber", "turquoise", "azure"}
 MAX_IMPORT_VISITS = 2000
 MAX_NOTES_LENGTH = 500
 _CITY_IDS_CACHE: set[str] | None = None
+DEFAULT_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://www.gnakij.top",
+    "https://gnakij.top",
+]
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer = HTTPBearer()
@@ -47,6 +53,11 @@ def now_iso() -> str:
 
 def db_path() -> Path:
     return Path(os.getenv("CITYPRINT_DB_PATH", str(DEFAULT_DB_PATH)))
+
+
+def parse_allowed_origins(raw_value: str | None) -> list[str]:
+    origins = [item.strip() for item in (raw_value or "").split(",") if item.strip()]
+    return origins or DEFAULT_ALLOWED_ORIGINS
 
 
 def get_db() -> sqlite3.Connection:
@@ -442,12 +453,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS 配置：生产环境限制为实际域名
-ALLOWED_ORIGINS = os.getenv("CITYPRINT_ALLOWED_ORIGINS", "").split(",") or [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "https://www.gnakij.top",
-    "https://gnakij.top",
-]
+ALLOWED_ORIGINS = parse_allowed_origins(os.getenv("CITYPRINT_ALLOWED_ORIGINS"))
 
 app.add_middleware(
     CORSMiddleware,
