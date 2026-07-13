@@ -1,5 +1,5 @@
 import os
-import re
+import json
 import sqlite3
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -423,24 +423,22 @@ def init_db() -> None:
 
 
 def load_cities() -> list[dict[str, Any]]:
-    cities_file = Path(__file__).resolve().parents[1] / "src" / "data" / "cities.ts"
+    cities_file = Path(__file__).resolve().parents[1] / "src" / "data" / "cities.json"
     if not cities_file.exists():
         return []
-    text = cities_file.read_text(encoding="utf-8")
+    raw = json.loads(cities_file.read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        raise RuntimeError("cities.json must contain a list")
+
+    required = {"city_id", "city_name", "province", "region", "pinyin", "level"}
     cities: list[dict[str, Any]] = []
-    for match in re.finditer(
-        r"\{\s*city_id:\s*'([^']+)'.*?city_name:\s*'([^']+)'.*?province:\s*'([^']+)'.*?region:\s*'([^']+)'.*?pinyin:\s*'([^']+)'.*?level:\s*'([^']+)'",
-        text,
-        re.DOTALL,
-    ):
-        cities.append({
-            "city_id": match.group(1),
-            "city_name": match.group(2),
-            "province": match.group(3),
-            "region": match.group(4),
-            "pinyin": match.group(5),
-            "level": match.group(6),
-        })
+    for index, item in enumerate(raw):
+        if not isinstance(item, dict):
+            raise RuntimeError(f"cities.json row {index + 1} must be an object")
+        missing = required - item.keys()
+        if missing:
+            raise RuntimeError(f"cities.json row {index + 1} missing fields: {', '.join(sorted(missing))}")
+        cities.append(dict(item))
     return cities
 
 

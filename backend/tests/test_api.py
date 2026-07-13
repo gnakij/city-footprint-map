@@ -338,6 +338,7 @@ def test_data_export_import_clear_and_cities(tmp_path, monkeypatch):
     cities = client.get("/api/cities")
     assert cities.status_code == 200
     assert any(city["city_id"] == "beijing" for city in cities.json())
+    assert next(city for city in cities.json() if city["city_id"] == "beijing")["adcode"] == 110000
 
     client.post(
         "/api/visits",
