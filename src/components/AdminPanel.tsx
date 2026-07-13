@@ -1,13 +1,13 @@
 import { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent, useEffect, useRef, useState } from 'react';
 import { createManagedUser, getUsers } from '../api';
 import { useStore } from '../store/useStore';
-import Table from './Table';
 import AdminDataPanel from './AdminDataPanel';
 import AdminDocsPanel from './AdminDocsPanel';
+import AdminUsersPanel from './AdminUsersPanel';
 import ChangelogModal, { type ChangelogEntry } from './ChangelogModal';
 import ConfirmDialog from './ConfirmDialog';
 import Modal from './Modal';
-import Icon from './Icon';
+import type { User } from '../types';
 
 export default function AdminPanel({ embedded = false }: { embedded?: boolean }) {
   const users = useStore((state) => state.users);
@@ -98,6 +98,12 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
   const removeUser = (id: string) => {
     const user = users.find((u) => u.id === id);
     if (user) setPendingDelete([{ userId: id, name: user.name }]);
+  };
+
+  const openResetPassword = (userId: string, name: string) => {
+    setPendingReset({ userId, name });
+    setResetPw('');
+    setResetConfirm('');
   };
 
   const confirmDeleteUser = () => {
@@ -191,6 +197,14 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
   const exitSelectionMode = () => {
     setSelectionMode(false);
     setSelectedIds(new Set());
+  };
+
+  const handleUserCardClick = (user: User) => {
+    if (longPressTriggered.current) {
+      longPressTriggered.current = false;
+      return;
+    }
+    if (selectionMode && !user.is_admin) toggleSelected(user.id);
   };
 
   const handleBatchDelete = () => {
@@ -287,183 +301,23 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       <div className="admin-tab-viewport">
 
       {adminTab === 'users' && (
-        <>
-          {/* 2026-06-21: 桌面端表格保持不变。移动端(768px以下)改用卡片列表
-             ——根因排查发现.data-table设了min-width:720px，是桌面表格的
-             设计思路，移动端完全没有专属断点处理，导致表格被硬塞进手机屏幕、
-             靠横向滚动适配，文字相对显得小、操作按钮也要滚动才能点到。
-             用户截图标注确认方向：调整箭头指向的用户列表（往大调），而不是
-             调小圈出的数字卡片/Tab按钮（那两处被多个场景复用，风险更大）。
-             两套结构通过.desktop-only/.mobile-only配合CSS媒体查询切换显示，
-             不用JS判断设备类型，符合项目现有的响应式风格。 */}
-          {/* 2026-06-21: 桌面表格三处整改：①用户名+@username合并同一行
-             （baseline对齐），不再纵向堆叠撑高每行；②"密码"独立列(仅含重置
-             密码按钮)与"操作"独立列(仅含删除按钮)合并为统一的"操作"列，
-             不再让同一组对用户的操作分散在两个不相邻的列里；③.users-table-wrap
-             固定高度+内部滚动，配合.data-table th的sticky，让表头无论数据
-             量多少都保持可见，不依赖用户数将来是否增长到产生滚动的程度。 */}
-          {/* 2026-06-27: 改用通用Table组件(scroll="fill")替代手写
-             table结构。父级.admin-tab-viewport是flex容器，本表格需要
-             占满它分配的剩余空间而不是用孤立的固定像素值——这正是
-             Table组件scroll='fill'模式存在的原因，机制跟之前手写的
-             .users-table-wrap完全一致，只是改名为通用的.table-wrap--fill。 */}
-          <Table
-            wrapClassName="desktop-only"
-            scroll="fill"
-            rowKey={(user) => user.id}
-            data={users}
-            columns={[
-              {
-                key: 'name',
-                header: '用户',
-                render: (user) => {
-                  const isEditing = editingNameId === user.id;
-                  /* 2026-06-26: 用户名从内联输入框改为按钮式"修改→保存/
-                     取消"，跟移动端卡片的交互完全一致（不依赖PC端才有的
-                     "失焦自动保存"隐含习惯），复用同一套editingNameId/
-                     handleNameSave/handleNameCancel状态和逻辑，不另写
-                     一套。非编辑态显示用户名+@username；编辑态显示输入框，
-                     保存/取消按钮挪到"操作"列跟重置密码/删除放在一起。 */
-                  return isEditing ? (
-                    <input
-                      className="input"
-                      value={names[user.id] ?? user.name}
-                      onChange={(event) => setNames({ ...names, [user.id]: event.target.value })}
-                      placeholder="用户名称"
-                      autoFocus
-                    />
-                  ) : (
-                    <div className="user-name-cell">
-                      <span>{names[user.id] ?? user.name}</span>
-                      {user.username && <span className="muted">@{user.username}</span>}
-                    </div>
-                  );
-                },
-              },
-              { key: 'type', header: '类型', render: (user) => (user.is_admin ? '管理员' : '普通用户') },
-              { key: 'created', header: '创建时间', render: (user) => user.created_at.slice(0, 10) },
-              {
-                key: 'actions',
-                header: '操作',
-                render: (user) => {
-                  const isEditing = editingNameId === user.id;
-                  return (
-                    <div className="row-actions">
-                      {isEditing ? (
-                        <>
-                          <button className="btn-primary compact" onClick={() => handleNameSave(user.id)}>保存</button>
-                          <button className="btn-outline compact" onClick={() => handleNameCancel(user.id, user.name)}>取消</button>
-                        </>
-                      ) : (
-                        <>
-                          <button className="btn-tertiary" onClick={() => setEditingNameId(user.id)}>修改昵称</button>
-                          <button className="btn-tertiary" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
-                          {!user.is_admin && <button className="btn-tertiary-danger" onClick={() => removeUser(user.id)}>删除</button>}
-                        </>
-                      )}
-                    </div>
-                  );
-                },
-              },
-            ]}
-          />
-
-          <div className="admin-user-cards mobile-only">
-            {users.map((user) => {
-              const isEditing = editingNameId === user.id;
-              const isChecked = selectedIds.has(user.id);
-              /* 2026-06-21: 多选模式下，整卡点击=切换勾选（管理员账号
-                 例外，不响应点击）；非多选模式下，长按进入多选，普通
-                 点击不绑定在卡片本身（点"修改"/按钮各自触发）。
-                 longPressTriggered用于区分"这次touchend/click是长按
-                 松手后的尾随事件，还是真正的点击"——长按命中后会把
-                 triggered设为true，这里检测到就直接return不处理点击，
-                 避免长按进多选模式的同时又触发了一次勾选切换。 */
-              /* 2026-06-21: 多选模式下彻底不绑定任何长按相关事件（不是
-                 "绑定了但函数内部return"，是压根不传这些props）——用户
-                 明确要求"多选状态下没有长按这件事"，要的是干净利落、没有
-                 任何长按响应的暧昧空间，不只是行为上没反应。 */
-              const handleCardClick = () => {
-                if (longPressTriggered.current) {
-                  longPressTriggered.current = false;
-                  return;
-                }
-                if (selectionMode && !user.is_admin) toggleSelected(user.id);
-              };
-              return (
-                <div
-                  key={user.id}
-                  className={`admin-user-card${isEditing || selectionMode ? '' : ' is-interactive'}${selectionMode && isChecked ? ' is-checked' : ''}`}
-                  onTouchStart={user.is_admin || selectionMode ? undefined : (e) => handleLongPressStart(e, user)}
-                  onTouchEnd={user.is_admin || selectionMode ? undefined : handleLongPressEnd}
-                  onTouchMove={user.is_admin || selectionMode ? undefined : handleLongPressMove}
-                  onMouseDown={user.is_admin || selectionMode ? undefined : (e) => handleLongPressStart(e, user)}
-                  onMouseUp={user.is_admin || selectionMode ? undefined : handleLongPressEnd}
-                  onMouseLeave={user.is_admin || selectionMode ? undefined : handleLongPressEnd}
-                  onContextMenu={(e) => e.preventDefault()}
-                  onClick={handleCardClick}
-                >
-                  {selectionMode ? (
-                    <div className="admin-user-card-select-row">
-                      <span className={`admin-user-card-checkbox${isChecked ? ' is-checked' : ''}${user.is_admin ? ' is-disabled' : ''}`}>
-                        {isChecked && <Icon name="check" />}
-                      </span>
-                      {/* 2026-06-21: 多选行原来只显示昵称，补充显示用户名
-                         (@username)解决重名分不清的问题。昵称+用户名同一行
-                         横排显示（更紧凑），标签推到最右侧对齐。 */}
-                      <div className="admin-user-card-select-info">
-                        <div className="admin-user-card-select-text">
-                          <span className="admin-user-card-name">{user.name}</span>
-                          {user.username && <span className="admin-user-card-select-username">@{user.username}</span>}
-                        </div>
-                        <span className={`admin-user-card-tag${user.is_admin ? ' is-admin' : ''}`}>{user.is_admin ? '管理员' : '普通用户'}</span>
-                      </div>
-                    </div>
-                  ) : isEditing ? (
-                    <>
-                      <div className="edit-input-row">
-                        <input
-                          className="input edit-input"
-                          value={names[user.id] ?? user.name}
-                          onChange={(event) => setNames({ ...names, [user.id]: event.target.value })}
-                          placeholder="用户名称"
-                          autoFocus
-                        />
-                      </div>
-                      <div className="card-btn-row">
-                        <button className="btn-primary compact" onClick={() => handleNameSave(user.id)}>保存</button>
-                        <button className="btn-outline compact" onClick={() => handleNameCancel(user.id, user.name)}>取消</button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="admin-user-card-head">
-                        <div className="admin-user-card-name-row">
-                          <span className="admin-user-card-name">{names[user.id] ?? user.name}</span>
-                          <button className="btn-tertiary" onClick={() => setEditingNameId(user.id)}>修改</button>
-                        </div>
-                        <span className={`admin-user-card-tag${user.is_admin ? ' is-admin' : ''}`}>{user.is_admin ? '管理员' : '普通用户'}</span>
-                      </div>
-                      <div className="admin-user-card-meta">
-                        {user.username && `@${user.username} · `}创建于 {user.created_at.slice(0, 10)}
-                      </div>
-                      {/* 2026-06-21: 常驻"删除"按钮移除（改为长按进入多选批量
-                         删除），只剩"重置密码"——不再需要撑满整行的
-                         card-btn-row布局，改为靠左、宽度刚好包裹文字的
-                         紧凑按钮(admin-user-card-action)。非管理员账号
-                         卡片下方提示"长按可批量删除"，告知这个隐藏交互
-                         的存在。 */}
-                      <div className="admin-user-card-footer">
-                        <button className="btn-tertiary" onClick={() => { setPendingReset({ userId: user.id, name: user.name }); setResetPw(''); setResetConfirm(''); }}>重置密码</button>
-                        {!user.is_admin && <span className="admin-user-card-hint">长按可批量删除</span>}
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </>
+        <AdminUsersPanel
+          users={users}
+          names={names}
+          editingNameId={editingNameId}
+          selectionMode={selectionMode}
+          selectedIds={selectedIds}
+          onNameChange={(userId, name) => setNames({ ...names, [userId]: name })}
+          onNameEdit={setEditingNameId}
+          onNameSave={handleNameSave}
+          onNameCancel={handleNameCancel}
+          onResetPassword={openResetPassword}
+          onRemoveUser={removeUser}
+          onCardClick={handleUserCardClick}
+          onLongPressStart={handleLongPressStart}
+          onLongPressMove={handleLongPressMove}
+          onLongPressEnd={handleLongPressEnd}
+        />
       )}
 
       {adminTab === 'data' && (
