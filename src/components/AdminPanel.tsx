@@ -1,12 +1,13 @@
 import { ChangeEvent, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { pinyin } from 'pinyin-pro';
 import { adminExportVisits, adminImportVisits, createManagedUser, getUsers } from '../api';
-import adminDocs from '../data/adminDocs.json';
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import FuzzySelect from './ui/FuzzySelect';
 import Table from './Table';
 import ImportPreviewTable from './ImportPreviewTable';
+import AdminDocsPanel from './AdminDocsPanel';
+import ChangelogModal, { type ChangelogEntry } from './ChangelogModal';
 import ConfirmDialog from './ConfirmDialog';
 import Modal from './Modal';
 import Icon from './Icon';
@@ -30,9 +31,6 @@ function buildPinyinMap(options: string[]): Record<string, string> {
 const LEDGER_PAGE_SIZE = 10;
 const FUZZY_SELECT_CLASSES = { dropdown: 'card', option: 'btn-outline small', activeOption: 'active' };
 type XlsxModule = typeof import('xlsx');
-type ChangelogEntry = { date: string; items: string[] };
-type DocItem = { category: string; title: string; url?: string; action?: string; last_updated: string; description: string; };
-const DOC_LIST = adminDocs as DocItem[];
 const PROVINCE_PINYIN: Record<string, string> = {
   北京: 'beijing',
   天津: 'tianjin',
@@ -907,37 +905,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       )}
 
       {adminTab === 'docs' && (
-        <div className="changelog-list">
-          {DOC_LIST.map((doc, i) => {
-            const handleEntryClick = () => {
-              if (doc.action === 'changelog') {
-                void openChangelog();
-              } else {
-                window.open(doc.url, '_blank', 'noopener,noreferrer');
-              }
-            };
-            return (
-              <div
-                key={i}
-                className="changelog-entry"
-                role="button"
-                tabIndex={0}
-                onClick={handleEntryClick}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleEntryClick(); } }}
-              >
-                <div className="changelog-date">{doc.category} · 最后更新 {doc.last_updated}</div>
-                <div className="changelog-body">
-                  {doc.action === 'changelog' ? (
-                    <a href="#" className="changelog-link" onClick={(e) => { e.preventDefault(); e.stopPropagation(); void openChangelog(); }}>{doc.title}</a>
-                  ) : (
-                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="changelog-link" onClick={(e) => e.stopPropagation()}>{doc.title}</a>
-                  )}
-                  <span className="changelog-desc">{' — '}{doc.description}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <AdminDocsPanel onOpenChangelog={() => void openChangelog()} />
       )}
 
       {pendingReset && (
@@ -998,21 +966,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       )}
 
       {showChangelog && (
-        <Modal title="系统升级记录" className="modal-wide" onClose={() => setShowChangelog(false)}>
-          <div className="changelog-list">
-            {changelog.length === 0 && <p className="muted">升级记录加载中…</p>}
-            {changelog.map((entry, i) => (
-              <div key={i} className="changelog-entry">
-                <div className="changelog-date">{entry.date}</div>
-                <ul className="changelog-items">
-                  {entry.items.map((item, j) => (
-                    <li key={j}>{j + 1}. {item}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </Modal>
+        <ChangelogModal changelog={changelog} onClose={() => setShowChangelog(false)} />
       )}
       </div>
     </>
