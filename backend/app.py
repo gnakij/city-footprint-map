@@ -1,27 +1,23 @@
 import os
 import sqlite3
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
-from passlib.context import CryptContext
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from .auth import admin_count, admin_user, create_access_token, current_user, get_user_by_id, hash_password, verify_password
 from .cities import load_cities
 from .config import (
-    ACCESS_TOKEN_EXPIRE_DAYS,
-    ALGORITHM,
     DEFAULT_ALLOWED_ORIGINS,
-    SECRET_KEY,
     parse_allowed_origins,
 )
 from .db import get_db, initialize_database
+from .serializers import row_to_user, row_to_visit
 from .schemas import (
     AchievementPayload,
     AdminDataExportPayload,
@@ -37,84 +33,16 @@ from .schemas import (
 )
 from .validation import normalize_import_visit, validate_theme
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-bearer = HTTPBearer()
-
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-# ── 数据转换 ──────────────────────────────────────────────────────────────
-def row_to_user(row: sqlite3.Row) -> dict[str, Any]:
-    """返回用户信息，不包含 password_hash"""
-    return {
-        "id": row["id"],
-        "username": row["username"],
-        "name": row["name"],
-        "is_admin": bool(row["is_admin"]),
-        "created_at": row["created_at"],
-    }
-
-
-def row_to_visit(row: sqlite3.Row) -> dict[str, Any]:
-    """只返回新模型字段，旧的 arrival_date/departure_date 不再对外暴露"""
-    result = {
-        "id": row["id"],
-        "city_id": row["city_id"],
-        "duration_days": row["duration_days"],
-        "last_stay_date": row["last_stay_date"],
-        "created_at": row["created_at"],
-        "updated_at": row["updated_at"],
-    }
-    notes = row["notes"] if "notes" in row.keys() else None
-    if notes:
-        result["notes"] = notes
-    return result
-
-
-# ── JWT ───────────────────────────────────────────────────────────────────
-def create_access_token(user_id: str) -> str:
-    expires = datetime.now(timezone.utc) + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
-    return jwt.encode({"sub": user_id, "exp": expires}, SECRET_KEY, algorithm=ALGORITHM)
-
-
-def get_user_by_id(user_id: str) -> sqlite3.Row | None:
-    with get_db() as conn:
-        return conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-
-
-def admin_count() -> int:
-    with get_db() as conn:
-        return int(conn.execute("SELECT COUNT(*) AS count FROM users WHERE is_admin = 1").fetchone()["count"])
-
-
-def current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer)) -> sqlite3.Row:
-    """验证 JWT 并返回当前登录用户"""
-    try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-    except JWTError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
-    if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    user = get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
-    return user
-
-
-def admin_user(user: sqlite3.Row = Depends(current_user)) -> sqlite3.Row:
-    if not user["is_admin"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin required")
-    return user
 
 
 # ── 用户创建辅助 ──────────────────────────────────────────────────────────
 def create_user_record(username: str, password: str, name: str, is_admin: bool) -> dict[str, Any]:
     user_id = str(uuid.uuid4())
     timestamp = now_iso()
-    password_hash = pwd_context.hash(password)
+    password_hash = hash_password(password)
     try:
         with get_db() as conn:
             conn.execute(
@@ -201,7 +129,7 @@ def register(request: Request, payload: UserCreate) -> dict[str, Any]:
 def login(request: Request, payload: LoginPayload) -> dict[str, Any]:
     with get_db() as conn:
         user = conn.execute("SELECT * FROM users WHERE username = ?", (payload.username.strip(),)).fetchone()
-    if not user or not pwd_context.verify(payload.password, user["password_hash"]):
+    if not user or not verify_password(payload.password, user["password_hash"]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
     return {"access_token": create_access_token(user["id"]), "token_type": "bearer", "user": row_to_user(user)}
 
@@ -241,7 +169,7 @@ def _update_user_record(user_id: str, payload: UserUpdate, allow_admin_change: b
     username = payload.username.strip() if payload.username is not None else user["username"]
     name = payload.name.strip() if payload.name is not None else user["name"]
     is_admin = int(payload.is_admin) if allow_admin_change and payload.is_admin is not None else user["is_admin"]
-    password_hash = pwd_context.hash(payload.password) if payload.password else user["password_hash"]
+    password_hash = hash_password(payload.password) if payload.password else user["password_hash"]
     try:
         with get_db() as conn:
             conn.execute(
