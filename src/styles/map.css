@@ -121,57 +121,18 @@
 .visit-modal { width: min(1120px, 100%); }
 .stats-modal { width: min(620px, 100%); }
 .modal-xl { width: min(1180px, 100%); min-height: 560px; }
-/* 2026-06-21: 管理员面板主弹窗专属class。
-   第一次尝试：给.modal-admin设固定min-height(680px)去对齐三个tab高度，
-   部署后用户反馈"还会跳"——根因是"用户管理"和"数据管理"两个tab的表格内容
-   随实际用户数/访问记录数动态变化(测试环境当前只有4个用户，未来会增长)，
-   任何固定数值都只是凑了当下的数据量，不是真正的解决方案。
-   改用更稳健的方案：.modal-admin本身不再需要min-height兜底，弹窗高度
-   交给.admin-tab-viewport(见下方)内部处理——tab按钮固定在外部不参与滚动，
-   三个tab的实际内容统一包进这个viewport容器，容器本身固定高度+内部
-   overflow:auto，无论内容多少都不会撑大或缩小外层弹窗，根治高度跳动，
-   不依赖任何猜测出的固定数值。 */
-/* 2026-06-21: 第二次修复——发现flex:1与固定height同时使用会冲突
-   (flex-basis默认行为下两者互相打架，浏览器表现不可预测)，且更关键的
-   根因是.modal基础定义自带overflow:auto+max-height:90vh，外层modal
-   本身就是可滚动容器，会跟内层.admin-tab-viewport的overflow-y:auto
-   抢滚动权——浏览器优先让最外层先触发滚动，内层的"固定高度让外层不变"
-   策略完全没生效，这才是用户反馈"还会跳/没生效"的真正原因。
-   修复：.modal-admin覆盖掉继承的overflow（改为hidden，不再滚动），
-   且不再使用flex，.admin-tab-viewport改为单纯固定height(不用flex:1)，
-   只让内层viewport滚动，外层modal高度由"head+tab按钮+viewport固定高度"
-   三者相加决定，是个确定值，不随内容变化。 */
-/* 2026-06-21: 第三次修复——用户反馈"用户管理tab比数据管理/系统文档高出
-   一截，跟旁边页签高度不一样"。根因：上一轮把"数字卡片+新增用户按钮"挪到
-   .admin-tab-viewport外部固定不滚动后，它们变成了在固定600px高度的
-   viewport之上"额外叠加"的内容——用户管理tab总高度=viewport 600px+这块
-   内容的高度，比只有viewport 600px的另外两个tab高出一截，这是单纯固定
-   height方案的副作用，不是新bug，是这次新增需求(数字卡片固定顶部)与
-   "三tab总高度一致"这个既有目标产生了冲突。
-   修复思路：不再靠手算"数字卡片大概占多少px"去做减法（这种猜测数值的
-   方式已经在之前几轮踩过坑，不可靠）。改用flex自动分配——给.modal-admin
-   一个总的固定高度(620px)，内部模拟管理员面板的"head+tab按钮+视口"，
-   .admin-tab-viewport改为flex:1(占据除"数字卡片+按钮"之外的所有剩余
-   空间)而不是自己设固定height，"数字卡片+新增按钮"那块按内容自然高度
-   撑开(无需任何class标记，flex子项默认行为)。这样无论该区域实际高度
-   是多少，三个tab的总高度永远等于.modal-admin的固定值，不需要手算任何
-   具体数值，也不会重演之前"flex:1与固定height混用冲突"的问题——因为这次
-   只有viewport一处用flex:1，没有同时叠加固定height。 */
-.modal-admin { display: flex; flex-direction: column; overflow: hidden; max-height: none; height: 620px; }
-/* .modal-admin直接子元素中除.admin-tab-viewport外的所有内容(modal-head/
-   mode-pill/数字卡片+新增按钮区块)都需要flex-shrink:0，确保只有viewport
-   会随剩余空间伸缩，其他内容始终保持自身实际高度，不会被flex布局意外
-   压缩变形。"数字卡片+新增按钮"区块用<>Fragment包裹不产生额外DOM节点，
-   .admin-stats和包裹新增按钮的.mb-16才是.modal-admin真正的flex直接
-   子元素，分别选中。 */
+/* 2026-07-16: 管理员面板改回内容自适应高度。此前为了避免tab切换跳动，
+   给整个弹窗固定620px高；用户少时会在"用户管理"下方留下大片空白，看起来
+   像没加载完。现在由各表格自己控制最大高度和内部滚动，外层只限制最大视口
+   高度，少内容不硬撑，多内容仍在.admin-tab-viewport里滚动。 */
+.modal-admin { display: flex; flex-direction: column; overflow: hidden; max-height: min(720px, 86vh); height: auto; }
 .modal-admin > .modal-head,
 .modal-admin > .mode-pill,
 .modal-admin > .admin-stats,
 .modal-admin > .mb-16 {
   flex-shrink: 0;
 }
-/* 2026-06-26补一处关键遗漏：该class仅在作为.modal-admin的flex子元素时写flex:1，但它本身从未被display:flex化(默认仍block)，导致它的子元素.users-table-wrap写flex:1完全无效、只能跳回按内容高度自然撑开，这是修复sticky表头一度未生效的真正根因。用Playwright读取真实渲染后DOM数据验证确认：.admin-tab-viewport作为.modal-admin的flex子元素本身正确拿到316px，但它内部的.users-table-wrap却渲染出404.5px(跳过了flex限宽约束)，说明问题不在users-table-wrap本身跟父级的flex关系上，而是这一层父容器本身根本不是flex容器。补上display:flex+flex-direction:column后，users-table-wrap才能真正被压缩到父级分到的实际高度。补充验证：改动后数据管理/系统文档两个tab的内容块本身是普通<div>、未设自身height，作为flex item默认height:auto仍按内容自然高度(不会被拉伸)，不受此改动影响。 */
-.admin-tab-viewport { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+.admin-tab-viewport { display: flex; flex-direction: column; min-height: 0; max-height: min(460px, 58vh); overflow-y: auto; }
 /* 2026-06-20: 新增min-height。这个modal内部有4个tab(个人信息/访问记录/系统管理/
    系统设置)，内容量差异很大("个人信息"只有两个输入框，"系统管理"嵌套了完整的
    表格管理界面)，.modal本身只有max-height没有min-height，导致切换tab时modal

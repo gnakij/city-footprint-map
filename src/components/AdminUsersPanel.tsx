@@ -44,7 +44,8 @@ export default function AdminUsersPanel({
     <>
       <Table
         wrapClassName="desktop-only"
-        scroll="fill"
+        scroll="fixed"
+        maxHeight={320}
         rowKey={(user) => user.id}
         data={users}
         columns={[
