@@ -9,23 +9,33 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel, ConfigDict, Field, field_validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from .cities import city_ids, load_cities
+from .cities import load_cities
 from .config import (
     ACCESS_TOKEN_EXPIRE_DAYS,
     ALGORITHM,
     DEFAULT_ALLOWED_ORIGINS,
-    MAX_IMPORT_VISITS,
-    MAX_NOTES_LENGTH,
     SECRET_KEY,
-    VALID_THEMES,
     parse_allowed_origins,
 )
 from .db import get_db, initialize_database
+from .schemas import (
+    AchievementPayload,
+    AdminDataExportPayload,
+    AdminDataImportPayload,
+    BootstrapStatusPayload,
+    ImportPayload,
+    LoginPayload,
+    SettingsPayload,
+    UserCreate,
+    UserUpdate,
+    VisitCreate,
+    VisitUpdate,
+)
+from .validation import normalize_import_visit, validate_theme
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer = HTTPBearer()
@@ -33,205 +43,6 @@ bearer = HTTPBearer()
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def validate_city_id(value: str) -> str:
-    if value not in city_ids():
-        raise ValueError("Unknown city_id")
-    return value
-
-
-def validate_date_text(value: str) -> str:
-    try:
-        parsed = datetime.strptime(value, "%Y-%m-%d")
-    except (TypeError, ValueError) as exc:
-        raise ValueError("Date must use YYYY-MM-DD format") from exc
-    if parsed.strftime("%Y-%m-%d") != value:
-        raise ValueError("Date must use YYYY-MM-DD format")
-    return value
-
-
-def validate_theme(value: str) -> str:
-    if value not in VALID_THEMES:
-        raise ValueError("Unknown theme")
-    return value
-
-
-def normalize_notes(value: str | None) -> str | None:
-    if value is None:
-        return None
-    stripped = value.strip()
-    if not stripped:
-        return None
-    if len(stripped) > MAX_NOTES_LENGTH:
-        raise ValueError(f"notes must be {MAX_NOTES_LENGTH} characters or fewer")
-    return stripped
-
-
-def import_error(index: int, message: str) -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        detail=f"Invalid import visit at row {index + 1}: {message}",
-    )
-
-
-def normalize_import_visit(visit: dict[str, Any], index: int) -> dict[str, Any]:
-    if not isinstance(visit, dict):
-        raise import_error(index, "visit must be an object")
-
-    try:
-        city_id = validate_city_id(visit["city_id"])
-    except KeyError as exc:
-        raise import_error(index, "city_id is required") from exc
-    except ValueError as exc:
-        raise import_error(index, str(exc)) from exc
-
-    if "duration_days" in visit and "last_stay_date" in visit:
-        duration = visit["duration_days"]
-        last_stay = visit["last_stay_date"]
-    elif "arrival_date" in visit and "departure_date" in visit:
-        try:
-            start = datetime.strptime(visit["arrival_date"], "%Y-%m-%d")
-            end = datetime.strptime(visit["departure_date"], "%Y-%m-%d")
-            duration = max((end - start).days + 1, 1)
-            last_stay = visit["departure_date"]
-        except (TypeError, ValueError) as exc:
-            raise import_error(index, "arrival_date/departure_date must use YYYY-MM-DD format") from exc
-    else:
-        raise import_error(index, "duration_days and last_stay_date are required")
-
-    if not isinstance(duration, int) or duration < 1:
-        raise import_error(index, "duration_days must be a positive integer")
-    try:
-        last_stay = validate_date_text(last_stay)
-        notes = normalize_notes(visit.get("notes"))
-    except ValueError as exc:
-        raise import_error(index, str(exc)) from exc
-
-    return {
-        "id": visit.get("id") or str(uuid.uuid4()),
-        "city_id": city_id,
-        "duration_days": duration,
-        "last_stay_date": last_stay,
-        "notes": notes,
-        "created_at": visit.get("created_at"),
-        "updated_at": visit.get("updated_at"),
-    }
-
-
-# ── Pydantic 模型 ─────────────────────────────────────────────────────────
-class UserCreate(BaseModel):
-    username: str = Field(min_length=1)
-    password: str = Field(min_length=6)
-    name: str = Field(min_length=1)
-    is_admin: bool = False
-
-
-class LoginPayload(BaseModel):
-    username: str
-    password: str
-
-
-class UserUpdate(BaseModel):
-    username: str | None = None
-    password: str | None = Field(default=None, min_length=6)
-    name: str | None = None
-    is_admin: bool | None = None
-
-
-class BootstrapStatusPayload(BaseModel):
-    requires_admin_setup: bool
-
-
-# ── 访问记录模型：改为「时长 + 最后停留日期」，不再要求精确到达日期 ────────
-class VisitCreate(BaseModel):
-    city_id: str
-    duration_days: int = Field(ge=1, description="估算停留天数，无需精确")
-    last_stay_date: str = Field(description="最后一次停留的日期 YYYY-MM-DD")
-    notes: str | None = None
-
-    @field_validator("city_id")
-    @classmethod
-    def city_id_exists(cls, value: str) -> str:
-        return validate_city_id(value)
-
-    @field_validator("last_stay_date")
-    @classmethod
-    def last_stay_date_is_date(cls, value: str) -> str:
-        return validate_date_text(value)
-
-    @field_validator("notes")
-    @classmethod
-    def notes_are_reasonable(cls, value: str | None) -> str | None:
-        return normalize_notes(value)
-
-
-class VisitUpdate(BaseModel):
-    city_id: str | None = None
-    duration_days: int | None = Field(default=None, ge=1)
-    last_stay_date: str | None = None
-    notes: str | None = None
-
-    @field_validator("city_id")
-    @classmethod
-    def city_id_exists(cls, value: str | None) -> str | None:
-        return validate_city_id(value) if value is not None else None
-
-    @field_validator("last_stay_date")
-    @classmethod
-    def last_stay_date_is_date(cls, value: str | None) -> str | None:
-        return validate_date_text(value) if value is not None else None
-
-    @field_validator("notes")
-    @classmethod
-    def notes_are_reasonable(cls, value: str | None) -> str | None:
-        return normalize_notes(value)
-
-
-class SettingsPayload(BaseModel):
-    theme: str = "rose"
-
-    @field_validator("theme")
-    @classmethod
-    def theme_is_supported(cls, value: str) -> str:
-        return validate_theme(value)
-
-
-class AchievementPayload(BaseModel):
-    achievement_id: str
-
-
-class ImportPayload(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    version: str | None = None
-    exported_at: str | None = None
-    visits: list[dict[str, Any]] = Field(default_factory=list)
-    achievements: list[str] = Field(default_factory=list)
-    settings: dict[str, Any] = Field(default_factory=lambda: {"theme": "rose"})
-
-    @field_validator("visits")
-    @classmethod
-    def import_size_is_reasonable(cls, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        if len(value) > MAX_IMPORT_VISITS:
-            raise ValueError(f"visits may contain at most {MAX_IMPORT_VISITS} records")
-        return value
-
-
-class AdminDataExportPayload(BaseModel):
-    user_ids: list[str]
-
-
-class AdminDataImportPayload(BaseModel):
-    user_id: str
-    visits: list[VisitCreate]
-
-    @field_validator("visits")
-    @classmethod
-    def import_size_is_reasonable(cls, value: list[VisitCreate]) -> list[VisitCreate]:
-        if len(value) > MAX_IMPORT_VISITS:
-            raise ValueError(f"visits may contain at most {MAX_IMPORT_VISITS} records")
-        return value
 
 
 # ── 数据转换 ──────────────────────────────────────────────────────────────
