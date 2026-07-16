@@ -188,15 +188,15 @@
 .changelog-modal .changelog-entry {
   cursor: default;
   gap: var(--space-2);
-  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
-  border-color: color-mix(in srgb, var(--color-outline-variant) 70%, transparent);
+  background: var(--color-surface);
+  border-color: var(--color-outline-variant);
   padding: var(--space-4);
   box-shadow: none;
 }
 
 .changelog-modal .changelog-entry:hover,
 .changelog-modal .changelog-entry:focus-visible {
-  border-color: color-mix(in srgb, var(--color-outline-variant) 70%, transparent);
+  border-color: var(--color-outline-variant);
   box-shadow: none;
 }
 
@@ -287,14 +287,21 @@
 .muted { color: var(--color-on-surface-variant); margin: var(--space-1) 0; line-height: 1.5; }
 .danger-text { color: var(--color-error); }
 .sort-pill { width: max-content; margin-bottom: var(--space-3); }
-.table-wrap { border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-panel); }
+.table-wrap {
+  background: var(--color-background);
+  border: var(--space-xs) solid var(--color-outline-variant);
+  border-radius: var(--radius-panel);
+}
 .table-wrap.compact { max-height: 220px; }
 /* 2026-06-27: 原来两处导入预览表(AdminPanel/UserProfile)各自用内联style硬编码color-mix来标记重复/错误行，抽成ImportPreviewTable组件时改用class，不在TSX里散落硬编码颜色值。 */
 .data-table tr.is-row-warning { background: color-mix(in srgb, #f59e0b 12%, transparent); }
 .data-table tr.is-row-error { background: color-mix(in srgb, var(--color-error) 10%, transparent); }
 /* sticky表头背景需要完全不透明（不能是带tint的混色变量），否则滚动时
    下方内容的文字会透过表头隐约可见，sticky的视觉效果大打折扣。 */
-.data-table th { position: sticky; top: 0; background: var(--color-surface-container-low); z-index: 1; }
+.data-table { background: var(--color-background); }
+.data-table th { position: sticky; top: 0; background: var(--color-background); z-index: 1; }
+.data-table td { background: var(--color-background); }
+.data-table tbody tr:hover td { background: var(--color-surface-container-low); }
 /* 2026-06-21: 用户名+用户名(@username)合并为同一行展示（参照移动端
    多选行的同款处理），避免纵向堆叠把每一行撑高、放大了"行很宽"的视觉
    压迫感。操作列合并"重置密码"+"删除"为同一列，去掉原本各占一列、

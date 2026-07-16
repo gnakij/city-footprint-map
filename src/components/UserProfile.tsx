@@ -91,6 +91,7 @@ export default function UserProfile() {
   const [showStats, setShowStats] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
+  const [showImportTools, setShowImportTools] = useState(false);
   const [preview, setPreview] = useState<ImportVisitRow[]>([]);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [visitPage, setVisitPage] = useState(1);
@@ -362,19 +363,31 @@ export default function UserProfile() {
             {/* 操作按钮行 */}
             <div className="actions">
               <button className="btn-primary" onClick={() => setShowForm(true)}><Icon name="plus" /> 添加访问</button>
-              <button className="btn-outline" onClick={() => fileRef.current?.click()}><Icon name="download" /> 导入数据</button>
-              <button className="btn-outline" onClick={() => void download()}><Icon name="upload" /> 导出数据</button>
-              <button className="btn-outline" onClick={() => void downloadTemplate()}><Icon name="download" /> 下载模板</button>
+              <button className="btn-outline" onClick={() => void download()}><Icon name="upload" /> 导出当前数据</button>
+              <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
               <button className="btn-danger" onClick={() => setClearConfirmOpen(true)}>清空所有数据</button>
               <button className="btn-outline" onClick={() => setShowStats(true)} style={{ marginLeft: 'auto' }}><Icon name="chart" /> 统计</button>
             </div>
+
+            {showImportTools && (
+              <div className="card p-16">
+                <div className="form-row">
+                  <span className="label-sm">数据导入</span>
+                  <div className="actions flex-wrap">
+                    <button className="btn-primary" onClick={() => fileRef.current?.click()}><Icon name="download" /> 选择文件</button>
+                    <button className="btn-outline" onClick={() => void downloadTemplate()}><Icon name="download" /> 下载模板</button>
+                  </div>
+                  <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={onFile} />
+                </div>
+              </div>
+            )}
 
             {preview.length > 0 && (
               <div className="import-preview card">
                 <div className="panel-title">
                   <strong>导入预览</strong>
                   <span className="muted">
-                    <Icon name="check" /> 有效 {preview.filter((row) => !row.error).length} 行 / <Icon name="warning" /> 跳过 {preview.filter((row) => row.error === '城市已存在').length} 行 / <Icon name="error" /> 错误 {preview.filter((row) => row.error && row.error !== '城市已存在').length} 行
+                    ✅ 有效 {preview.filter((row) => !row.error).length} 行 / ⚠️ 跳过 {preview.filter((row) => row.error === '城市已存在').length} 行 / ❌ 错误 {preview.filter((row) => row.error && row.error !== '城市已存在').length} 行
                   </span>
                 </div>
                 {/* 2026-06-27: 改用通用ImportPreviewTable组件，跟AdminPanel.tsx
@@ -513,8 +526,6 @@ export default function UserProfile() {
                 </div>
               </div>
             )}
-
-            <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={onFile} />
           </div>
         )}
 
