@@ -18,6 +18,7 @@ from .config import (
 from .db import get_db, initialize_database
 from .serializers import row_to_user, row_to_visit
 from .services.users import create_user_record, delete_user_record, list_user_records, update_user_record
+from .services.visits import create_visit_record, delete_visit_record, list_visit_records, update_visit_record
 from .schemas import (
     AchievementPayload,
     AdminDataExportPayload,
@@ -147,60 +148,23 @@ def delete_user(user_id: str, admin: sqlite3.Row = Depends(admin_user)) -> Respo
 @app.get("/api/visits")
 def list_visits(user: sqlite3.Row = Depends(current_user)) -> list[dict[str, Any]]:
     """返回当前登录用户的所有访问记录，按最后停留日期倒序"""
-    with get_db() as conn:
-        rows = conn.execute(
-            "SELECT * FROM visits WHERE user_id = ? ORDER BY last_stay_date DESC, created_at DESC",
-            (user["id"],),
-        ).fetchall()
-    return [row_to_visit(row) for row in rows]
+    return list_visit_records(user["id"])
 
 
 @app.post("/api/visits", status_code=status.HTTP_201_CREATED)
 def create_visit(payload: VisitCreate, user: sqlite3.Row = Depends(current_user)) -> dict[str, Any]:
     """新增一条停留记录。不再校验日期区间重叠 —— 同一城市允许任意多条粗粒度记录。"""
-    timestamp = now_iso()
-    visit_id = str(uuid.uuid4())
-    with get_db() as conn:
-        conn.execute(
-            "INSERT INTO visits (id, user_id, city_id, duration_days, last_stay_date, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (visit_id, user["id"], payload.city_id, payload.duration_days, payload.last_stay_date,
-             payload.notes, timestamp, timestamp),
-        )
-        row = conn.execute("SELECT * FROM visits WHERE id = ?", (visit_id,)).fetchone()
-    return row_to_visit(row)
+    return create_visit_record(payload, user["id"])
 
 
 @app.put("/api/visits/{visit_id}")
 def update_visit(visit_id: str, payload: VisitUpdate, user: sqlite3.Row = Depends(current_user)) -> dict[str, Any]:
-    with get_db() as conn:
-        existing = conn.execute(
-            "SELECT * FROM visits WHERE id = ? AND user_id = ?", (visit_id, user["id"])
-        ).fetchone()
-        if not existing:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Visit not found")
-        duration = payload.duration_days if payload.duration_days is not None else existing["duration_days"]
-        last_stay = payload.last_stay_date if payload.last_stay_date is not None else existing["last_stay_date"]
-        notes = payload.notes if "notes" in payload.model_fields_set else existing["notes"]
-        conn.execute(
-            "UPDATE visits SET city_id = ?, duration_days = ?, last_stay_date = ?, notes = ?, updated_at = ? WHERE id = ? AND user_id = ?",
-            (payload.city_id or existing["city_id"], duration, last_stay,
-             notes,
-             now_iso(), visit_id, user["id"]),
-        )
-        row = conn.execute("SELECT * FROM visits WHERE id = ? AND user_id = ?", (visit_id, user["id"])).fetchone()
-    return row_to_visit(row)
+    return update_visit_record(visit_id, payload, user["id"])
 
 
 @app.delete("/api/visits/{visit_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_visit(visit_id: str, user: sqlite3.Row = Depends(current_user)) -> Response:
-    with get_db() as conn:
-        existing = conn.execute(
-            "SELECT id FROM visits WHERE id = ? AND user_id = ?", (visit_id, user["id"])
-        ).fetchone()
-        if not existing:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Visit not found")
-        conn.execute("DELETE FROM visits WHERE id = ? AND user_id = ?", (visit_id, user["id"]))
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return delete_visit_record(visit_id, user["id"])
 
 
 # ── 城市数据 ──────────────────────────────────────────────────────────────
