@@ -46,11 +46,4 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
-
-
-@app.on_event("startup")
-def startup() -> None:
-    init_db()
-
-
 init_db()
