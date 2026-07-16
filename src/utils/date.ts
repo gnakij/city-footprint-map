@@ -7,7 +7,11 @@ import type { VisitRecord } from '../types';
 export function visitDays(record: Pick<VisitRecord, 'duration_days'>) {
   const days = record.duration_days;
   if (!Number.isFinite(days) || days < 1) return 0;
-  return Math.floor(days);
+  return Number.isInteger(days) ? days : 0;
+}
+
+export function todayLocalDateText(date = new Date()) {
+  return formatLocalDate(date);
 }
 
 export function daysSinceDate(dateText: string, now = new Date()) {

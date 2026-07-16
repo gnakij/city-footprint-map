@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator
 
 from .config import MAX_IMPORT_VISITS
 from .validation import normalize_notes, validate_city_id, validate_date_text, validate_theme
@@ -31,7 +31,7 @@ class BootstrapStatusPayload(BaseModel):
 
 class VisitCreate(BaseModel):
     city_id: str
-    duration_days: int = Field(ge=1, description="估算停留天数，无需精确")
+    duration_days: StrictInt = Field(ge=1, description="估算停留天数，无需精确")
     last_stay_date: str = Field(description="最后一次停留的日期 YYYY-MM-DD")
     notes: str | None = None
 
@@ -53,7 +53,7 @@ class VisitCreate(BaseModel):
 
 class VisitUpdate(BaseModel):
     city_id: str | None = None
-    duration_days: int | None = Field(default=None, ge=1)
+    duration_days: StrictInt | None = Field(default=None, ge=1)
     last_stay_date: str | None = None
     notes: str | None = None
 

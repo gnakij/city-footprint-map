@@ -3,15 +3,16 @@ import DateInput from './ui/DateInput';
 import Icon from './Icon';
 import type { CityData, VisitRecord } from '../types';
 import { useStore } from '../store/useStore';
-import { visitDays } from '../utils/date';
+import { todayLocalDateText, visitDays } from '../utils/date';
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => todayLocalDateText();
 
 export default function CityDrawer({ city }: { city: CityData }) {
   const visits = useStore((state) => state.visits);
   const saveVisit = useStore((state) => state.saveVisit);
   const deleteVisit = useStore((state) => state.deleteVisit);
   const setDrawerOpen = useStore((state) => state.setDrawerOpen);
+  const showToast = useStore((state) => state.showToast);
   const cityVisits = useMemo(() => visits.filter((record) => record.city_id === city.city_id), [city.city_id, visits]);
   const totalDays = useMemo(() => cityVisits.reduce((sum, record) => sum + visitDays(record), 0), [cityVisits]);
   const [editing, setEditing] = useState<VisitRecord | null>(null);
@@ -38,9 +39,15 @@ export default function CityDrawer({ city }: { city: CityData }) {
 
   const submit = async () => {
     const days = Number(duration);
-    if (!days || days < 1) return;
-    if (!lastStay) return;
-    if (await saveVisit(city, { id: editing?.id, duration_days: Math.floor(days), last_stay_date: lastStay, notes })) {
+    if (!Number.isInteger(days) || days < 1) {
+      showToast({ icon: '!', message: '停留天数必须是至少 1 天的整数' });
+      return;
+    }
+    if (!lastStay) {
+      showToast({ icon: '!', message: '请选择最后停留日期' });
+      return;
+    }
+    if (await saveVisit(city, { id: editing?.id, duration_days: days, last_stay_date: lastStay, notes })) {
       resetForm();
     }
   };

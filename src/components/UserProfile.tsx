@@ -15,7 +15,7 @@ import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import { updateMe } from '../store/api';
 import type { ImportVisitRow, VisitRecord } from '../types';
-import { formatLocalDate, isValidDateText, visitDays } from '../utils/date';
+import { formatLocalDate, isValidDateText, todayLocalDateText, visitDays } from '../utils/date';
 import { GIFT_MODE } from '../config';
 
 type ProfileTab = 'profile' | 'visits';
@@ -23,7 +23,7 @@ const FUZZY_SELECT_CLASSES = { dropdown: 'card', option: 'btn-outline small', ac
 const VISIT_PAGE_SIZE = 10;
 type XlsxModule = typeof import('xlsx');
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => todayLocalDateText();
 
 function normalize(value: unknown) {
   return String(value ?? '').trim();
@@ -157,11 +157,11 @@ export default function UserProfile() {
   const submitVisit = async () => {
     if (!cityId) { showToast({ icon: '!', message: '请选择城市' }); return; }
     const days = Number(duration);
-    if (!days || days < 1) { showToast({ icon: '!', message: '请填写停留天数（至少1天）' }); return; }
+    if (!Number.isInteger(days) || days < 1) { showToast({ icon: '!', message: '停留天数必须是至少 1 天的整数' }); return; }
     if (!lastStay) { showToast({ icon: '!', message: '请选择最后停留日期' }); return; }
     const city = CITIES.find((c) => c.city_id === cityId);
     if (!city) return;
-    if (await saveVisit(city, { id: editingVisit?.id, duration_days: Math.floor(days), last_stay_date: lastStay, notes })) {
+    if (await saveVisit(city, { id: editingVisit?.id, duration_days: days, last_stay_date: lastStay, notes })) {
       resetForm();
     }
   };
@@ -364,8 +364,8 @@ export default function UserProfile() {
               <button className="btn-primary" onClick={() => setShowForm(true)}><Icon name="plus" /> 添加访问</button>
               {!GIFT_MODE && (
                 <>
-                  <button className="btn-outline" onClick={() => void download()}><Icon name="upload" /> 导出当前数据</button>
-                  <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
+                  <button className="btn-outline" onClick={() => void download()}><Icon name="download" /> 导出当前数据</button>
+                  <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="upload" /> 导入数据</button>
                 </>
               )}
               <button className="btn-danger" onClick={() => setClearConfirmOpen(true)}>清空所有数据</button>
@@ -379,7 +379,7 @@ export default function UserProfile() {
                   <span className="muted">导入到当前用户</span>
                 </div>
                 <div className="import-tools-row">
-                  <button className="btn-primary" onClick={() => fileRef.current?.click()}><Icon name="download" /> 选择文件</button>
+                  <button className="btn-primary" onClick={() => fileRef.current?.click()}><Icon name="upload" /> 选择文件</button>
                   <button className="btn-outline" onClick={() => void downloadTemplate()}><Icon name="download" /> 下载模板</button>
                   <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={onFile} />
                 </div>

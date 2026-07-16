@@ -363,8 +363,8 @@ export default function AdminDataPanel({ users, onStatsRefresh }: { users: User[
           </button>
           {!GIFT_MODE && (
             <>
-              <button className="btn-outline" onClick={() => void downloadCurrentLedger()}><Icon name="upload" /> 导出当前视图</button>
-              <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
+              <button className="btn-outline" onClick={() => void downloadCurrentLedger()}><Icon name="download" /> 导出当前视图</button>
+              <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="upload" /> 导入数据</button>
             </>
           )}
         </div>
@@ -383,7 +383,7 @@ export default function AdminDataPanel({ users, onStatsRefresh }: { users: User[
                   <option key={user.id} value={user.id}>{user.username || user.name} · {user.name}</option>
                 ))}
               </select>
-              <button className="btn-primary" onClick={() => importFileRef.current?.click()}><Icon name="download" /> 选择文件</button>
+              <button className="btn-primary" onClick={() => importFileRef.current?.click()}><Icon name="upload" /> 选择文件</button>
               <button className="btn-outline" onClick={() => void downloadAdminTemplate()}><Icon name="download" /> 下载模板</button>
             <input ref={importFileRef} type="file" accept=".xlsx" hidden onChange={onImportFile} />
           </div>

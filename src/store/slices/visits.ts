@@ -20,15 +20,15 @@ export function createVisitsSlice(set: StoreSet, get: StoreGet): VisitsSlice {
       const state = get();
       if (!state.currentUser) { set({ toast: { icon: '!', message: '请先登录或选择用户' } }); return false; }
       if (!input.last_stay_date) { set({ toast: { icon: '!', message: '请填写最后停留日期' } }); return false; }
-      if (!Number.isFinite(input.duration_days) || input.duration_days < 1) {
-        set({ toast: { icon: '!', message: '停留天数至少为 1 天' } });
+      if (!Number.isInteger(input.duration_days) || input.duration_days < 1) {
+        set({ toast: { icon: '!', message: '停留天数必须是至少 1 天的整数' } });
         return false;
       }
       const existing = input.id ? state.visits.find((record) => record.id === input.id) : undefined;
       const now = nowIso();
       const record = {
         city_id: city.city_id,
-        duration_days: Math.floor(input.duration_days),
+        duration_days: input.duration_days,
         last_stay_date: input.last_stay_date,
         notes: input.notes?.trim() || undefined,
         created_at: existing?.created_at ?? now,

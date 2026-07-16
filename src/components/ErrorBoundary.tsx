@@ -30,22 +30,18 @@ export default class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
       return (
-        <div className="p-32 text-center">
+        <div className="loading-page">
+          <div className="login-bg" />
+          <section className="card empty-state">
           <h2>出错了</h2>
-          <p>应用遇到了意外错误。</p>
+          <p className="muted">应用遇到了意外错误，请刷新后重试。</p>
           <button
+            className="btn-primary"
             onClick={() => window.location.reload()}
-            style={{
-              marginTop: '1rem',
-              padding: '0.5rem 1rem',
-              cursor: 'pointer',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              background: '#fff',
-            }}
           >
             刷新页面
           </button>
+          </section>
         </div>
       );
     }

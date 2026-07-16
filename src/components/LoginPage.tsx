@@ -38,7 +38,18 @@ export default function LoginPage() {
 
   const submitAdmin = async (event: FormEvent) => {
     event.preventDefault();
-    if (!username.trim() || password.length < 6) { useStore.getState().showToast({ icon: '!', message: '密码至少6位' }); return; }
+    if (!username.trim()) {
+      useStore.getState().showToast({ icon: '!', message: '请填写用户名' });
+      return;
+    }
+    if (!password) {
+      useStore.getState().showToast({ icon: '!', message: '请填写密码' });
+      return;
+    }
+    if (adminSetupRequired && password.length < 6) {
+      useStore.getState().showToast({ icon: '!', message: '密码至少6位' });
+      return;
+    }
     setLoading(true);
     try {
       if (adminSetupRequired) await setupAdmin(username, password);
@@ -50,7 +61,14 @@ export default function LoginPage() {
 
   const submitUser = async (event: FormEvent) => {
     event.preventDefault();
-    if (!username.trim() || !password) return;
+    if (!username.trim()) {
+      useStore.getState().showToast({ icon: '!', message: '请填写用户名' });
+      return;
+    }
+    if (!password) {
+      useStore.getState().showToast({ icon: '!', message: '请填写密码' });
+      return;
+    }
     setLoading(true);
     try {
       await loginUser(username, password);
@@ -100,7 +118,7 @@ export default function LoginPage() {
             <div className="form-row">
               <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="至少6位" />
             </div>
-            <button className="btn-primary login-btn" type="submit" disabled={loading} onClick={(e) => { e.preventDefault(); submitAdmin(e); }}>
+            <button className="btn-primary login-btn" type="submit" disabled={loading}>
               {loading ? '创建中...' : '创建管理员并进入'}
             </button>
           </form>
@@ -147,7 +165,7 @@ export default function LoginPage() {
             <div className="form-row">
               <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码" />
             </div>
-            <button className="btn-primary login-btn" type="submit" disabled={loading} onClick={(e) => { e.preventDefault(); submitUser(e); }}>
+            <button className="btn-primary login-btn" type="submit" disabled={loading}>
               {loading ? '登录中...' : '登录'}
             </button>
             <div className="login-link-row">
@@ -173,7 +191,7 @@ export default function LoginPage() {
             <div className="form-row">
               <input className="input" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="确认密码" />
             </div>
-            <button className="btn-primary login-btn" type="submit" disabled={loading} onClick={(e) => { e.preventDefault(); submitRegister(e); }}>
+            <button className="btn-primary login-btn" type="submit" disabled={loading}>
               {loading ? '注册中...' : '注册'}
             </button>
             <div className="login-link-row">
@@ -193,7 +211,7 @@ export default function LoginPage() {
             <div className="form-row">
               <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码" />
             </div>
-            <button className="btn-primary login-btn" type="submit" disabled={loading} onClick={(e) => { e.preventDefault(); submitAdmin(e); }}>
+            <button className="btn-primary login-btn" type="submit" disabled={loading}>
               {loading ? '登录中...' : '登录'}
             </button>
           </form>
