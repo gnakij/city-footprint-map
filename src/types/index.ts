@@ -66,6 +66,9 @@ export interface User {
 }
 
 export interface ImportVisitRow {
+  username?: string;
+  name?: string;
+  target_user_id?: string;
   province: string;
   city: string;
   duration_days: number;

@@ -370,13 +370,14 @@ export default function UserProfile() {
             </div>
 
             {showImportTools && (
-              <div className="card p-16">
-                <div className="form-row">
-                  <span className="label-sm">数据导入</span>
-                  <div className="actions flex-wrap">
-                    <button className="btn-primary" onClick={() => fileRef.current?.click()}><Icon name="download" /> 选择文件</button>
-                    <button className="btn-outline" onClick={() => void downloadTemplate()}><Icon name="download" /> 下载模板</button>
-                  </div>
+              <div className="card import-tools-card">
+                <div className="panel-title">
+                  <strong>数据导入</strong>
+                  <span className="muted">导入到当前用户</span>
+                </div>
+                <div className="import-tools-row">
+                  <button className="btn-primary" onClick={() => fileRef.current?.click()}><Icon name="download" /> 选择文件</button>
+                  <button className="btn-outline" onClick={() => void downloadTemplate()}><Icon name="download" /> 下载模板</button>
                   <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={onFile} />
                 </div>
               </div>

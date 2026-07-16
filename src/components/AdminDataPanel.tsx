@@ -115,12 +115,19 @@ export default function AdminDataPanel({ users, onStatsRefresh }: { users: User[
   });
   const [ledgerPage, setLedgerPage] = useState(1);
   const [showImportTools, setShowImportTools] = useState(false);
-  const [targetUserId, setTargetUserId] = useState(users[0]?.id ?? '');
+  const [targetUserId, setTargetUserId] = useState('');
   const [importPreview, setImportPreview] = useState<ImportVisitRow[]>([]);
   const importFileRef = useRef<HTMLInputElement>(null);
 
   const cityById = useMemo(() => new Map(CITIES.map((city) => [city.city_id, city])), []);
   const targetUser = users.find((user) => user.id === targetUserId);
+  const userByUsername = useMemo(() => {
+    const map = new Map<string, User>();
+    for (const user of users) {
+      if (user.username) map.set(user.username.trim().toLowerCase(), user);
+    }
+    return map;
+  }, [users]);
   const usernameOptions = useMemo(() => {
     return Array.from(new Set(allVisits.map((visit) => visit.username).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
@@ -177,8 +184,7 @@ export default function AdminDataPanel({ users, onStatsRefresh }: { users: User[
   }, [appliedFilters]);
 
   useEffect(() => {
-    if (!targetUserId && users[0]) setTargetUserId(users[0].id);
-    if (targetUserId && !users.some((user) => user.id === targetUserId)) setTargetUserId(users[0]?.id ?? '');
+    if (targetUserId && !users.some((user) => user.id === targetUserId)) setTargetUserId('');
   }, [targetUserId, users]);
 
   useEffect(() => {
@@ -205,8 +211,8 @@ export default function AdminDataPanel({ users, onStatsRefresh }: { users: User[
 
   const downloadAdminTemplate = async () => {
     await writeAdminWorkbook('城市足迹导入模板.xlsx', [{
-      用户名: targetUser?.username ?? '',
-      昵称: targetUser?.name ?? '',
+      用户名: targetUser?.username ?? users[0]?.username ?? '',
+      昵称: targetUser?.name ?? users[0]?.name ?? '',
       省份: '广东',
       城市: '广州',
       停留天数: 365,
@@ -218,56 +224,78 @@ export default function AdminDataPanel({ users, onStatsRefresh }: { users: User[
   const onImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!targetUserId) {
-      useStore.getState().showToast({ icon: '!', message: '请选择导入目标用户' });
-      event.target.value = '';
-      return;
-    }
 
     const xlsx = await import('xlsx');
     const [workbook, existingData] = await Promise.all([
       file.arrayBuffer().then((buffer) => xlsx.read(buffer, { type: 'array', cellDates: true })),
-      adminExportVisits([targetUserId]),
+      adminExportVisits(targetUserId ? [targetUserId] : users.map((user) => user.id)),
     ]);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const records = xlsx.utils.sheet_to_json<Record<string, unknown>>(sheet);
-    const existingCityIds = new Set(existingData.visits.map((visit) => visit.city_id));
-    const seenCityIds = new Set<string>();
+    const existingCityIdsByUser = new Map<string, Set<string>>();
+    for (const visit of existingData.visits) {
+      const set = existingCityIdsByUser.get(visit.user_id) ?? new Set<string>();
+      set.add(visit.city_id);
+      existingCityIdsByUser.set(visit.user_id, set);
+    }
+    const seenCityIdsByUser = new Map<string, Set<string>>();
 
     setImportPreview(records.map((record) => {
+      const username = normalize(record['用户名']);
+      const explicitUser = targetUserId ? targetUser : userByUsername.get(username.toLowerCase());
       const province = normalize(record['省份']);
       const city = normalize(record['城市']);
       const duration_days = numberValue(record['停留天数']);
       const last_stay_date = dateValue(record['最后停留日期'], xlsx);
       const notesValue = normalize(record['备注']);
       const matched = city ? findCity(province, city) : undefined;
-      const row: ImportVisitRow = { province, city, duration_days, last_stay_date, notes: notesValue || undefined, city_id: matched?.city_id };
-      if (!city) row.error = '城市必填';
+      const row: ImportVisitRow = {
+        username: targetUserId ? targetUser?.username : username,
+        name: targetUserId ? targetUser?.name : explicitUser?.name,
+        target_user_id: explicitUser?.id,
+        province,
+        city,
+        duration_days,
+        last_stay_date,
+        notes: notesValue || undefined,
+        city_id: matched?.city_id,
+      };
+      if (!targetUserId && !username) row.error = '用户名必填';
+      else if (!explicitUser) row.error = '用户未匹配';
+      else if (!city) row.error = '城市必填';
       else if (!matched) row.error = '城市未匹配';
       else if (!Number.isFinite(duration_days) || !Number.isInteger(duration_days) || duration_days < 1) row.error = '停留天数无效';
       else if (!isValidDateText(last_stay_date)) row.error = '日期无效';
-      else if (existingCityIds.has(matched.city_id)) row.error = '城市已存在';
-      else if (seenCityIds.has(matched.city_id)) row.error = '文件内重复';
-      if (matched) seenCityIds.add(matched.city_id);
+      else if (existingCityIdsByUser.get(explicitUser.id)?.has(matched.city_id)) row.error = '城市已存在';
+      else if (seenCityIdsByUser.get(explicitUser.id)?.has(matched.city_id)) row.error = '文件内重复';
+      if (matched && explicitUser) {
+        const set = seenCityIdsByUser.get(explicitUser.id) ?? new Set<string>();
+        set.add(matched.city_id);
+        seenCityIdsByUser.set(explicitUser.id, set);
+      }
       return row;
     }));
     event.target.value = '';
   };
 
   const confirmAdminImport = async () => {
-    if (!targetUserId) {
-      useStore.getState().showToast({ icon: '!', message: '请选择导入目标用户' });
-      return;
+    const rowsByUser = new Map<string, ImportVisitRow[]>();
+    for (const row of importPreview.filter((item) => !item.error && item.city_id && item.target_user_id)) {
+      const rows = rowsByUser.get(row.target_user_id as string) ?? [];
+      rows.push(row);
+      rowsByUser.set(row.target_user_id as string, rows);
     }
-    const validRows = importPreview.filter((row) => !row.error && row.city_id);
-    const result = await adminImportVisits(targetUserId, validRows.map((row) => ({
-      city_id: row.city_id as string,
-      duration_days: row.duration_days,
-      last_stay_date: row.last_stay_date,
-      notes: row.notes,
-    })));
+    const results = await Promise.all(Array.from(rowsByUser.entries()).map(([userId, rows]) => (
+      adminImportVisits(userId, rows.map((row) => ({
+        city_id: row.city_id as string,
+        duration_days: row.duration_days,
+        last_stay_date: row.last_stay_date,
+        notes: row.notes,
+      })))
+    )));
+    const insertedCount = results.reduce((sum, result) => sum + result.inserted_count, 0);
     setImportPreview([]);
-    useStore.getState().showToast({ icon: '✓', message: `已导入 ${result.inserted_count} 条访问记录` });
+    useStore.getState().showToast({ icon: '✓', message: `已导入 ${insertedCount} 条访问记录` });
     onStatsRefresh();
     void adminExportVisits(users.map((user) => user.id)).then((data) => setAllVisits(data.visits));
   };
@@ -339,24 +367,24 @@ export default function AdminDataPanel({ users, onStatsRefresh }: { users: User[
           </button>
           <button className="btn-outline" onClick={() => void downloadCurrentLedger()}><Icon name="upload" /> 导出当前视图</button>
           <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
-          <button className="btn-outline" onClick={() => void downloadAdminTemplate()}><Icon name="download" /> 下载模板</button>
         </div>
       </div>
 
       {showImportTools && (
-        <div className="card p-16">
-          <div className="form-row">
-            <span className="label-sm">批量导入</span>
-            <div className="form-grid-2">
-              <select className="input" value={targetUserId} onChange={(event) => { setTargetUserId(event.target.value); setImportPreview([]); }}>
+        <div className="card import-tools-card">
+          <div className="panel-title">
+            <strong>数据导入</strong>
+            <span className="muted">{targetUserId ? '导入到指定用户' : '按文件中的用户名分配记录'}</span>
+          </div>
+          <div className="import-tools-row">
+              <select className="input compact-input" value={targetUserId} onChange={(event) => { setTargetUserId(event.target.value); setImportPreview([]); }}>
+                <option value="">按文件用户名整体导入</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>{user.username || user.name} · {user.name}</option>
                 ))}
               </select>
-              <div className="actions">
-                <button className="btn-primary" disabled={!targetUserId} onClick={() => importFileRef.current?.click()}><Icon name="download" /> 选择文件</button>
-              </div>
-            </div>
+              <button className="btn-primary" onClick={() => importFileRef.current?.click()}><Icon name="download" /> 选择文件</button>
+              <button className="btn-outline" onClick={() => void downloadAdminTemplate()}><Icon name="download" /> 下载模板</button>
             <input ref={importFileRef} type="file" accept=".xlsx" hidden onChange={onImportFile} />
           </div>
         </div>
@@ -370,7 +398,7 @@ export default function AdminDataPanel({ users, onStatsRefresh }: { users: User[
               ✅ 有效 {importPreview.filter((row) => !row.error).length} 行 / ⚠️ 跳过 {importPreview.filter((row) => row.error === '城市已存在' || row.error === '文件内重复').length} 行 / ❌ 错误 {importPreview.filter((row) => row.error && row.error !== '城市已存在' && row.error !== '文件内重复').length} 行
             </span>
           </div>
-          <ImportPreviewTable rows={importPreview} />
+          <ImportPreviewTable rows={importPreview} showUser />
           <div className="actions mt-12">
             <button className="btn-primary" disabled={importPreview.every((row) => row.error)} onClick={() => void confirmAdminImport()}>确认导入</button>
             <button className="btn-outline" onClick={() => setImportPreview([])}>取消</button>

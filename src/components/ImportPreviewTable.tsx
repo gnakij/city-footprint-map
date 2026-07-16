@@ -25,10 +25,15 @@ const DUPLICATE_ERRORS = new Set(['城市已存在', '文件内重复']);
 
 interface ImportPreviewTableProps {
   rows: ImportVisitRow[];
+  showUser?: boolean;
 }
 
-export default function ImportPreviewTable({ rows }: ImportPreviewTableProps) {
+export default function ImportPreviewTable({ rows, showUser = false }: ImportPreviewTableProps) {
   const columns: TableColumn<ImportVisitRow>[] = [
+    ...(showUser ? [
+      { key: 'username', header: '用户名', render: (row) => row.username || '-' },
+      { key: 'name', header: '昵称', render: (row) => row.name || '-' },
+    ] satisfies TableColumn<ImportVisitRow>[] : []),
     { key: 'province', header: '省份', render: (row) => row.province || '-' },
     { key: 'city', header: '城市', render: (row) => row.city || '-' },
     { key: 'duration', header: '天数', render: (row) => (Number.isFinite(row.duration_days) ? row.duration_days : '-') },

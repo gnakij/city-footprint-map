@@ -213,10 +213,6 @@
   line-height: 1.72;
 }
 
-.changelog-modal .changelog-items li {
-  max-width: 76ch;
-}
-
 .changelog-entry {
   display: grid; gap: var(--space-1-5);
   background: var(--color-surface);
@@ -272,6 +268,28 @@
 .visit-form .form-row { margin: 0; display: grid; gap: var(--space-1-5); }
 .visit-form .btn-primary { min-width: 120px; }
 .visit-editor { display: grid; grid-template-columns: minmax(180px, 1.5fr) repeat(3, minmax(130px, 1fr)) auto auto auto; gap: var(--space-2); align-items: center; margin-bottom: var(--space-3-5); }
+.import-tools-card {
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-2-5);
+}
+
+.import-tools-card .panel-title {
+  margin-bottom: 0;
+}
+
+.import-tools-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+  flex-wrap: wrap;
+}
+
+.import-tools-row .compact-input {
+  width: min(420px, 100%);
+  min-height: var(--size-btn-default);
+}
+
 .import-preview { padding: var(--space-3-5); margin: var(--space-3) 0; }
 .drill-toolbar { display: flex; gap: var(--space-2); margin-bottom: var(--space-3-5); }
 .drill-toolbar .input { width: auto; min-width: 130px; }
