@@ -1,9 +1,7 @@
 import os
-import json
 import sqlite3
 import uuid
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
@@ -16,32 +14,18 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-DEFAULT_DB_PATH = Path(__file__).resolve().parent / "data" / "cityprint.db"
-
-# ── 安全配置：从环境变量读取，无默认值（启动时强制要求） ──────────────
-_raw_secret = os.getenv("CITYPRINT_SECRET_KEY", "")
-if not _raw_secret or _raw_secret in ("change-this-cityprint-secret", "dev-cityprint-secret"):
-    import secrets as _secrets
-    _raw_secret = _secrets.token_hex(32)
-    print(
-        "WARNING: CITYPRINT_SECRET_KEY not set or uses default value. "
-        "A random key has been generated for this session. "
-        "Set CITYPRINT_SECRET_KEY in your environment to persist sessions across restarts."
-    )
-SECRET_KEY = _raw_secret
-
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_DAYS = 30
-VALID_THEMES = {"rose", "stripe", "amber", "turquoise", "azure"}
-MAX_IMPORT_VISITS = 2000
-MAX_NOTES_LENGTH = 500
-_CITY_IDS_CACHE: set[str] | None = None
-DEFAULT_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "https://www.gnakij.top",
-    "https://gnakij.top",
-]
+from .cities import city_ids, load_cities
+from .config import (
+    ACCESS_TOKEN_EXPIRE_DAYS,
+    ALGORITHM,
+    DEFAULT_ALLOWED_ORIGINS,
+    MAX_IMPORT_VISITS,
+    MAX_NOTES_LENGTH,
+    SECRET_KEY,
+    VALID_THEMES,
+    db_path,
+    parse_allowed_origins,
+)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer = HTTPBearer()
@@ -49,15 +33,6 @@ bearer = HTTPBearer()
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def db_path() -> Path:
-    return Path(os.getenv("CITYPRINT_DB_PATH", str(DEFAULT_DB_PATH)))
-
-
-def parse_allowed_origins(raw_value: str | None) -> list[str]:
-    origins = [item.strip() for item in (raw_value or "").split(",") if item.strip()]
-    return origins or DEFAULT_ALLOWED_ORIGINS
 
 
 def get_db() -> sqlite3.Connection:
@@ -68,13 +43,6 @@ def get_db() -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
     return conn
-
-
-def city_ids() -> set[str]:
-    global _CITY_IDS_CACHE
-    if _CITY_IDS_CACHE is None:
-        _CITY_IDS_CACHE = {city["city_id"] for city in load_cities()}
-    return _CITY_IDS_CACHE
 
 
 def validate_city_id(value: str) -> str:
@@ -420,26 +388,6 @@ def init_db() -> None:
             )
         else:
             print("INFO: No users found. Use POST /api/bootstrap/admin to create the first admin.")
-
-
-def load_cities() -> list[dict[str, Any]]:
-    cities_file = Path(__file__).resolve().parents[1] / "src" / "data" / "cities.json"
-    if not cities_file.exists():
-        return []
-    raw = json.loads(cities_file.read_text(encoding="utf-8"))
-    if not isinstance(raw, list):
-        raise RuntimeError("cities.json must contain a list")
-
-    required = {"city_id", "city_name", "province", "region", "pinyin", "level"}
-    cities: list[dict[str, Any]] = []
-    for index, item in enumerate(raw):
-        if not isinstance(item, dict):
-            raise RuntimeError(f"cities.json row {index + 1} must be an object")
-        missing = required - item.keys()
-        if missing:
-            raise RuntimeError(f"cities.json row {index + 1} missing fields: {', '.join(sorted(missing))}")
-        cities.append(dict(item))
-    return cities
 
 
 # ── FastAPI App ───────────────────────────────────────────────────────────
