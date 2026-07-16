@@ -5,130 +5,31 @@ import { CITIES } from '../data/cities';
 import type { VisitRecord } from '../types';
 import { visitDays } from '../utils/date';
 import { byLastStayDesc, checkAchievements, loadUserData, nowIso } from './helpers';
+import { createSessionSlice } from './slices/session';
 import { createUiSlice } from './slices/ui';
 import type { StoreState } from './types';
 import {
   bulkSaveVisits,
   changePassword,
   clearAllData,
-  clearToken,
   createVisit,
-  createInitialAdmin,
   createManagedUser,
   deleteUser,
   deleteVisit as dbDeleteVisit,
   exportAll,
-  getCurrentUser,
-  getBootstrapStatus,
-  hasToken,
   getUsers,
   importAll,
   saveSettings,
   updateUser,
   updateMe,
   updateVisit,
-  verifyAdmin,
-  verifyUser,
   getSystemStats as apiGetSystemStats,
 } from './api';
 
 export const useStore = create<StoreState>((set, get) => ({
   visits: [], achievements: [], settings: { theme: 'rose' },
-  hydrated: false, currentUser: null, users: [], adminSetupRequired: false,
+  ...createSessionSlice(set, get),
   ...createUiSlice(set),
-
-  load: async () => {
-    try {
-      document.documentElement.dataset.theme = 'rose';
-      if (!hasToken()) {
-        const bootstrap = await getBootstrapStatus();
-        set({
-          users: [],
-          adminSetupRequired: bootstrap.requires_admin_setup,
-          currentUser: null,
-          visits: [],
-          achievements: [],
-          hydrated: true,
-        });
-        return;
-      }
-      const currentUser = await getCurrentUser();
-      const data = await loadUserData(currentUser);
-      const users = currentUser.is_admin ? await getUsers() : [];
-      set({ users, adminSetupRequired: false, currentUser, hydrated: true, ...data });
-    } catch (error) {
-      console.error('Failed to load app data', error);
-      clearToken();
-      set({ users: [], currentUser: null, visits: [], achievements: [], settings: { theme: 'rose' }, hydrated: true, adminSetupRequired: false, toast: { icon: '!', message: '数据加载失败，请重新登录' } });
-    }
-  },
-
-  setupAdmin: async (username, password) => {
-    if (!username.trim() || password.length < 6) {
-      set({ toast: { icon: '!', message: '管理员用户名和密码不能为空，密码至少6位' } });
-      return;
-    }
-    await createInitialAdmin('管理员', { username, password });
-    const admin = await verifyAdmin(username, password);
-    if (!admin) {
-      set({ toast: { icon: '!', message: '管理员创建后登录失败' } });
-      return;
-    }
-    const data = await loadUserData(admin);
-    // 2026-06-20: adminOpen之前一直是true，但此前没有任何渲染入口消费这个
-    // 状态（是遗留的死代码）。这次给adminOpen补上了独立弹窗挂载点（见App.tsx），
-    // 如果继续传true，管理员创建后会自动弹出管理员面板——用户确认不需要这个
-    // 行为，登录/创建后应该正常进入主地图页，"系统管理"只通过TopBar下拉菜单
-    // 手动打开。
-    set({ currentUser: admin, users: await getUsers(), adminSetupRequired: false, ...data, toast: { icon: '✓', message: '管理员已创建' } });
-  },
-
-  loginAdmin: async (username, password) => {
-    const admin = await verifyAdmin(username, password);
-    if (!admin) {
-      set({ toast: { icon: '!', message: '管理员账号或密码错误' } });
-      return false;
-    }
-    const users = await getUsers();
-    const data = await loadUserData(admin);
-    // 同上：不再自动弹出管理员面板，登录后进主地图页。
-    set({ currentUser: admin, users, ...data, toast: { icon: '✓', message: '已登录管理员' } });
-    return true;
-  },
-
-  loginUser: async (username, password) => {
-    const user = await verifyUser(username, password);
-    if (!user) {
-      set({ toast: { icon: '!', message: '用户名或密码错误' } });
-      return false;
-    }
-    // 2026-06-21: 管理员账号禁止走普通用户登录入口。根因——loginUser只
-    // 调用switchUser加载该用户自己的足迹数据，不会像loginAdmin那样额外
-    // getUsers()拉取用户列表，导致管理员从这条入口登录后能进系统、但
-    // 用户管理/数据管理里的数据全是空的(并非请求失败，是从未发起请求)。
-    // 用户明确要求限制登录方式而非自动补数据，因此这里直接拒绝并
-    // 提示改用管理员入口，同时clearToken()清掉verifyUser内部刚设置的
-    // token，避免出现前端拒绝登录但token已写入本地的不一致状态。
-    if (user.is_admin) {
-      clearToken();
-      set({ toast: { icon: '!', message: '管理员账号请使用管理员登录入口' } });
-      return false;
-    }
-    await get().switchUser(user);
-    set({ toast: { icon: '✓', message: '已登录' } });
-    return true;
-  },
-
-  switchUser: async (user) => {
-    const data = await loadUserData(user);
-    set({ currentUser: user, ...data, selectedCity: undefined, previewCity: undefined, drawerOpen: false, adminOpen: false });
-  },
-
-  logout: () => {
-    clearToken();
-    document.documentElement.dataset.theme = 'rose';
-    set({ currentUser: null, visits: [], achievements: [], selectedCity: undefined, previewCity: undefined, drawerOpen: false, adminOpen: false, visitsOpen: false, profileOpen: false });
-  },
 
   createRegularUser: async (name) => {
     const user = await createManagedUser(name);
