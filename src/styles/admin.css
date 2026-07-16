@@ -187,6 +187,34 @@
 
 .changelog-modal .changelog-entry {
   cursor: default;
+  gap: var(--space-2);
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-outline-variant) 70%, transparent);
+  padding: var(--space-4);
+  box-shadow: none;
+}
+
+.changelog-modal .changelog-entry:hover,
+.changelog-modal .changelog-entry:focus-visible {
+  border-color: color-mix(in srgb, var(--color-outline-variant) 70%, transparent);
+  box-shadow: none;
+}
+
+.changelog-modal .changelog-date {
+  font-size: var(--font-sm);
+  color: var(--color-on-surface);
+}
+
+.changelog-modal .changelog-items {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-sm);
+  line-height: 1.72;
+}
+
+.changelog-modal .changelog-items li {
+  max-width: 76ch;
 }
 
 .changelog-entry {
@@ -260,12 +288,6 @@
 .danger-text { color: var(--color-error); }
 .sort-pill { width: max-content; margin-bottom: var(--space-3); }
 .table-wrap { border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-panel); }
-/* 2026-06-26: 用户反馈sticky表头生效后，浏览器默认滚动条看上去“压住”了表头那一行(滚动条轨道从容器顶部0px开始画，跳略表头有灮息)。用项目自己的CSS变量重制滚动条样式代替浏览器默认粗样式，更细、颜色跟主题调性一致，仅作用于.table-wrap类容器本身，不影响全局其他滚动区域。遵循WebKit标准写法(::-webkit-scrollbar系列)，Firefox用scrollbar-width/scrollbar-color两个标准属性做简化适配(不能细调轨道/滑块颜色，但能取得“细”这个核心效果)。 */
-.table-wrap::-webkit-scrollbar { width: 6px; }
-.table-wrap::-webkit-scrollbar-track { background: transparent; }
-.table-wrap::-webkit-scrollbar-thumb { background: var(--color-outline-variant); border-radius: var(--radius-full); }
-.table-wrap::-webkit-scrollbar-thumb:hover { background: var(--color-primary-container); }
-.table-wrap { scrollbar-width: thin; scrollbar-color: var(--color-outline-variant) transparent; }
 .table-wrap.compact { max-height: 220px; }
 /* 2026-06-27: 原来两处导入预览表(AdminPanel/UserProfile)各自用内联style硬编码color-mix来标记重复/错误行，抽成ImportPreviewTable组件时改用class，不在TSX里散落硬编码颜色值。 */
 .data-table tr.is-row-warning { background: color-mix(in srgb, #f59e0b 12%, transparent); }

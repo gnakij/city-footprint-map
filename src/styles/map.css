@@ -28,12 +28,6 @@
    管理表统一过的同一套规则)，删除后没有任何元素再用这个class了。 */
 .stats-panel { --stats-panel-pad-x: var(--space-3-5); --stats-panel-pad-y: var(--space-3-5); position: fixed; right: var(--space-4-5); bottom: var(--space-4-5); z-index: var(--z-map-controls); width: 280px; padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x); max-height: min(640px, calc(100vh - var(--topbar-height) - var(--space-9))); overflow: auto; }
 .stats-panel { cursor: default; }
-.stats-panel, .ranking-list { scrollbar-width: thin; scrollbar-color: transparent transparent; }
-.stats-panel:hover, .stats-panel:focus-within, .ranking-list:hover, .ranking-list:focus-within { scrollbar-color: color-mix(in srgb, var(--color-on-surface-variant) 30%, transparent) transparent; }
-.stats-panel::-webkit-scrollbar, .ranking-list::-webkit-scrollbar { width: 6px; height: 6px; }
-.stats-panel::-webkit-scrollbar-track, .ranking-list::-webkit-scrollbar-track { background: transparent; }
-.stats-panel::-webkit-scrollbar-thumb, .ranking-list::-webkit-scrollbar-thumb { background: transparent; border-radius: var(--radius-full); }
-.stats-panel:hover::-webkit-scrollbar-thumb, .stats-panel:focus-within::-webkit-scrollbar-thumb, .ranking-list:hover::-webkit-scrollbar-thumb, .ranking-list:focus-within::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color-on-surface-variant) 30%, transparent); }
 .stats-panel > .panel-title { position: sticky; top: calc(-1 * var(--stats-panel-pad-y)); margin: calc(-1 * var(--stats-panel-pad-y)) calc(-1 * var(--stats-panel-pad-x)) var(--space-2); padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x) var(--space-2); background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface)); z-index: 1; }
 .stats-collapsed-pill {
   position: fixed;

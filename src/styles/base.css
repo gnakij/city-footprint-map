@@ -105,6 +105,109 @@ button { cursor: pointer; }
   box-shadow: 0 0 0 1000px var(--color-background) inset;
   caret-color: var(--color-on-surface);
 }
+
+/* 项目标准滚动条：默认淡化，用户靠近滚动区域时再显形。
+   覆盖所有明确的内部滚动容器，避免统计面板、表格、弹窗正文各自长出一套样式。 */
+.modal,
+.city-drawer,
+.drawer-list,
+.user-list,
+.stats-panel,
+.ranking-list,
+.table-wrap,
+.admin-tab-viewport,
+.drill-list,
+.changelog-modal-body {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.modal:hover,
+.modal:focus-within,
+.city-drawer:hover,
+.city-drawer:focus-within,
+.drawer-list:hover,
+.drawer-list:focus-within,
+.user-list:hover,
+.user-list:focus-within,
+.stats-panel:hover,
+.stats-panel:focus-within,
+.ranking-list:hover,
+.ranking-list:focus-within,
+.table-wrap:hover,
+.table-wrap:focus-within,
+.admin-tab-viewport:hover,
+.admin-tab-viewport:focus-within,
+.drill-list:hover,
+.drill-list:focus-within,
+.changelog-modal-body:hover,
+.changelog-modal-body:focus-within {
+  scrollbar-color: color-mix(in srgb, var(--color-on-surface-variant) 28%, transparent) transparent;
+}
+
+.modal::-webkit-scrollbar,
+.city-drawer::-webkit-scrollbar,
+.drawer-list::-webkit-scrollbar,
+.user-list::-webkit-scrollbar,
+.stats-panel::-webkit-scrollbar,
+.ranking-list::-webkit-scrollbar,
+.table-wrap::-webkit-scrollbar,
+.admin-tab-viewport::-webkit-scrollbar,
+.drill-list::-webkit-scrollbar,
+.changelog-modal-body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.modal::-webkit-scrollbar-track,
+.city-drawer::-webkit-scrollbar-track,
+.drawer-list::-webkit-scrollbar-track,
+.user-list::-webkit-scrollbar-track,
+.stats-panel::-webkit-scrollbar-track,
+.ranking-list::-webkit-scrollbar-track,
+.table-wrap::-webkit-scrollbar-track,
+.admin-tab-viewport::-webkit-scrollbar-track,
+.drill-list::-webkit-scrollbar-track,
+.changelog-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal::-webkit-scrollbar-thumb,
+.city-drawer::-webkit-scrollbar-thumb,
+.drawer-list::-webkit-scrollbar-thumb,
+.user-list::-webkit-scrollbar-thumb,
+.stats-panel::-webkit-scrollbar-thumb,
+.ranking-list::-webkit-scrollbar-thumb,
+.table-wrap::-webkit-scrollbar-thumb,
+.admin-tab-viewport::-webkit-scrollbar-thumb,
+.drill-list::-webkit-scrollbar-thumb,
+.changelog-modal-body::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: var(--radius-full);
+}
+
+.modal:hover::-webkit-scrollbar-thumb,
+.modal:focus-within::-webkit-scrollbar-thumb,
+.city-drawer:hover::-webkit-scrollbar-thumb,
+.city-drawer:focus-within::-webkit-scrollbar-thumb,
+.drawer-list:hover::-webkit-scrollbar-thumb,
+.drawer-list:focus-within::-webkit-scrollbar-thumb,
+.user-list:hover::-webkit-scrollbar-thumb,
+.user-list:focus-within::-webkit-scrollbar-thumb,
+.stats-panel:hover::-webkit-scrollbar-thumb,
+.stats-panel:focus-within::-webkit-scrollbar-thumb,
+.ranking-list:hover::-webkit-scrollbar-thumb,
+.ranking-list:focus-within::-webkit-scrollbar-thumb,
+.table-wrap:hover::-webkit-scrollbar-thumb,
+.table-wrap:focus-within::-webkit-scrollbar-thumb,
+.admin-tab-viewport:hover::-webkit-scrollbar-thumb,
+.admin-tab-viewport:focus-within::-webkit-scrollbar-thumb,
+.drill-list:hover::-webkit-scrollbar-thumb,
+.drill-list:focus-within::-webkit-scrollbar-thumb,
+.changelog-modal-body:hover::-webkit-scrollbar-thumb,
+.changelog-modal-body:focus-within::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-on-surface-variant) 28%, transparent);
+}
 .label-sm { font-size: var(--font-xs); color: var(--color-on-surface-variant); font-weight: 500; }
 
 .account-menu { position: relative; }
