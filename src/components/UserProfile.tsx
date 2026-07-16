@@ -114,6 +114,10 @@ export default function UserProfile() {
   }, [rows, visitPage]);
 
   useEffect(() => {
+    if (GIFT_MODE && showStats) setShowStats(false);
+  }, [showStats]);
+
+  useEffect(() => {
     setVisitPage((page) => Math.min(Math.max(1, page), totalVisitPages));
   }, [totalVisitPages]);
 
@@ -365,7 +369,7 @@ export default function UserProfile() {
                 </>
               )}
               <button className="btn-danger" onClick={() => setClearConfirmOpen(true)}>清空所有数据</button>
-              <button className="btn-outline" onClick={() => setShowStats(true)} style={{ marginLeft: 'auto' }}><Icon name="chart" /> 统计</button>
+              {!GIFT_MODE && <button className="btn-outline" onClick={() => setShowStats(true)} style={{ marginLeft: 'auto' }}><Icon name="chart" /> 统计</button>}
             </div>
 
             {!GIFT_MODE && showImportTools && (
@@ -529,7 +533,7 @@ export default function UserProfile() {
           </div>
         )}
 
-        {tab === 'visits' && showStats && (
+        {!GIFT_MODE && tab === 'visits' && showStats && (
           <>
             <button className="back-btn mb-12" onClick={() => setShowStats(false)}>← 返回访问列表</button>
             <DrillDownStats embedded />
