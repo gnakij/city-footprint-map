@@ -14,14 +14,9 @@ const AdminPanel = lazy(() => import('./components/AdminPanel'));
 
 function Loading() {
   return (
-    <div className="login-page">
-      <div className="login-panel glass">
-        <div className="login-header">
-          <div className="brand-mark">🗺️</div>
-          <h1>城市足迹</h1>
-          <p>记录你走过的每一座城</p>
-        </div>
-      </div>
+    <div className="app-loading" role="status" aria-live="polite">
+      <div className="loading-spinner" aria-hidden="true" />
+      <span>正在进入…</span>
     </div>
   );
 }

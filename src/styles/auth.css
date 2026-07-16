@@ -1,4 +1,6 @@
 .loading-page, .login-page { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--space-5-5); position: relative; overflow: hidden; background: linear-gradient(160deg, #FFFBFC 0%, #FFF2F5 35%, #FDE8ED 100%); }
+.app-loading { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; align-content: center; gap: var(--space-3); color: var(--color-on-surface-variant); background: var(--color-background); }
+.app-loading span { font-size: var(--font-sm); font-weight: 600; }
 .login-bg { position: fixed; inset: 0; background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(224,8,62,.05) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(240,120,140,.04) 0%, transparent 60%), linear-gradient(160deg, #FFFBFC 0%, #FFF2F5 35%, #FDE8ED 100%); z-index: 0; }
 /* 2026-06-20: 上面第一个径向渐变rgba(224,8,62,.05)同步使用了新主色#E0083E的RGB分量；
    第二个rgba(240,120,140,.04)是独立选定的点缀色(接近但不等于旧主色#F95D84)，

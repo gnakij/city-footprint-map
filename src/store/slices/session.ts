@@ -25,7 +25,6 @@ export function createSessionSlice(set: StoreSet, get: StoreGet): SessionSlice {
 
     load: async () => {
       try {
-        document.documentElement.dataset.theme = 'rose';
         if (!hasToken()) {
           const bootstrap = await getBootstrapStatus();
           set({
