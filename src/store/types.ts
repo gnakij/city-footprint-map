@@ -1,4 +1,5 @@
 import type { AppSettings, CityData, ColorMode, ExportData, Stats, User, VisitRecord } from '../types';
+import type { StoreApi } from 'zustand';
 
 export type ProfileTab = 'profile' | 'visits';
 
@@ -60,3 +61,6 @@ export interface StoreState {
   getStats: () => Stats;
   getSystemStats: () => Promise<{ totalUsers: number; totalVisits: number; adminUsers: number }>;
 }
+
+export type StoreSet = StoreApi<StoreState>['setState'];
+export type StoreGet = StoreApi<StoreState>['getState'];

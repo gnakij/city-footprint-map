@@ -5,6 +5,7 @@ import { CITIES } from '../data/cities';
 import type { VisitRecord } from '../types';
 import { visitDays } from '../utils/date';
 import { byLastStayDesc, checkAchievements, loadUserData, nowIso } from './helpers';
+import { createUiSlice } from './slices/ui';
 import type { StoreState } from './types';
 import {
   bulkSaveVisits,
@@ -33,8 +34,8 @@ import {
 
 export const useStore = create<StoreState>((set, get) => ({
   visits: [], achievements: [], settings: { theme: 'rose' },
-  drawerOpen: false, searchQuery: '', visitsOpen: false, adminOpen: false, statsOpen: false, profileOpen: false,
-  hydrated: false, currentUser: null, users: [], adminSetupRequired: false, statsCollapsed: false, profileTab: 'profile', colorMode: 'duration',
+  hydrated: false, currentUser: null, users: [], adminSetupRequired: false,
+  ...createUiSlice(set),
 
   load: async () => {
     try {
@@ -164,18 +165,6 @@ export const useStore = create<StoreState>((set, get) => ({
     }
   },
 
-  setSelectedCity: (selectedCity) => set({ selectedCity, drawerOpen: Boolean(selectedCity) }),
-  setPreviewCity: (previewCity) => set({ previewCity }),
-  setDrawerOpen: (drawerOpen) => set({ drawerOpen }),
-  setSearchQuery: (searchQuery) => set({ searchQuery }),
-  setVisitsOpen: (visitsOpen) => set({ visitsOpen }),
-  setAdminOpen: (adminOpen) => set({ adminOpen }),
-  setStatsOpen: (statsOpen) => set({ statsOpen }),
-  setProfileOpen: (profileOpen, tab) => set({ profileOpen, ...(tab ? { profileTab: tab } : {}) }),
-  toggleStatsCollapsed: () => set((s) => ({ statsCollapsed: !s.statsCollapsed })),
-  setColorMode: (colorMode) => set({ colorMode }),
-  showToast: (toast) => set({ toast }),
-  hideToast: () => set({ toast: undefined }),
   updateUserName: async (name) => {
     const user = get().currentUser;
     const trimmed = name.trim();
