@@ -33,26 +33,24 @@
     left: var(--space-4-5);
     right: auto;
     top: 184px;
-    display: grid;
-    grid-auto-flow: row;
-    grid-auto-rows: var(--space-10);
-    align-items: stretch;
-    gap: 0;
-    width: var(--space-10);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-0);
+    width: auto;
     max-width: none;
-    padding: 0;
+    padding: var(--space-1);
     overflow: hidden;
-    border-radius: var(--radius-panel);
+    border-radius: var(--radius-full);
   }
 
   .map-controls .btn-outline,
   .map-controls .icon-btn {
-    width: var(--space-10);
-    min-width: var(--space-10);
-    height: var(--space-10);
-    min-height: var(--space-10);
+    width: var(--size-btn-default);
+    min-width: var(--size-btn-default);
+    height: var(--size-btn-default);
+    min-height: var(--size-btn-default);
     border: 0;
-    border-radius: 0;
+    border-radius: var(--radius-full);
     background: transparent;
     box-shadow: none;
     color: var(--color-on-surface);
@@ -61,7 +59,13 @@
   .map-controls .btn-outline + .btn-outline,
   .map-controls .btn-outline + .icon-btn,
   .map-controls .icon-btn + .icon-btn {
-    border-top: var(--space-xs) solid var(--color-outline-variant);
+    border-top: 0;
+  }
+
+  .map-controls .btn-outline:hover,
+  .map-controls .icon-btn:hover {
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-container-low));
+    color: var(--color-primary);
   }
 
   .map-controls .btn-outline {
@@ -72,9 +76,11 @@
   }
 
   .map-controls .icon-btn {
-    font-size: var(--font-md);
+    font-size: var(--font-lg);
     font-weight: 800;
   }
+
+  .map-controls .btn-outline .icon { margin-right: 0; }
 
   .map-controls-label {
     display: none;
@@ -181,7 +187,7 @@
   .map-controls {
     left: auto;
     right: max(var(--space-3), env(safe-area-inset-right));
-    top: var(--space-4);
+    top: 118px;
     display: flex;
     flex-direction: column;
     align-items: stretch;
