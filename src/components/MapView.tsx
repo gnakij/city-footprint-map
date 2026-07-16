@@ -806,11 +806,6 @@ export default function MapView() {
   return (
     <div className="map-wrap">
       <div className="map-controls glass">
-        {/* 2026-06-20: 移动端重设计为统一竖向胶囊，四个按钮（含"返回省级视图"
-            和"重置视图"）改为纯图标+title提示，不再带文字——原来文字按钮和
-            icon-btn混在一起宽度不一致，做不成统一宽度的胶囊。桌面端样式
-            未改动，仍是原来的方块堆叠（按钮文字这次没改，因为桌面端没有
-            这个空间限制问题，用户也只反馈了移动端）。*/}
         {activeProvince && (
           <button className="btn-outline" title="返回省级视图" onClick={() => setActiveProvince(null)}><Icon name="arrow-left" /><span className="map-controls-label"> 返回省级视图</span></button>
         )}

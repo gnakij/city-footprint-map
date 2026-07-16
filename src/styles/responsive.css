@@ -30,31 +30,32 @@
   }
 
   .map-controls {
-    left: auto;
-    right: var(--space-4-5);
-    top: var(--space-4-5);
+    left: var(--space-4-5);
+    right: auto;
+    top: 184px;
     display: grid;
     grid-auto-flow: row;
-    grid-auto-rows: var(--size-icon);
+    grid-auto-rows: var(--space-10);
     align-items: stretch;
     gap: 0;
-    width: max-content;
-    max-width: 150px;
-    padding: var(--space-1);
+    width: var(--space-10);
+    max-width: none;
+    padding: 0;
     overflow: hidden;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-panel);
   }
 
   .map-controls .btn-outline,
   .map-controls .icon-btn {
-    width: 100%;
-    min-width: var(--size-icon);
-    height: var(--size-icon);
-    min-height: var(--size-icon);
+    width: var(--space-10);
+    min-width: var(--space-10);
+    height: var(--space-10);
+    min-height: var(--space-10);
     border: 0;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
+    color: var(--color-on-surface);
   }
 
   .map-controls .btn-outline + .btn-outline,
@@ -65,14 +66,18 @@
 
   .map-controls .btn-outline {
     justify-content: center;
-    padding: 0 var(--space-3);
+    padding: 0;
     font-size: var(--font-sm);
     white-space: nowrap;
   }
 
   .map-controls .icon-btn {
-    font-size: var(--font-lg);
+    font-size: var(--font-md);
     font-weight: 800;
+  }
+
+  .map-controls-label {
+    display: none;
   }
 
   .map-level {
