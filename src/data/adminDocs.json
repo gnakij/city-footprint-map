@@ -2,29 +2,29 @@
   {
     "category": "设计文档",
     "title": "设计系统文档",
-    "url": "/cityprint/docs/设计系统-2026-06-20.md",
-    "last_updated": "2026-06-20",
+    "url": "docs/设计系统-2026-06-20.md",
+    "last_updated": "2026-07-12",
     "description": "完整设计 token 体系、组件规范"
   },
   {
     "category": "功能文档",
     "title": "功能现状文档",
-    "url": "/cityprint/docs/功能现状-2026-06-19.md",
-    "last_updated": "2026-06-19",
+    "url": "docs/功能现状-2026-06-19.md",
+    "last_updated": "2026-07-12",
     "description": "项目功能清单与现状说明"
   },
   {
     "category": "协作文档",
     "title": "协作者指南",
-    "url": "/cityprint/docs/协作者指南-2026-06-20.md",
-    "last_updated": "2026-06-20",
+    "url": "docs/协作者指南-2026-06-20.md",
+    "last_updated": "2026-07-02",
     "description": "文档维护规则、更新流程"
   },
   {
     "category": "升级记录",
     "title": "系统升级记录",
     "action": "changelog",
-    "last_updated": "2026-06-20",
+    "last_updated": "2026-07-16",
     "description": "历次更新内容与变更记录"
   }
 ]

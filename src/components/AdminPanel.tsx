@@ -377,9 +377,9 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       {showCreateModal && (
         <Modal title="新增用户" onClose={() => setShowCreateModal(false)}>
           <div className="form-grid-2 mb-16">
-            <input className="input" value={newUsername} onChange={(event) => setNewUsername(event.target.value)} placeholder="用户名" />
-            <input className="input" value={newNickname} onChange={(event) => setNewNickname(event.target.value)} placeholder="昵称" />
-            <input className="input" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="密码" />
+            <input className="input editing-input" value={newUsername} onChange={(event) => setNewUsername(event.target.value)} placeholder="用户名" />
+            <input className="input editing-input" value={newNickname} onChange={(event) => setNewNickname(event.target.value)} placeholder="昵称" />
+            <input className="input editing-input" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="密码" />
           </div>
           <div className="flex-end gap-8">
             <button className="btn-outline" onClick={() => { setShowCreateModal(false); setNewUsername(''); setNewNickname(''); setNewPassword(''); }}>取消</button>

@@ -95,6 +95,16 @@ button { cursor: pointer; }
    不存在脱节问题)。 */
 .card .input, .modal .input { background: var(--color-surface-container-low); }
 .input:focus { border-color: var(--color-primary-container); box-shadow: 0 0 0 3px var(--color-focus-ring); }
+.input.readonly-input { cursor: default; color: var(--color-on-surface-variant); background: color-mix(in srgb, var(--color-on-surface) 4%, var(--color-surface-container-low)); }
+.input.editing-input { background: var(--color-background); border-color: color-mix(in srgb, var(--color-primary) var(--interactive-border-tint-pct), var(--color-outline-variant)); }
+.profile-edit-card .input { background: var(--color-background); }
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-on-surface);
+  box-shadow: 0 0 0 1000px var(--color-background) inset;
+  caret-color: var(--color-on-surface);
+}
 .label-sm { font-size: var(--font-xs); color: var(--color-on-surface-variant); font-weight: 500; }
 
 .account-menu { position: relative; }
@@ -121,4 +131,3 @@ button { cursor: pointer; }
 .user-name:hover { background: var(--color-surface-container); }
 .user-del { border: 0; background: transparent; color: var(--color-error); font-size: var(--font-lg); padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); cursor: pointer; }
 .user-del:hover { background: var(--color-surface-container); }
-

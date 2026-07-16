@@ -17,6 +17,12 @@ export default function LoginPage() {
   const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const loadingText = adminSetupRequired
+    ? '正在创建管理员，请稍后…'
+    : mode === 'register'
+      ? '正在注册并登录，请稍后…'
+      : '正在登录并加载地图，请稍后…';
+
   const resetFields = () => {
     setUsername('');
     setPassword('');
@@ -34,17 +40,23 @@ export default function LoginPage() {
     event.preventDefault();
     if (!username.trim() || password.length < 6) { useStore.getState().showToast({ icon: '!', message: '密码至少6位' }); return; }
     setLoading(true);
-    if (adminSetupRequired) await setupAdmin(username, password);
-    else await loginAdmin(username, password);
-    setLoading(false);
+    try {
+      if (adminSetupRequired) await setupAdmin(username, password);
+      else await loginAdmin(username, password);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const submitUser = async (event: FormEvent) => {
     event.preventDefault();
     if (!username.trim() || !password) return;
     setLoading(true);
-    await loginUser(username, password);
-    setLoading(false);
+    try {
+      await loginUser(username, password);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const submitRegister = async (event: FormEvent) => {
@@ -92,6 +104,7 @@ export default function LoginPage() {
               {loading ? '创建中...' : '创建管理员并进入'}
             </button>
           </form>
+          {loading && <LoginLoadingOverlay text={loadingText} />}
         </section>
       </div>
     );
@@ -185,7 +198,18 @@ export default function LoginPage() {
             </button>
           </form>
         )}
+        {loading && <LoginLoadingOverlay text={loadingText} />}
       </section>
+    </div>
+  );
+}
+
+function LoginLoadingOverlay({ text }: { text: string }) {
+  return (
+    <div className="login-loading-overlay" role="status" aria-live="polite">
+      <div className="loading-spinner" aria-hidden="true" />
+      <strong>{text}</strong>
+      <span>首次进入可能需要加载地图资源，马上就好。</span>
     </div>
   );
 }

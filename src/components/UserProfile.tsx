@@ -1,4 +1,4 @@
-import { ChangeEvent, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useScrollIntoViewOnChange } from '../hooks/useScrollIntoViewOnChange';
 import DateInput from './ui/DateInput';
 import FuzzySelect from './ui/FuzzySelect';
@@ -19,6 +19,7 @@ import { visitDays } from '../utils/date';
 
 type ProfileTab = 'profile' | 'visits';
 const FUZZY_SELECT_CLASSES = { dropdown: 'card', option: 'btn-outline small', activeOption: 'active' };
+const VISIT_PAGE_SIZE = 10;
 type XlsxModule = typeof import('xlsx');
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -92,6 +93,7 @@ export default function UserProfile() {
   const [editingPassword, setEditingPassword] = useState(false);
   const [preview, setPreview] = useState<ImportVisitRow[]>([]);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [visitPage, setVisitPage] = useState(1);
 
   // 城市映射：值/标签分离，供 FuzzySelect 使用
   const CITY_LABELS = useMemo(() => Object.fromEntries(CITIES.map((c) => [c.city_id, `${c.province} · ${c.city_name}`])), []);
@@ -109,6 +111,15 @@ export default function UserProfile() {
     city: CITIES.find((c) => c.city_id === v.city_id),
     days: visitDays(v),
   })).sort((a, b) => b.visit.last_stay_date.localeCompare(a.visit.last_stay_date)), [visits]);
+  const totalVisitPages = Math.max(1, Math.ceil(rows.length / VISIT_PAGE_SIZE));
+  const pagedRows = useMemo(() => {
+    const start = (visitPage - 1) * VISIT_PAGE_SIZE;
+    return rows.slice(start, start + VISIT_PAGE_SIZE);
+  }, [rows, visitPage]);
+
+  useEffect(() => {
+    setVisitPage((page) => Math.min(Math.max(1, page), totalVisitPages));
+  }, [totalVisitPages]);
 
   const pickCity = (id: string) => {
     setCityId(id);
@@ -271,7 +282,7 @@ export default function UserProfile() {
               {/* 2026-06-27: background内联style已删除——.card .input现在全局
                  统一用--color-surface-container-low，跟这里原来手动指定的值
                  完全相同，不需要再单独覆盖一次，只保留cursor。 */}
-              <input className="input" value={currentUser.username} readOnly style={{ cursor: 'not-allowed' }} />
+              <input className="input readonly-input" value={currentUser.username} readOnly />
             </div>
 
             {/* 2026-06-27: 重构为"区块自包含"模式——参照业内成熟做法
@@ -286,7 +297,7 @@ export default function UserProfile() {
               <span className="label-sm">昵称</span>
               {editingName ? (
                 <>
-                  <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="输入新昵称" />
+                  <input className="input editing-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="输入新昵称" />
                   <div className="actions">
                     <button className="btn-primary" onClick={async () => { if (await updateName()) setEditingName(false); }}>保存</button>
                     <button className="btn-outline" onClick={() => { setName(currentUser.name); setEditingName(false); }}>取消</button>
@@ -294,7 +305,7 @@ export default function UserProfile() {
                 </>
               ) : (
                 <>
-                  <input className="input" value={currentUser.name} readOnly style={{ cursor: 'default' }} />
+                  <input className="input readonly-input" value={currentUser.name} readOnly />
                   <div className="actions">
                     <button className="btn-outline" onClick={() => { setName(currentUser.name); setEditingName(true); }}>修改昵称</button>
                   </div>
@@ -305,14 +316,14 @@ export default function UserProfile() {
             <div className="form-row">
               <span className="label-sm">密码</span>
               {editingPassword ? (
-                <div className="card p-16">
+                <div className="card p-16 profile-edit-card">
                   <div className="form-row">
                     <span className="label-sm">新密码</span>
-                    <input className="input" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="至少6位" />
+                    <input className="input editing-input" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="至少6位" />
                   </div>
                   <div className="form-row">
                     <span className="label-sm">确认密码</span>
-                    <input className="input" type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="再次输入新密码" />
+                    <input className="input editing-input" type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="再次输入新密码" />
                   </div>
                   <div className="actions">
                     <button className="btn-primary" onClick={async () => { if (await changePassword()) setEditingPassword(false); }}>更新密码</button>
@@ -323,7 +334,7 @@ export default function UserProfile() {
                 <>
                   {/* 密码没有"当前值"可展示(出于安全不能明文显示)，用掩码占位
                      仅作视觉对齐，不是真实密码长度的提示 */}
-                  <input className="input" value="••••••••" readOnly style={{ cursor: 'default' }} />
+                  <input className="input readonly-input" value="••••••••" readOnly />
                   <div className="actions">
                     <button className="btn-outline" onClick={() => setEditingPassword(true)}>修改密码</button>
                   </div>
@@ -448,7 +459,7 @@ export default function UserProfile() {
                的gap统一处理，不再需要单独给表格补margin。 */}
             <Table
               emptyText="暂无访问记录"
-              data={rows}
+              data={pagedRows}
               rowKey={(row) => row.visit.id}
               scroll="fixed"
               maxHeight={320}
@@ -478,6 +489,30 @@ export default function UserProfile() {
                 },
               ]}
             />
+
+            {rows.length > 0 && (
+              <div className="actions flex-between flex-wrap">
+                <span className="muted">
+                  共 {rows.length} 条，当前第 {visitPage} / {totalVisitPages} 页
+                </span>
+                <div className="actions">
+                  <button
+                    className="btn-outline small"
+                    disabled={visitPage <= 1}
+                    onClick={() => setVisitPage((page) => Math.max(1, page - 1))}
+                  >
+                    上一页
+                  </button>
+                  <button
+                    className="btn-outline small"
+                    disabled={visitPage >= totalVisitPages}
+                    onClick={() => setVisitPage((page) => Math.min(totalVisitPages, page + 1))}
+                  >
+                    下一页
+                  </button>
+                </div>
+              </div>
+            )}
 
             <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={onFile} />
           </div>

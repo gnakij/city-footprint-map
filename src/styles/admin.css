@@ -169,6 +169,26 @@
    链接那几个字才能点，移动端点击区域更大，误触率更低；链接自身仍保留
    onClick但加stopPropagation，避免和卡片整体点击重复触发。 */
 .changelog-list { display: grid; gap: var(--space-2-5); }
+.changelog-modal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.changelog-modal > .modal-head {
+  flex-shrink: 0;
+}
+
+.changelog-modal-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: var(--space-1);
+}
+
+.changelog-modal .changelog-entry {
+  cursor: default;
+}
+
 .changelog-entry {
   display: grid; gap: var(--space-1-5);
   background: var(--color-surface);
@@ -283,4 +303,3 @@
    类型/创建时间)仍保持原本宽松的padding。 */
 .data-table .row-actions { display: flex; gap: var(--space-2); flex-wrap: nowrap; }
 .data-table td:has(.row-actions) { padding-top: var(--space-1-5); padding-bottom: var(--space-1-5); }
-

@@ -79,7 +79,7 @@ export default function StatsPanel() {
     <aside className="stats-panel card" role="region" aria-label="足迹统计">
       <div className="panel-title">
         <strong>足迹统计</strong>
-        <button className="stats-minimize" onClick={toggleStatsCollapsed} aria-label="收起统计">
+        <button className="stats-minimize" onClick={toggleStatsCollapsed} aria-label="收起统计" title="收起统计">
           <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden="true">
             <path d="M6 10L2 4H10L6 10Z" fill="currentColor"/>
           </svg>
@@ -123,7 +123,7 @@ export default function StatsPanel() {
           ))}
       </div>
       {ACHIEVEMENTS.length > ACHIEVEMENT_PREVIEW_COUNT && (
-        <button className="btn-outline small ranking-toggle" onClick={() => setShowAllAchievements((prev) => !prev)}>
+        <button className="stats-toggle-button ranking-toggle" onClick={() => setShowAllAchievements((prev) => !prev)}>
           {showAllAchievements ? '收起' : `展开全部 (${ACHIEVEMENTS.length})`}
         </button>
       )}
@@ -146,7 +146,7 @@ export default function StatsPanel() {
             ))}
           </ol>
           {ranking.length > RANK_PREVIEW_COUNT && (
-            <button className="btn-outline small ranking-toggle" onClick={() => setShowAllRanking((prev) => !prev)}>
+            <button className="stats-toggle-button ranking-toggle" onClick={() => setShowAllRanking((prev) => !prev)}>
               {showAllRanking ? '收起' : `查看全部 (${ranking.length})`}
             </button>
           )}

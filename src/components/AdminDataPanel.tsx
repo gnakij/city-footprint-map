@@ -384,6 +384,8 @@ export default function AdminDataPanel({ users, onStatsRefresh }: { users: User[
           emptyText="暂无访问记录"
           data={pagedVisits}
           rowKey={(visit) => `${visit.user_id}-${visit.id}`}
+          scroll="fixed"
+          maxHeight={320}
           columns={[
             { key: 'username', header: '用户名', headerStyle: { width: '12%' }, render: (visit) => visit.username || visit.name },
             { key: 'name', header: '昵称', headerStyle: { width: '10%' }, render: (visit) => visit.name },

@@ -128,7 +128,7 @@
     box-shadow: var(--elevation-medium);
 
     backdrop-filter: none;
-    animation: floatUp .24s ease-out;
+    animation: none;
   }
 
   .stats-collapsed-pill::before {
@@ -193,10 +193,10 @@
   .map-controls-label { display: none; }
   .map-controls .btn-outline,
   .map-controls .icon-btn {
-    width: var(--size-btn-default);
-    min-width: var(--size-btn-default);
-    height: var(--size-btn-default);
-    min-height: var(--size-btn-default);
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    min-height: 34px;
     border: 0;
     border-radius: var(--radius-full);
     background: transparent;
@@ -210,9 +210,10 @@
     border-top: 1px solid color-mix(in srgb, var(--color-on-surface-variant) 20%, transparent);
   }
   .map-controls .icon-btn {
-    font-size: var(--font-lg);
+    font-size: var(--font-md);
     font-weight: 700;
   }
+  .map-controls .btn-outline .icon { width: 16px; height: 16px; margin-right: 0; }
   .map-level {
     left: max(var(--space-3), env(safe-area-inset-left));
     top: var(--space-4);
@@ -270,7 +271,6 @@
   .stats-panel .stat strong { font-size: 17px; }
   .stats-panel .achievement-grid { grid-template-columns: repeat(4, minmax(var(--size-icon-large), 1fr)); gap: var(--space-1-5); margin-top: var(--space-2); }
   .stats-panel .achievement-icon { width: var(--size-input); height: var(--size-input); font-size: var(--font-icon); }
-  .stats-minimize { border: 0; background: var(--color-surface-container-low); color: var(--color-on-surface-variant); border-radius: var(--radius-sm); padding: var(--space-0) var(--space-2); font-size: var(--font-xs); cursor: pointer; }
   .stats-collapsed-pill {
     left: var(--space-3);
     right: var(--space-3);
@@ -333,4 +333,3 @@
 @media (min-width: 768px) and (max-width: 1024px) {
   .stats-panel { width: 260px; }
 }
-
