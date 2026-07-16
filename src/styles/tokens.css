@@ -1,0 +1,294 @@
+/* 2026-06-27: 已移除@tailwind base/components/utilities三条指令。
+   排查发现项目里没有任何地方真正用到Tailwind专属语法(颜色色阶、
+   响应式前缀、任意值写法等)，整套样式系统是完全自建的(本文件里的
+   --color-系列/--space-系列/.btn-系列/.card等)。但Tailwind的JIT扫描器会扫描
+   所有.tsx文件里的className字符串，只要项目自己写的class名字(如
+   .mt-12/.p-16/.p-32，基于像素直觉命名)凑巧也是Tailwind自己的命名
+   (Tailwind用的是步进编号，12步=3rem，跟12px完全不是一个含义)，就会
+   生成两份数值天差地别的同名规则，谁生效全看CSS源码顺序，纯属运气、
+   没有任何保障。整个移除，不只是绕开冲突。 */
+
+*, body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+/* ═══════════════════════════════════════
+   SHARED TOKENS (all themes)
+   ═══════════════════════════════════════ */
+:root {
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /* 字号梯度：覆盖现有全部数值，按从小到大命名，避免每次新值都要纠结叫什么 */
+  --font-2xs: 10px;
+  --font-xs: 12px;
+  --font-sm: 13px;
+  --font-base: 14px;
+  --font-15: 15px;          /* 介于base和md之间，多处复用：登录按钮、logo、统计胶囊数字 */
+  --font-md: 16px;
+  --font-lg: 18px;
+  --font-xl: 20px;
+  --font-2xl: 24px;
+  --font-3xl: 28px;
+  --font-4xl: 48px;          /* 空状态图标 */
+  --font-icon: 22px;       /* 圆形图标内文字/emoji，如成就徽章 */
+  --font-display: 56px;   /* 仅登录页品牌大字使用 */
+  --font-display-mobile: 22px; /* 登录页品牌标题(h1)移动端尺寸，与--font-icon数值偶合但语义独立，不应共用 */
+  --radius-sm: 8px; --radius-md: 16px; --radius-lg: 24px; --radius-full: 9999px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
+  /* 间距变量（补充） */
+  --space-xs: 1px;
+  --space-0: 2px;
+  --space-1-5: 6px;
+  --space-2-5: 10px;
+  --space-3-5: 14px;
+  --space-4-5: 18px;
+  --space-5-5: 20px;
+  --space-7: 28px;
+  --space-9: 36px;
+  --space-0-75: 3px;
+  /* 组件尺寸 */
+  --size-btn-small: 30px;
+  --size-btn-default: 36px;
+  --size-btn-large: 42px;
+  --size-input: 44px;
+  --size-icon: 46px;
+  --size-icon-large: 48px;
+  /* 语义变量 */
+  --topbar-height: 72px;
+  --color-success: #4CAF50;
+  --color-warning: #FF9800;
+  --glass-bg: rgba(255,245,247,.82);
+  --glass-border: rgba(240,217,225,.7);
+  /* 2026-06-21: 五主题全量重制（樱花/晨雾/琥珀/绿松/冰河）后，--color-surface
+     改为统一公式生成，每个主题surface都自带各自色相的淡色调，不再有"中性灰
+     不带主题色"的情况。所以--card-tint-pct不再需要每个主题单独试值，统一
+     定为8%（沿用此前Linear/Stripe真机验证过的数值）。如果某个新主题在真机
+     上看起来偏浓/偏淡，再单独在其:root块里覆盖即可。 */
+  --card-tint-pct: 8%;
+  /* 2026-06-21: 视觉层级优化——顶栏(.topbar.glass)和统计卡片(.card等)此前
+     共用同一个8%比例，导致两者浓度几乎相同，整页缺乏"谁是背景/谁是内容"
+     的主次区分，用户截图反馈"顶栏和统计面板一样深，地图反而被夹在中间
+     没有强调"。把顶栏单独降到4%（card-tint-pct的一半），让顶栏退到更接近
+     背景的浓度，统计卡片维持原有8%暖度不变——用户明确要求"暖度不能丢"，
+     只精简改动范围为"顶栏单独降一档"，不大改其余容器。仍复用标准
+     --color-primary做混色源，不引入新的独立色值变量，未来主色调整时
+     顶栏会自动跟随。 */
+  --topbar-tint-pct: 4%;
+  /* 2026-06-27: .modal内嵌套.card(添加访问/修改密码/导入预览等表单卡片)
+     需要比.modal自身的8%(--card-tint-pct)更深一档，否则卡片跟弹窗背景
+     融为一体看不出边界。跟--topbar-tint-pct(主动比--card-tint-pct浅一档，
+     同样是"故意偏离默认值、且写明原因"的命名变量)是同一种处理方式，
+     不是临时拍的裸数字。 */
+  --modal-card-tint-pct: 16%;
+  /* 2026-06-27: 统一"主题色边框/outline强调"用的混色比例。原来三处
+     各写了字面值(34%/38%/40%)，曾经的理由是"语义角色不同(常驻装饰边框/
+     聚焦outline/悬停强调)，不需要相同"，但复核后发现34%/38%旁边都没有
+     任何说明取值理由的注释，跟--topbar-tint-pct那种"故意偏离、写明原因"
+     的命名变量不是一个待遇，更像是当时手感调出来的数字，没有非如此不可
+     的理由。统一到40%(已被.admin-user-card/.changelog-entry验证过的值)，
+     往更明显的方向统一，不影响可读性。 */
+  --interactive-border-tint-pct: 40%;
+  --shadow-color: rgba(19,27,46,1);
+  --color-card-border: rgba(194,198,216,.6);
+  /* 2026-06-27: 原来是写死的rgba(0,102,255,.12)蓝色，没有放进5个主题各自
+     的变量块里，导致除了本来就是蓝色调的"冰河"主题外，其余4个主题点击
+     输入框聚焦时都会冒出一圈跟主题色完全不搭的蓝色光晕(用户截图反馈
+     "周围浮了一个蓝色的阴影"，当时是樱花/Rose主题)。改用color-mix引用
+     --color-primary，每个主题下聚焦光晕自动跟随当前主题的强调色，不用
+     再为每个主题单独定义一份。透明度保留原来的12%，只换色相来源。 */
+  --color-focus-ring: color-mix(in srgb, var(--color-primary) 12%, transparent);
+
+  /* 圆角语义层：按视觉层级命名，而非按数值大小命名。
+     卡片/面板统一用 --radius-panel，避免 .card 和 .modal 各用各的、互不呼应。 */
+  --radius-panel: 12px;                  /* 卡片/面板，按 CLAUDE.md 规范 */
+  --radius-control: var(--radius-sm);    /* 输入框、小型控件，沿用原 8px */
+  --radius-pill: var(--radius-full);     /* 按钮、徽章、页签的胶囊形 */
+  --radius-pill-track: 12px;             /* 页签容器（轨道），比内部按钮圆角大2px形成嵌套层次 */
+  --radius-pill-segment: 10px;           /* 页签容器内部的可选中分段按钮 */
+
+  /* 过渡：统一时长 + 缓动曲线，所有 transition 应引用这些变量而非手写数值 */
+  --duration-instant: 0.1s;
+  --duration-fast: 0.15s;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1); /* Material Design 'standard easing'，业内常见的过渡曲线，比内置 ease 更利落 */
+  --transition-interactive: opacity var(--duration-fast) var(--ease-standard), transform var(--duration-instant) var(--ease-standard), background var(--duration-fast) var(--ease-standard);
+  --transition-color: color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+
+  /* 交互状态强度：hover/active/disabled 的视觉反馈程度统一管理 */
+  --state-hover-opacity: 0.88;
+  --state-active-scale: 0.97;
+  --state-disabled-opacity: 0.45;
+
+  /* 阴影梯度（elevation）：只覆盖"常规投影"（位移+模糊+半透明阴影色），
+     不包括统计胶囊那种带主色光晕/内嵌高光的复合效果——那是独立的视觉语言，
+     仍保留专属写法，不强行并入这套梯度。
+     三档对应"离画面的悬浮高度"：卡片最低，独立浮层中等，全屏抽屉最高。 */
+  --elevation-low: 0 var(--space-2-5) 30px color-mix(in srgb, var(--shadow-color) 10%, transparent);
+  --elevation-medium: 0 var(--space-3-5) 40px color-mix(in srgb, var(--shadow-color) 14%, transparent);
+  --elevation-high: 0 var(--space-5-5) 60px color-mix(in srgb, var(--shadow-color) 18%, transparent);
+
+  /* z-index 分层（2026-06-20）：按"语义层级"而非随意数值分配，新增浮层时从这里选用，
+     不要再手写裸数字。每层之间留了余量，方便插入新元素而不必改动既有值。
+     层级关系（从下到上）：地图控件 < 顶栏/搜索 < 内容浮层(详情抽屉/统计面板) <
+     悬浮提示(tooltip/下拉菜单) < 模态框(modal) < 全局提示(toast)。
+
+     "内容浮层"这一层内部，谁是当前激活的临时性内容，谁就该在最上面——
+     这是产品行为预期，不是CSS能自动推导的，需要每次新增浮层时显式决定它在这层里的位置，
+     而不是假设"先定义的z-index数值小就该在下面"。 */
+  --z-map-controls: 12;
+  --z-topbar: 20;
+  --z-content-base: 25;     /* 内容浮层基准层：城市详情抽屉默认值 */
+  --z-content-active: 28;   /* 内容浮层中"当前更应优先看到"的那个，如展开的统计面板 */
+  --z-content-pinned: 30;   /* 内容浮层中"用户主动钉住、应始终可见"的那个，如折叠胶囊、搜索结果 */
+  --z-flyout: 35;            /* 悬浮提示/下拉菜单：用户下拉菜单、地图tooltip等轻量瞬时提示 */
+  --z-modal: 40;             /* 真正阻断式的模态框 */
+  --z-toast: 60;             /* 全局通知，永远最上层 */
+  --z-tooltip: 1000;         /* 成就徽章tooltip等需要覆盖一切的最高层级 */
+
+  /* 响应式断点（CSS @media 不支持变量引用，此处仅作规范记录） */
+  /* --breakpoint-mobile: 767px;   移动端上限 */
+  /* --breakpoint-tablet: 768px;   桌面端下限 */
+  /* --breakpoint-tablet-max: 1024px; 平板上限 */
+}
+
+/* ═══════ Rose (pink) ─ default ═══════ */
+:root, :root[data-theme="rose"] {
+  --color-primary: #E0083E; --color-primary-container: #FF7BA3; --color-on-primary: #FFFFFF;
+  --color-secondary: #E87D94; --color-secondary-container: #F298A8;
+  --color-tertiary: #D9485A;
+  --color-error: #D9485A;
+  --color-success: #4CAF50;
+  --color-warning: #FFB74D; /* 2026-06-20: 复用此变量作为地图悬停预览色，Rose主题专属值 */
+  --color-background: #FFFBFC; --color-surface: #FFF5F7;
+  --color-surface-container-low: #FBEEF1; --color-surface-container: #F7E4E9;
+  --color-on-surface: #2D1B24; --color-on-surface-variant: #8C6C77;
+  --color-outline-variant: #F0D9E1;
+  /* 2026-06-21: l0~l6改用非线性曲线统一公式(power=1.6幂函数分布，从l0=94.9%
+     明度到l5紧贴主色明度，中后段l3/l4/l5间距拉大、前段l0/l1压缩)生成，
+     替代之前线性等差曲线——线性版本中段(l3/l4/l5)明度差被压缩到均匀8.3%，
+     用户反馈"肉眼看456三档过于接近"，改用幂函数让中后段差距拉到约
+     8.7%~12.4%，前段(l0/l1)只差3.2%(靠饱和度变化区分，不靠明度)。
+     此次同步重制，与晨雾/琥珀/绿松/冰河四个主题保持同一套公式。 */
+  --color-dur-l0: #F8ECEF; --color-dur-l1: #FCD7E1; --color-dur-l2: #FFB4C7;
+  --color-dur-l3: #FF88A6; --color-dur-l4: #F95780; --color-dur-l5: #DE335E; --color-dur-l6: #A21337;
+  --color-dep-l1: #FCD7E1; --color-dep-l2: #FFB4C7; --color-dep-l3: #F95780; --color-dep-l4: #A21337;
+  --glass-bg: rgba(255,245,247,.82);
+  --glass-border: rgba(240,217,225,.7);
+  --shadow-card: 0 var(--space-1) var(--space-5-5) rgba(224,8,62,.08); --shadow-glow: 0 var(--space-2) 28px rgba(224,8,62,.18);
+  /* 2026-06-20: rgba数值是主色#E0083E的RGB分量，硬编码而非引用--color-primary，
+     是因为CSS自定义属性不支持在rgba()里拆解颜色分量。上次改主色(#F95D84->#E0083E)
+     时漏掉了这两处，导致阴影还在用旧主色色相，肉眼看起来像“隐隐的红色边框”——
+     这不是真正的border，是带色相的box-shadow在浅色背景上造成的视觉误导。
+     以后再改--color-primary，必须同步搜索这两个rgba硬编码值一起改，否则会再发生
+     同样的不一致。*/
+  color-scheme: light;
+}
+
+/* ═══════ 晨雾 Stripe (purple) ═══════ */
+:root[data-theme="stripe"] {
+  /* 2026-06-21: 五主题全量重制——晨雾(原Stripe)的色相统一调整为H262
+     (更标准的紫色调，原H247.7是历史手调色值，色相在l0~l6之间漂移了近14°，
+     不是同一公式生成的)。色阶改用统一公式：L等差递减+S抛物线分布(从樱花
+     反推)，l6改用"主色明度-10%"规则生成专属深色，不再借用l5/l6两档凑数。 */
+  --color-primary: #7433E6; --color-primary-container: #965DF9; --color-on-primary: #FFFFFF;
+  --color-secondary: #8550E6; --color-secondary-container: #9A64FF;
+  --color-tertiary: #5E27BF;
+  /* 2026-06-21: 危险色不再使用红色系，改用本主题色阶最深档l6(#5E27BF)。
+     规则：l6明度=主色明度-10%，确保危险色视觉上比主色更"沉"，靠深浅区分
+     警示感而非色相，与樱花/琥珀/绿松/冰河四个主题保持统一规则。 */
+  --color-error: #5E27BF;
+  --color-success: #4CAF50;
+  --color-warning: #F5A623; /* 复用此变量作为地图悬停预览色，晨雾主题专属值 */
+  --color-background: #FDFCFE; --color-surface: #F9F6FD;
+  --color-surface-container-low: #F3EFFA; --color-surface-container: #EBE5F6;
+  --color-on-surface: #221B2D; --color-on-surface-variant: #786C8C;
+  --color-outline-variant: #E2DAEF;
+  /* 2026-06-21: l0~l6改用非线性曲线统一公式，详见樱花主题块同名注释。 */
+  --color-dur-l0: #F0ECF8; --color-dur-l1: #E7DBFD; --color-dur-l2: #D7BFFF;
+  --color-dur-l3: #C19DFF; --color-dur-l4: #A878FA; --color-dur-l5: #8F5DE5; --color-dur-l6: #5E27BF;
+  --color-dep-l1: #E7DBFD; --color-dep-l2: #D7BFFF; --color-dep-l3: #A878FA; --color-dep-l4: #5E27BF;
+  --glass-bg: rgba(249,246,253,.82);
+  --glass-border: rgba(226,218,239,.7);
+  --shadow-card: 0 var(--space-1) var(--space-5-5) rgba(116,51,230,.08); --shadow-glow: 0 var(--space-2) 28px rgba(116,51,230,.18);
+  color-scheme: light;
+}
+
+/* ═══════ 琥珀 Amber (gold) ═══════ */
+:root[data-theme="amber"] {
+  /* 2026-06-21: 新增主题。色相H40(暖金棕调)，色阶沿用统一公式生成。
+     主色明度刻意压到L30%(而非常见的"亮金黄"区间)，原因：金黄色相在常见
+     S/L组合下白字对比度天生不足(L42%时仅2.92，远低于WCAG AA的4.5)——
+     压深到L30%后对比度达5.28，同时仍保留"金/古铜"的色相辨识度，没有深
+     到变成纯棕色。 */
+  --color-primary: #906309; --color-primary-container: #E0AB40; --color-on-primary: #FFFFFF;
+  --color-secondary: #A8780F; --color-secondary-container: #C99A1E;
+  --color-tertiary: #59400D;
+  /* 危险色不用红色系，改用本主题色阶最深档l6(#59400D)，规则同晨雾注释。 */
+  --color-error: #59400D;
+  --color-success: #4CAF50;
+  --color-warning: #D9A12C; /* 复用此变量作为地图悬停预览色，琥珀主题专属值 */
+  --color-background: #FEFDFC; --color-surface: #FDFBF6;
+  --color-surface-container-low: #FAF6EF; --color-surface-container: #F6F0E5;
+  --color-on-surface: #2D271B; --color-on-surface-variant: #8C816C;
+  --color-outline-variant: #EFE8DA;
+  /* 2026-06-21: l0~l6改用非线性曲线统一公式，详见樱花主题块同名注释。 */
+  --color-dur-l0: #F8F4EC; --color-dur-l1: #FCEED2; --color-dur-l2: #FFE0A2;
+  --color-dur-l3: #FFCC65; --color-dur-l4: #F7B022; --color-dur-l5: #A7781B; --color-dur-l6: #59400D;
+  --color-dep-l1: #FCEED2; --color-dep-l2: #FFE0A2; --color-dep-l3: #F7B022; --color-dep-l4: #59400D;
+  --glass-bg: rgba(253,251,246,.82);
+  --glass-border: rgba(239,232,218,.7);
+  --shadow-card: 0 var(--space-1) var(--space-5-5) rgba(144,99,9,.08); --shadow-glow: 0 var(--space-2) 28px rgba(144,99,9,.18);
+  color-scheme: light;
+}
+
+/* ═══════ 绿松 Turquoise (jade green) ═══════ */
+:root[data-theme="turquoise"] {
+  /* 2026-06-21: 新增主题。色相H155(松石绿/祖母绿调)，色阶沿用统一公式生成。
+     主色明度压到L30%，原因同琥珀：该色相在常见L区间白字对比度不足
+     (L38%时仅3.0)，压深到L30%后对比度达4.59，刚好过WCAG AA线，同时
+     保留清晰的绿色辨识度。 */
+  --color-primary: #138656; --color-primary-container: #40E09D; --color-on-primary: #FFFFFF;
+  --color-secondary: #1F9D68; --color-secondary-container: #2DBE7E;
+  --color-tertiary: #125438;
+  /* 危险色不用红色系，改用本主题色阶最深档l6(#125438)，规则同晨雾注释。 */
+  --color-error: #125438;
+  --color-success: #4CAF50;
+  --color-warning: #E8A33D; /* 复用此变量作为地图悬停预览色，绿松主题专属值 */
+  --color-background: #FCFEFD; --color-surface: #F6FDFA;
+  --color-surface-container-low: #EFFAF6; --color-surface-container: #E5F6EF;
+  --color-on-surface: #1B2D25; --color-on-surface-variant: #6C8C7F;
+  --color-outline-variant: #DAEFE6;
+  /* 2026-06-21: l0~l6改用非线性曲线统一公式，详见樱花主题块同名注释。 */
+  --color-dur-l0: #ECF8F3; --color-dur-l1: #D2FCEA; --color-dur-l2: #A2FFD8;
+  --color-dur-l3: #65FFBF; --color-dur-l4: #22F79E; --color-dur-l5: #1BA76D; --color-dur-l6: #125438;
+  --color-dep-l1: #D2FCEA; --color-dep-l2: #A2FFD8; --color-dep-l3: #22F79E; --color-dep-l4: #125438;
+  --glass-bg: rgba(246,253,250,.82);
+  --glass-border: rgba(218,239,230,.7);
+  --shadow-card: 0 var(--space-1) var(--space-5-5) rgba(19,134,86,.08); --shadow-glow: 0 var(--space-2) 28px rgba(19,134,86,.18);
+  color-scheme: light;
+}
+
+/* ═══════ 冰河 Azure (blue) ═══════ */
+:root[data-theme="azure"] {
+  /* 2026-06-21: 新增主题。色相H215(靛蓝调)，色阶沿用统一公式生成。主色
+     明度L48%，白字对比度天然达标(5.05)，是五个主题里唯一不需要为达标
+     而专门压深主色的——蓝色相在中等明度下对比度本身就比黄绿色系更高。 */
+  --color-primary: #166ADF; --color-primary-container: #5D9EF9; --color-on-primary: #FFFFFF;
+  --color-secondary: #2C7CE0; --color-secondary-container: #4D8FE8;
+  --color-tertiary: #1D56A4;
+  /* 危险色不用红色系，改用本主题色阶最深档l6(#1D56A4)，规则同晨雾注释。 */
+  --color-error: #1D56A4;
+  --color-success: #4CAF50;
+  --color-warning: #E8A33D; /* 复用此变量作为地图悬停预览色，冰河主题专属值 */
+  --color-background: #FCFDFE; --color-surface: #F6F9FD;
+  --color-surface-container-low: #EFF4FA; --color-surface-container: #E5ECF6;
+  --color-on-surface: #1B222D; --color-on-surface-variant: #6C798C;
+  --color-outline-variant: #DAE3EF;
+  /* 2026-06-21: l0~l6改用非线性曲线统一公式，详见樱花主题块同名注释。 */
+  --color-dur-l0: #ECF1F8; --color-dur-l1: #D8E7FD; --color-dur-l2: #B7D5FF;
+  --color-dur-l3: #8DBDFF; --color-dur-l4: #60A0F9; --color-dur-l5: #3E81E0; --color-dur-l6: #1D56A4;
+  --color-dep-l1: #D8E7FD; --color-dep-l2: #B7D5FF; --color-dep-l3: #60A0F9; --color-dep-l4: #1D56A4;
+  --glass-bg: rgba(246,249,253,.82);
+  --glass-border: rgba(218,227,239,.7);
+  --shadow-card: 0 var(--space-1) var(--space-5-5) rgba(22,106,223,.08); --shadow-glow: 0 var(--space-2) 28px rgba(22,106,223,.18);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; overflow: hidden; }

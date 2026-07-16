@@ -1,0 +1,124 @@
+body {
+  font-family: var(--font-family);
+  color: var(--color-on-surface);
+  background: var(--color-background);
+  overflow-x: hidden;
+}
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+
+.app { height: 100%; overflow: hidden; }
+.map-stage { height: 100%; padding-top: var(--topbar-height); }
+.btn-primary, .btn-outline, .btn-danger {
+  min-height: var(--size-btn-default); border: 0; border-radius: var(--radius-full); padding: 0 var(--space-3-5); font-weight: 600; font-size: var(--font-sm);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  white-space: nowrap;
+  transition: var(--transition-interactive);
+}
+.btn-primary { background: var(--color-primary); color: var(--color-on-primary); box-shadow: var(--shadow-glow); }
+/* 2026-06-21: 全局.btn-outline描边对比度加强。真机反馈在浅色主题背景
+   （如樱花的浅粉modal/卡片底色）上，描边色--color-outline-variant跟
+   背景太接近，按钮边缘几乎看不见——这是全局通病，不是某个场景单独的
+   问题，所以在组件本身改，让所有用到.btn-outline的地方（重置密码取消、
+   各类弹窗次要按钮、多选状态条取消等）统一受益。描边改用
+   --color-on-surface自身做半透明描边，而非沿用outline-variant这个
+   "背景级"的浅色变量——on-surface是主文字色，透明度压低后既能保证在
+   任意主题背景上都有可辨边缘，又不会重到跟主按钮抢视觉重量。 */
+.btn-outline { background: transparent; color: var(--color-on-surface); border: var(--space-xs) solid color-mix(in srgb, var(--color-on-surface) 28%, transparent); }
+/* 2026-06-21: 危险操作按钮对比度加强。--color-error跟随主题色（每个
+   主题色相不同），在某些主题下（如晨雾的紫调error）跟modal的浅色背景
+   明度/色相都接近，按钮"扁"在背景里，缺少高风险操作该有的警示感。不
+   改用固定红色（用户要求仍跟随主题），而是用自身加深一档的描边+更明显
+   的投影，让按钮轮廓在任何主题下都比背景更"硬"——不依赖背景色本身的
+   对比度，描边色用color-mix把--color-error调暗20%，确保边缘始终可辨。 */
+.btn-danger { background: var(--color-error); color: var(--color-on-primary); border: var(--space-xs) solid color-mix(in srgb, var(--color-error) 80%, black); box-shadow: 0 2px 8px color-mix(in srgb, var(--color-error) 35%, transparent); }
+.btn-primary:not(:disabled):hover, .btn-outline:not(:disabled):hover, .btn-danger:not(:disabled):hover { opacity: var(--state-hover-opacity); }
+.btn-primary:not(:disabled):active, .btn-outline:not(:disabled):active, .btn-danger:not(:disabled):active { transform: scale(var(--state-active-scale)); }
+.btn-primary:disabled, .btn-outline:disabled, .btn-danger:disabled { opacity: var(--state-disabled-opacity); cursor: not-allowed; }
+/* 2026-06-26全项目按钮风格审计：补上表格/列表行内专用的两个新档，彻底取代.card-btn系、.edit-link-btn、.admin-user-card-action这三个平行于本体系、互不统一的重复实现。设计依据(业内通用定位)：表格行内同时并列多个常规操作时用tertiary(低强调、文字为主)，避免每个都用边框/背景抢眼；删除这类行内危险操作用error色但仍保持tertiary的弱化视觉权重(不加投影/背景)，与primary/outline/danger这三个页面级主操作拉开区别。颜色全部复用本档现成标准变量(--color-on-surface-variant/--color-error)，不引入任何color-mix混合出的派生值。
+   “保存/取消”（行内编辑状态的确认动作，不是常规行内操作）不在这两档里，按业内共识继续保持primary/outline同样的显眼程度，只是外形改为方角(跟表格调性一致)、尺寸收粗适配表格行高，仍复用.btn-primary/.btn-outline本身的配色/投影逻辑，不重复定义。 */
+.btn-primary.compact, .btn-outline.compact { border-radius: var(--radius-sm); min-height: var(--size-btn-default); padding: 0 var(--space-3); }
+.btn-tertiary, .btn-tertiary-danger { height: var(--size-btn-default); border: none; background: transparent; border-radius: var(--radius-sm); font-size: var(--font-sm); font-weight: 600; padding: 0 var(--space-2-5); white-space: nowrap; transition: opacity .15s; }
+.btn-tertiary { color: var(--color-on-surface-variant); }
+.btn-tertiary-danger { color: var(--color-error); }
+.btn-tertiary:not(:disabled):hover, .btn-tertiary-danger:not(:disabled):hover { opacity: var(--state-hover-opacity); }
+.btn-tertiary:disabled, .btn-tertiary-danger:disabled { opacity: var(--state-disabled-opacity); cursor: not-allowed; }
+.back-btn { display: inline-flex; align-items: center; gap: var(--space-1); border: 0; background: transparent; color: var(--color-primary); font-weight: 600; font-size: var(--font-base); padding: var(--space-1) 0; }
+.icon-btn { width: var(--size-btn-default); height: var(--size-btn-default); padding: 0; border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-full); background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface)); color: var(--color-on-surface); font-size: var(--font-lg); transition: var(--transition-interactive); display: inline-flex; align-items: center; justify-content: center; }
+.icon-btn:hover { background: var(--color-surface-container-low); }
+.icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.icon svg { width: 100%; height: 100%; }
+.icon-btn .icon { width: 18px; height: 18px; }
+.btn-primary .icon, .btn-outline .icon, .btn-danger .icon { width: 14px; height: 14px; margin-right: var(--space-1); }
+.toast .icon { width: 16px; height: 16px; }
+.stats-pill-icon .icon { width: 20px; height: 20px; }
+/* 2026-06-21: background用color-mix引用--card-tint-pct。五主题全量重制后
+   统一定为8%（不再有Rose特例0% + 其他主题覆盖4%/8%的不一致写法），因为
+   现在每个主题的--color-surface都由统一公式生成、自带各自色相，不需要再
+   按主题区分比例。注意这条规则选择器是单类.card(特异性0,0,1,0)——已检查过，
+   全局没有任何更高优先级的:root[data-theme=...] .card规则会覆盖它（跟
+   .glass踩过的优先级劫持坑不同，这条规则没有这个问题）。
+   **完整改动范围**（历史记录）：用户要求"按钮、抽屉、统计面板title这些
+   小元素也一起改"，所以不只改.card一处——全局搜索了所有写死`background:
+   var(--color-surface)`的地方，统一替换成同一个color-mix公式，包括：
+   .modal（弹窗）、.icon-btn（图标按钮）、.map-controls .btn-outline
+   （地图控件按钮）、.drawer（抽屉）、.stats-panel > .panel-title（统计
+   面板sticky标题）、.map-controls.glass/.map-level/.map-color-mode/
+   .stats-panel/.stats-collapsed-pill（768px+桌面端断点内的几处独立覆盖）。
+   这些全部共用--card-tint-pct这一个变量，调整比例时只需要改:root里这一个
+   变量定义，不需要逐个改这11处规则，也不需要逐主题单独覆盖。 */
+.card { background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface)); border: var(--space-xs) solid var(--color-card-border); border-radius: var(--radius-panel); box-shadow: var(--shadow-card); }
+/* 2026-06-27: .modal内嵌套.card(如"添加访问"/"修改密码"/导入预览这类
+   表单卡片)原本跟.modal用完全相同的8%混色公式，背景几乎融为一体、看不出
+   卡片边界，用户反馈"新弹出来的页面底色和原来的底色太接近"。这里给嵌套
+   场景单独提高混色比例到16%(概念上是--card-tint-pct的两倍，写成字面值
+   而非calc()表达式，避免color-mix()嵌套calc()百分比参数在不同浏览器下的
+   兼容性不确定性)，让卡片在弹窗里有更明显的"浮在上层"的层次感，参照
+   Material 3的surface-container层级惯例(elevation越高，主题色混入越多，
+   不是越少)。只在.modal嵌套场景生效，地图上悬浮的.card(图层切换/搜索
+   结果等)不受影响，维持原有8%。 */
+.modal .card { background: color-mix(in srgb, var(--color-primary) var(--modal-card-tint-pct), var(--color-surface)); }
+.glass { background: var(--glass-bg); backdrop-filter: blur(var(--space-4-5)); border: var(--space-xs) solid var(--glass-border); }
+/* 2026-06-21: 删除Linear后，原来给linear/stripe各写一条重复.glass规则的
+   做法（仅用于垫高选择器特异性，内容与上面.glass完全相同）不再需要逐主题
+   复制——五主题全部共用这一条.glass即可，特异性问题在下方.topbar.glass等
+   具体场景里通过专属高特异性选择器单独解决（见.topbar.glass的注释）。 */
+.input { width: 100%; min-height: var(--size-input); border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-sm); padding: 0 var(--space-3); color: var(--color-on-surface); background: var(--color-background); outline: none; }
+/* 2026-06-27: .input默认背景用--color-background，这个变量在5个主题下
+   几乎都是接近纯白(只有极细微色差)，跟.card/.modal统一用color-mix(primary
+   8%, surface)的暖色调形成明显脱节——输入框嵌在卡片里时显得像一块没套上
+   主题色的死白方块。改用--color-surface-container-low：这个变量本身已经
+   是每个主题下有明显色相偏移的值(而不是另外发明一个新的tint比例)，且已经
+   被.visit-card/hover态等场景使用过，是项目里已确立的"比卡片浅一级、但
+   仍带主题色"的层级。只在.card/.modal内生效，不影响地图悬浮搜索框等
+   独立语境下的输入框(那些保留原来的纯色背景，本来就不在暖色卡片语境里，
+   不存在脱节问题)。 */
+.card .input, .modal .input { background: var(--color-surface-container-low); }
+.input:focus { border-color: var(--color-primary-container); box-shadow: 0 0 0 3px var(--color-focus-ring); }
+.label-sm { font-size: var(--font-xs); color: var(--color-on-surface-variant); font-weight: 500; }
+
+.account-menu { position: relative; }
+.account-trigger { display: flex; align-items: center; gap: var(--space-1); border: 0; background: transparent; color: var(--color-on-surface); font-weight: 700; font-size: var(--font-base); padding: var(--space-1-5) var(--space-2-5); border-radius: var(--radius-sm); white-space: nowrap; transition: var(--transition-interactive); }
+.account-trigger:hover { background: var(--color-surface-container-low); }
+.account-trigger:active { transform: scale(var(--state-active-scale)); }
+.account-trigger-arrow { color: var(--color-on-surface-variant); transition: var(--transition-interactive); }
+.account-trigger-arrow.is-open { transform: rotate(180deg); }
+.account-dropdown { position: absolute; top: calc(var(--size-input) + var(--space-1)); right: 0; min-width: 168px; padding: var(--space-1-5); z-index: var(--z-flyout); display: grid; gap: var(--space-1); }
+.account-dropdown-item { display: flex; align-items: center; gap: var(--space-2); width: 100%; border: 0; background: transparent; color: var(--color-on-surface); font-weight: 600; font-size: var(--font-base); padding: var(--space-2) var(--space-2-5); border-radius: var(--radius-sm); white-space: nowrap; text-align: left; transition: var(--transition-interactive); }
+.account-dropdown-item:hover { background: var(--color-surface-container-low); }
+.account-dropdown-item:active { transform: scale(var(--state-active-scale)); }
+.account-dropdown-item.is-danger { color: var(--color-error); }
+/* 2026-06-20: "主题选择"二级展开列表（账号下拉菜单内原地展开，不跳新弹窗，
+   不关闭外层菜单）。submenu用左侧细线+左缩进跟主列表项形成层级区分，subitem
+   复用account-dropdown-item的大部分视觉但字号略小、左侧多留一个图标位的
+   占位（check图标或spacer），让"当前选中"状态左对齐不抖动。 */
+.account-dropdown-submenu { display: grid; gap: var(--space-1); padding: var(--space-1) 0 var(--space-1) var(--space-2-5); margin-left: var(--space-2-5); border-left: 1px solid var(--color-outline-variant); }
+.account-dropdown-subitem { font-size: var(--font-sm); font-weight: 500; }
+.account-dropdown-subitem .icon, .account-subitem-spacer { width: 16px; height: 16px; flex-shrink: 0; }
+.user-dropdown { position: absolute; top: var(--size-input); left: 0; min-width: 180px; padding: var(--space-2); z-index: var(--z-flyout); }
+.user-row { display: flex; align-items: center; justify-content: space-between; }
+.user-name { flex: 1; text-align: left; border: 0; background: transparent; padding: var(--space-2) var(--space-2-5); font-weight: 600; color: var(--color-on-surface); border-radius: var(--radius-sm); font-size: var(--font-base); }
+.user-name:hover { background: var(--color-surface-container); }
+.user-del { border: 0; background: transparent; color: var(--color-error); font-size: var(--font-lg); padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); cursor: pointer; }
+.user-del:hover { background: var(--color-surface-container); }
+

@@ -1,0 +1,46 @@
+.topbar { position: fixed; inset: var(--space-3) var(--space-3) auto; z-index: var(--z-topbar); min-height: 56px; border-radius: var(--radius-lg); display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); }
+/* 2026-06-20: 顶部条原本完全用通用.glass的中性玻璃背景(--glass-bg)，三个
+   主题看起来几乎只有明暗差异，缺乏"这是哪个主题"的识别感。用户决定给顶部
+   条单独混入一点主题主色（不改--glass-bg本身，避免影响Toast/地图控件/
+   登录面板等其他共用.glass的元素）。用color-mix在.glass提供的玻璃背景基础
+   上叠加主题色。**比例迭代记录**：最初定的6%在静态预览（不透明纯色模拟）
+   里看着够，但部署后用户反馈Stripe主题"太白不紫"——根因是Stripe的
+   --glass-bg本身是rgba(247,248,250,.82)，已经非常接近白色且带透明度，
+   同样6%的紫色在这种底色上视觉冲淡程度远超预览时的模拟（预览没有还原
+   真实的半透明叠加效果）。用真实color-mix公式重新做了5档(6/10/14/18/22%)
+   对比预览，用户选定14%为最终值。 */
+/* 2026-06-20修复重大bug（历史教训，2026-06-21更新引用）: 当时上面有几条
+   几乎重复的.glass规则，其中用了:root[data-theme="..."] .glass这种属性
+   选择器+类选择器的组合，CSS特异性(0,1,1,0)比单类选择器.topbar(0,0,1,0)
+   高得多。导致在那些主题下，无论这条混色规则写什么百分比，实际生效的都是
+   纯var(--glass-bg)，混色完全被覆盖看不出来——这正是当时用户反馈"红色调到
+   理想值但紫色完全没有任何迹象"的真正原因，之前几次调整比例全部无效，因为
+   问题根本不在比例大小。改用:root .topbar.glass这种同等或更高特异性的
+   选择器，确保不会被劫持。**教训**：任何形如:root[data-theme=...] .xxx
+   的规则，特异性都会比单类选择器.xxx高，新增主题专属覆盖规则时必须留意
+   这一点，不要假设"后写的规则会生效"。 */
+:root .topbar.glass { background: color-mix(in srgb, var(--color-primary) var(--topbar-tint-pct), var(--glass-bg)); }
+.logo { font-weight: 800; white-space: nowrap; font-size: var(--font-lg); }
+/* 2026-06-20: Logo新增图标(emoji)+slogan，与登录页brand-mark保持同一个图标和
+   文案(均为🗺️/"记录你走过的每一座城")，但topbar是常驻小尺寸导航栏场景，不能
+   直接复用登录页--font-display(56px)那套大尺寸样式，单独定义协调的小尺寸。 */
+.logo-group { display: flex; align-items: center; gap: var(--space-2); }
+.logo-mark { font-size: var(--font-2xl); line-height: 1; flex-shrink: 0; }
+.logo-text-group { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.logo-slogan { margin: 0; font-size: var(--font-2xs); font-weight: 500; color: var(--color-on-surface-variant); white-space: nowrap; line-height: 1.2; }
+.topbar-actions, .current-user { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); }
+.top-actions, .icon-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); }
+.current-user { font-weight: 700; font-size: var(--font-sm); white-space: nowrap; }
+.mode-pill { display: flex; border-radius: var(--radius-pill-track); background: var(--color-surface-container-low); padding: var(--space-1); }
+.mode-pill button { border: 0; border-radius: var(--radius-pill-segment); background: transparent; color: var(--color-on-surface-variant); padding: var(--space-2-5) var(--space-4); font-size: var(--font-sm); font-weight: 700; white-space: nowrap; }
+.mode-pill button.active { background: var(--color-primary); color: var(--color-on-primary); }
+.profile-tabs { overflow-x: auto; }
+.embedded-panel { display: grid; gap: var(--space-3); min-width: 0; }
+.embedded-head { margin-bottom: var(--space-1); }
+.admin-create { margin-bottom: var(--space-4); align-items: stretch; }
+.admin-create .input { flex: 1; }
+.search { position: relative; }
+.search-results { position: absolute; top: 50px; left: 0; right: 0; z-index: var(--z-flyout); padding: var(--space-1-5); }
+.search-item { width: 100%; border: 0; background: transparent; border-radius: var(--radius-sm); padding: var(--space-2-5); text-align: left; color: var(--color-on-surface); display: flex; justify-content: space-between; }
+.search-item.active, .search-item:hover { background: var(--color-surface-container); }
+

@@ -1,0 +1,54 @@
+/* 间距工具类 */
+/* 2026-06-27: 这8个class原来全部写裸像素值，但数值本身跟--space-*
+   token体系完全对应(12px=--space-3, 16px=--space-4等)，只是没有引用
+   变量——等于同一个数字有两份独立来源，以后调整token体系这些class不会
+   跟着联动。改为引用对应变量，数值不变，纯粹收紧来源。class名本身保留
+   像素数字命名(而不是改成.mt-space-3这种)，因为调用处已经大量使用
+   这套基于像素直觉的命名，重命名class名的改动成本和收益不成比例，
+   不在这次范围内。 */
+.mt-6 { margin-top: var(--space-1-5); }
+.mt-8 { margin-top: var(--space-2); }
+.mt-12 { margin-top: var(--space-3); }
+.mt-16 { margin-top: var(--space-4); }
+.mb-8 { margin-bottom: var(--space-2); }
+.mb-12 { margin-bottom: var(--space-3); }
+.mb-16 { margin-bottom: var(--space-4); }
+.mb-20 { margin-bottom: var(--space-5-5); }
+.p-16 { padding: var(--space-4); }
+.p-24 { padding: var(--space-5); }
+.p-32 { padding: var(--space-6); }
+
+/* Flex 布局工具类 */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-center { display: flex; justify-content: center; align-items: center; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.flex-end { display: flex; justify-content: flex-end; }
+.flex-start { display: flex; align-items: flex-start; }
+.gap-8 { gap: var(--space-2); }
+.gap-10 { gap: var(--space-2-5); }
+
+/* 文本工具类 */
+.text-center { text-align: center; }
+
+/* 表格列宽 */
+.col-username { width: 120px; }
+.col-nickname { width: 150px; }
+
+/* 模态框尺寸 */
+.modal-sm { max-width: 380px; }
+
+.w-full { width: 100%; }
+
+@keyframes floatDown { from { transform: translateX(-50%) translateY(calc(var(--space-3) * -1)); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+@keyframes floatUp { from { transform: translateX(-50%) translateY(var(--space-3)); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(var(--space-4-5)); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes toastIn { from { transform: translate(-50%, calc(var(--space-3) * -1)); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes statsPillFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes statsPillGlow {
+  0%, 100% { box-shadow: 0 var(--space-3) 34px color-mix(in srgb, var(--shadow-color) 16%, transparent), 0 0 0 var(--space-1-5) color-mix(in srgb, var(--color-primary) 10%, transparent); }
+  50% { box-shadow: 0 var(--space-3-5) 40px color-mix(in srgb, var(--shadow-color) 18%, transparent), 0 0 0 var(--space-2-5) color-mix(in srgb, var(--color-primary) 16%, transparent); }
+}
+

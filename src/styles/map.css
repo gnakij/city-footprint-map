@@ -1,0 +1,180 @@
+.map-wrap { height: 100%; position: relative; }
+.china-map { height: 100%; width: 100%; }
+.map-controls { position: absolute; left: var(--space-4-5); top: var(--space-4-5); z-index: var(--z-map-controls); display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2); border-radius: var(--radius-lg); }
+.map-controls .btn-outline { background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface)); }
+.map-level { position: absolute; left: var(--space-4-5); top: 82px; z-index: var(--z-map-controls); padding: var(--space-2) var(--space-3); font-size: var(--font-sm); font-weight: 800; color: var(--color-on-surface-variant); }
+.map-color-mode { position: absolute; left: var(--space-4-5); top: 132px; z-index: var(--z-map-controls); box-shadow: var(--elevation-low); }
+.map-color-mode button { min-width: 96px; }
+
+.drawer { position: fixed; z-index: var(--z-content-base); background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface)); box-shadow: var(--elevation-high); border: var(--space-xs) solid var(--color-outline-variant); }
+.city-drawer { right: var(--space-4-5); top: 92px; width: 390px; max-height: calc(100vh - 112px); overflow: auto; border-radius: var(--radius-md); padding: var(--space-5-5); }
+.drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.drawer h2, .modal h2 { margin: 0; font-size: var(--font-2xl); }
+.badge { display: inline-flex; align-items: center; min-height: var(--space-5); padding: 0 var(--space-2-5); border-radius: var(--radius-full); background: var(--color-surface-container); color: var(--color-primary); font-size: var(--font-xs); font-weight: 700; }
+.form-row { margin: var(--space-3) 0; display: grid; gap: var(--space-2); }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2-5); }
+.textarea { min-height: 72px; padding-top: var(--space-2-5); resize: vertical; }
+/* 2026-06-26项目规范确定：按钮组默认靠左(flex-start)，不再是flex-end。用户发现用户管理(靠左)跟数据管理(原本flex-end靠右)不一致，按业内共识（需要根据实际诺言，最常见是“默认靠左”，靠右只是少数例外场景）决定统一成靠左。为了不让以后新写代码又意外“滑回”靠右，不是另加一个“靠左”修饰符让大家记得加，而是直接把.actions本身的默认值改为flex-start——谁不加任何修饰符都是靠左，这才是能“消除差异”的正确方式。两个真正有独立设计理由的例外场景：分页器(.flex-between，信息+操作两端对齐)、海报预览弹窗(.flex-center，单一聚焦场景)——这两个修饰符本来就写在.actions之后(同优先级下源码更靠后的规则赢)，不受这次默认值变化的影响，不需要额外改动。 */
+.actions { display: flex; justify-content: flex-start; gap: var(--space-2-5); flex-wrap: wrap; }
+.visit-form { margin-top: var(--space-4); padding-top: var(--space-3-5); border-top: var(--space-xs) solid var(--color-outline-variant); }
+.visit-stack { display: grid; gap: var(--space-2-5); margin-top: var(--space-4); }
+.visit-card { display: grid; gap: var(--space-2-5); padding: var(--space-3); border-radius: var(--radius-panel); background: var(--color-surface-container-low); }
+.drawer-list { display: grid; gap: var(--space-2-5); margin-top: var(--space-4); max-height: 34vh; overflow: auto; }
+.row-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.small { min-height: var(--size-btn-small); padding: 0 var(--space-2-5); font-size: var(--font-xs); }
+.btn-outline.small, .btn-danger.small { min-height: var(--size-btn-small); padding: 0 var(--space-2-5); font-size: var(--font-xs); white-space: nowrap; }
+/* 2026-06-27: .mini-actions两条规则已删除——这是UserProfile.tsx访问记录表
+   操作列原来独有的写法，唯一引用处已改用.row-actions(复用AdminPanel用户
+   管理表统一过的同一套规则)，删除后没有任何元素再用这个class了。 */
+.stats-panel { --stats-panel-pad-x: var(--space-3-5); --stats-panel-pad-y: var(--space-3-5); position: fixed; right: var(--space-4-5); bottom: var(--space-4-5); z-index: var(--z-map-controls); width: 280px; padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x); max-height: min(640px, calc(100vh - var(--topbar-height) - var(--space-9))); overflow: auto; }
+.stats-panel { cursor: default; }
+.stats-panel > .panel-title { position: sticky; top: calc(-1 * var(--stats-panel-pad-y)); margin: calc(-1 * var(--stats-panel-pad-y)) calc(-1 * var(--stats-panel-pad-x)) var(--space-2); padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x) var(--space-2); background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface)); z-index: 1; }
+.stats-collapsed-pill {
+  position: fixed;
+  left: 50%;
+  top: calc(var(--topbar-height) + var(--space-3));
+  transform: translateX(-50%);
+  z-index: var(--z-map-controls); /* 跟 .stats-panel 同层：背景常驻UI，永远不应高于新打开的内容浮层(drawer/modal) */
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--size-icon);
+  padding: 0 var(--space-5-5);
+  border: var(--space-xs) solid color-mix(in srgb, var(--color-primary) var(--interactive-border-tint-pct), var(--color-outline-variant));
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-surface) 90%, var(--color-background));
+  color: var(--color-on-surface);
+  font-size: var(--font-base);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 var(--space-3) 34px color-mix(in srgb, var(--shadow-color) 16%, transparent), 0 0 0 var(--space-1-5) color-mix(in srgb, var(--color-primary) 10%, transparent);
+  white-space: nowrap;
+  backdrop-filter: blur(var(--space-4));
+  animation: floatDown .28s ease-out, statsPillGlow 2.8s ease-in-out .5s infinite;
+}
+.stats-collapsed-pill:hover {
+  transform: translateX(-50%) translateY(calc(var(--space-0) * -1));
+  border-color: var(--color-primary-container);
+  box-shadow: 0 var(--space-4) 42px color-mix(in srgb, var(--shadow-color) 20%, transparent), 0 0 0 var(--space-2) color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+.stats-collapsed-pill:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) var(--interactive-border-tint-pct), transparent);
+  outline-offset: 3px;
+}
+.stats-pill-icon { font-size: var(--font-lg); line-height: 1; }
+.stats-pill-text { line-height: 1; }
+.stats-pill-text strong { color: var(--color-primary); font-size: var(--font-md); }
+.stats-pill-arrow { color: var(--color-primary); line-height: 1; display: inline-flex; align-items: center; }
+.panel-title { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2); }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin: var(--space-2) 0; }
+.stat { padding: var(--space-2-5); background: var(--color-surface-container-low); border-radius: var(--radius-sm); }
+.stat-button { width: 100%; border: 0; color: var(--color-on-surface); text-align: left; cursor: pointer; }
+.stat-button:hover { background: var(--color-surface-container); }
+.stat strong { display: block; font-size: var(--font-xl); margin-top: var(--space-0); }
+.progress { height: var(--space-1-5); background: var(--color-surface-container); border-radius: var(--radius-full); overflow: hidden; margin-bottom: var(--space-2); }
+.progress span { display: block; height: 100%; background: var(--color-primary-container); border-radius: inherit; }
+.ranking-section { margin: var(--space-2-5) 0; padding-top: var(--space-2-5); border-top: var(--space-xs) solid var(--color-outline-variant); }
+.stats-divider { border: none; border-top: var(--space-xs) solid var(--color-outline-variant); margin: var(--space-2-5) 0; }
+.ranking-list { list-style: none; margin: 0 0 var(--space-2); padding: 0; display: flex; flex-direction: column; gap: var(--space-0); max-height: 280px; overflow-y: auto; }
+.ranking-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1-5) var(--space-1); border-radius: var(--radius-sm); }
+.ranking-row:hover { background: var(--color-surface-container-low); }
+.ranking-index { width: var(--space-5-5); flex-shrink: 0; text-align: center; font-size: var(--font-xs); color: var(--color-on-surface-variant); font-weight: 500; }
+.ranking-name { flex: 1; font-size: var(--font-sm); color: var(--color-on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ranking-days { font-size: var(--font-sm); font-weight: 700; color: var(--color-primary); flex-shrink: 0; }
+.ranking-toggle { width: 100%; text-align: center; }
+
+.achievement-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-1-5); overflow: visible; }
+.achievement-badge { display: grid; justify-items: center; gap: var(--space-0-75); text-align: center; position: relative; cursor: pointer; }
+.achievement-icon { width: var(--size-icon-large); height: var(--size-icon-large); display: grid; place-items: center; border-radius: 50%; background: #fff; font-size: var(--font-icon); box-shadow: var(--shadow-glow); }
+.achievement-badge.locked { opacity: .4; filter: grayscale(1); }
+.achievement-tooltip {
+  background: color-mix(in srgb, var(--shadow-color) 92%, transparent);
+  color: var(--color-on-primary);
+  padding: var(--space-1-5) var(--space-2-5);
+  border-radius: var(--space-1-5);
+  font-size: var(--font-xs);
+  white-space: nowrap;
+  z-index: var(--z-tooltip);
+  pointer-events: none;
+  box-shadow: 0 var(--space-0) var(--space-2) rgba(0,0,0,0.2);
+}
+
+.modal-backdrop { position: fixed; inset: 0; z-index: var(--z-modal); background: color-mix(in srgb, var(--shadow-color) 42%, transparent); display: grid; place-items: center; padding: var(--space-4-5); }
+
+/* ECharts 地图 tooltip：通过 tooltip.appendTo:'body' + tooltip.className:'map-tooltip'
+   挂载到这里（见 MapView.tsx 注释）。ECharts 库内部给该元素的内联样式硬编码了
+   z-index:9999999，且该数值不读取任何配置项，只能用外部 CSS + !important 强行
+   覆盖（内联样式优先级天生高于外部样式表，没有 !important 不会生效）。
+   与 .user-dropdown 同级（--z-flyout），低于 --z-modal，不会盖住管理员面板等弹窗。 */
+.map-tooltip { z-index: var(--z-flyout) !important; }
+/* 2026-06-20: background同步改用color-mix引用--card-tint-pct，跟.card保持
+   一致——.modal(管理员面板/个人资料弹窗等)原来单独写background: var(--
+   color-surface)，没有用.card这个class，所以即使.card改了混色，弹窗这里
+   也不会跟着变。用户明确要求"管理员面板、弹窗等都一并改"，这里必须同步。 */
+.modal { width: min(560px, 100%); min-width: 0; max-height: 90vh; overflow: auto; padding: var(--space-5-5); border-radius: var(--radius-panel); background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface)); color: var(--color-on-surface); }
+.welcome-modal { width: min(420px, 100%); }
+.modal-wide { width: min(900px, 100%); }
+.visit-modal { width: min(1120px, 100%); }
+.stats-modal { width: min(620px, 100%); }
+.modal-xl { width: min(1180px, 100%); min-height: 560px; }
+/* 2026-06-21: 管理员面板主弹窗专属class。
+   第一次尝试：给.modal-admin设固定min-height(680px)去对齐三个tab高度，
+   部署后用户反馈"还会跳"——根因是"用户管理"和"数据管理"两个tab的表格内容
+   随实际用户数/访问记录数动态变化(测试环境当前只有4个用户，未来会增长)，
+   任何固定数值都只是凑了当下的数据量，不是真正的解决方案。
+   改用更稳健的方案：.modal-admin本身不再需要min-height兜底，弹窗高度
+   交给.admin-tab-viewport(见下方)内部处理——tab按钮固定在外部不参与滚动，
+   三个tab的实际内容统一包进这个viewport容器，容器本身固定高度+内部
+   overflow:auto，无论内容多少都不会撑大或缩小外层弹窗，根治高度跳动，
+   不依赖任何猜测出的固定数值。 */
+/* 2026-06-21: 第二次修复——发现flex:1与固定height同时使用会冲突
+   (flex-basis默认行为下两者互相打架，浏览器表现不可预测)，且更关键的
+   根因是.modal基础定义自带overflow:auto+max-height:90vh，外层modal
+   本身就是可滚动容器，会跟内层.admin-tab-viewport的overflow-y:auto
+   抢滚动权——浏览器优先让最外层先触发滚动，内层的"固定高度让外层不变"
+   策略完全没生效，这才是用户反馈"还会跳/没生效"的真正原因。
+   修复：.modal-admin覆盖掉继承的overflow（改为hidden，不再滚动），
+   且不再使用flex，.admin-tab-viewport改为单纯固定height(不用flex:1)，
+   只让内层viewport滚动，外层modal高度由"head+tab按钮+viewport固定高度"
+   三者相加决定，是个确定值，不随内容变化。 */
+/* 2026-06-21: 第三次修复——用户反馈"用户管理tab比数据管理/系统文档高出
+   一截，跟旁边页签高度不一样"。根因：上一轮把"数字卡片+新增用户按钮"挪到
+   .admin-tab-viewport外部固定不滚动后，它们变成了在固定600px高度的
+   viewport之上"额外叠加"的内容——用户管理tab总高度=viewport 600px+这块
+   内容的高度，比只有viewport 600px的另外两个tab高出一截，这是单纯固定
+   height方案的副作用，不是新bug，是这次新增需求(数字卡片固定顶部)与
+   "三tab总高度一致"这个既有目标产生了冲突。
+   修复思路：不再靠手算"数字卡片大概占多少px"去做减法（这种猜测数值的
+   方式已经在之前几轮踩过坑，不可靠）。改用flex自动分配——给.modal-admin
+   一个总的固定高度(620px)，内部模拟管理员面板的"head+tab按钮+视口"，
+   .admin-tab-viewport改为flex:1(占据除"数字卡片+按钮"之外的所有剩余
+   空间)而不是自己设固定height，"数字卡片+新增按钮"那块按内容自然高度
+   撑开(无需任何class标记，flex子项默认行为)。这样无论该区域实际高度
+   是多少，三个tab的总高度永远等于.modal-admin的固定值，不需要手算任何
+   具体数值，也不会重演之前"flex:1与固定height混用冲突"的问题——因为这次
+   只有viewport一处用flex:1，没有同时叠加固定height。 */
+.modal-admin { display: flex; flex-direction: column; overflow: hidden; max-height: none; height: 620px; }
+/* .modal-admin直接子元素中除.admin-tab-viewport外的所有内容(modal-head/
+   mode-pill/数字卡片+新增按钮区块)都需要flex-shrink:0，确保只有viewport
+   会随剩余空间伸缩，其他内容始终保持自身实际高度，不会被flex布局意外
+   压缩变形。"数字卡片+新增按钮"区块用<>Fragment包裹不产生额外DOM节点，
+   .admin-stats和包裹新增按钮的.mb-16才是.modal-admin真正的flex直接
+   子元素，分别选中。 */
+.modal-admin > .modal-head,
+.modal-admin > .mode-pill,
+.modal-admin > .admin-stats,
+.modal-admin > .mb-16 {
+  flex-shrink: 0;
+}
+/* 2026-06-26补一处关键遗漏：该class仅在作为.modal-admin的flex子元素时写flex:1，但它本身从未被display:flex化(默认仍block)，导致它的子元素.users-table-wrap写flex:1完全无效、只能跳回按内容高度自然撑开，这是修复sticky表头一度未生效的真正根因。用Playwright读取真实渲染后DOM数据验证确认：.admin-tab-viewport作为.modal-admin的flex子元素本身正确拿到316px，但它内部的.users-table-wrap却渲染出404.5px(跳过了flex限宽约束)，说明问题不在users-table-wrap本身跟父级的flex关系上，而是这一层父容器本身根本不是flex容器。补上display:flex+flex-direction:column后，users-table-wrap才能真正被压缩到父级分到的实际高度。补充验证：改动后数据管理/系统文档两个tab的内容块本身是普通<div>、未设自身height，作为flex item默认height:auto仍按内容自然高度(不会被拉伸)，不受此改动影响。 */
+.admin-tab-viewport { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+/* 2026-06-20: 新增min-height。这个modal内部有4个tab(个人信息/访问记录/系统管理/
+   系统设置)，内容量差异很大("个人信息"只有两个输入框，"系统管理"嵌套了完整的
+   表格管理界面)，.modal本身只有max-height没有min-height，导致切换tab时modal
+   随内容量自由伸缩，用户反馈"页签切换时会忽上忽下"。固定一个适中的最小高度，
+   让内容少的tab也撑到这个高度(不会显得局促)，内容多的tab超出时仍可max-height
+   90vh+overflow滚动，不会无限增高顶到屏幕外。 */
+.modal-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); }
+.settings-section { border-top: var(--space-xs) solid var(--color-outline-variant); padding-top: var(--space-4); margin-top: var(--space-4); display: grid; gap: var(--space-3); }
+.toast { position: fixed; left: 50%; top: 86px; transform: translateX(-50%); z-index: var(--z-toast); min-height: var(--size-input); padding: 0 var(--space-4); display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-full); animation: toastIn .22s ease-out; }
+

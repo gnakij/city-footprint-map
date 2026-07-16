@@ -1,0 +1,43 @@
+.loading-page, .login-page { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--space-5-5); position: relative; overflow: hidden; background: linear-gradient(160deg, #FFFBFC 0%, #FFF2F5 35%, #FDE8ED 100%); }
+.login-bg { position: fixed; inset: 0; background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(224,8,62,.05) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(240,120,140,.04) 0%, transparent 60%), linear-gradient(160deg, #FFFBFC 0%, #FFF2F5 35%, #FDE8ED 100%); z-index: 0; }
+/* 2026-06-20: 上面第一个径向渐变rgba(224,8,62,.05)同步使用了新主色#E0083E的RGB分量；
+   第二个rgba(240,120,140,.04)是独立选定的点缀色(接近但不等于旧主色#F95D84)，
+   不是主色变量的硬编码副本，主色调整不强行联动这一处，保留原值。 */
+/* 2026-06-21: 删除Linear后，五主题(樱花/晨雾/琥珀/绿松/冰河)全部是浅色背景，
+   不再需要像Linear那样整套切换成深色渐变——只需各自的径向渐变点缀色跟主色
+   呼应即可，渐变结构(160deg三段式)统一沿用Rose的写法。 */
+:root[data-theme="stripe"] .login-page, :root[data-theme="stripe"] .loading-page { background: linear-gradient(160deg, #FDFCFE 0%, #F3EAFD 35%, #E9D9FA 100%); }
+:root[data-theme="stripe"] .login-bg { background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(116,51,230,.05) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(150,93,249,.04) 0%, transparent 60%), linear-gradient(160deg, #FDFCFE 0%, #F3EAFD 35%, #E9D9FA 100%); }
+:root[data-theme="amber"] .login-page, :root[data-theme="amber"] .loading-page { background: linear-gradient(160deg, #FEFDFC 0%, #FBF0DD 35%, #F8E3BD 100%); }
+:root[data-theme="amber"] .login-bg { background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(144,99,9,.05) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(249,197,93,.04) 0%, transparent 60%), linear-gradient(160deg, #FEFDFC 0%, #FBF0DD 35%, #F8E3BD 100%); }
+:root[data-theme="turquoise"] .login-page, :root[data-theme="turquoise"] .loading-page { background: linear-gradient(160deg, #FCFEFD 0%, #E3F8EE 35%, #CAF2DE 100%); }
+:root[data-theme="turquoise"] .login-bg { background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(19,134,86,.05) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(93,249,184,.04) 0%, transparent 60%), linear-gradient(160deg, #FCFEFD 0%, #E3F8EE 35%, #CAF2DE 100%); }
+:root[data-theme="azure"] .login-page, :root[data-theme="azure"] .loading-page { background: linear-gradient(160deg, #FCFDFE 0%, #E3EEFB 35%, #CADFF7 100%); }
+:root[data-theme="azure"] .login-bg { background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(22,106,223,.05) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(93,158,249,.04) 0%, transparent 60%), linear-gradient(160deg, #FCFDFE 0%, #E3EEFB 35%, #CADFF7 100%); }
+.login-panel { position: relative; z-index: 1; width: min(420px, 100%); padding: var(--space-9) var(--space-6); border-radius: var(--radius-lg); display: grid; gap: var(--space-5); }
+.login-header { text-align: center; }
+.login-header .brand-mark { margin: 0 auto var(--space-3); font-size: var(--font-display); line-height: 1; }
+.login-header h1 { margin: 0; font-size: 26px; color: var(--color-on-surface); }
+.login-header p { margin: var(--space-1-5) 0 0; color: var(--color-on-surface-variant); font-size: var(--font-base); }
+.login-form { display: grid; gap: var(--space-3-5); }
+.login-btn { width: 100%; min-height: var(--size-input); font-size: var(--font-15); }
+.login-tabs { display: flex; justify-content: center; gap: 0; margin-bottom: var(--space-1); }
+.login-tab { border: 0; background: transparent; color: var(--color-on-surface-variant); font-weight: 600; font-size: var(--font-sm); padding: var(--space-1-5) var(--space-4); border-bottom: var(--space-0) solid transparent; cursor: pointer; transition: var(--transition-color); }
+.login-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); font-weight: 800; }
+.login-link-row { text-align: center; margin-top: var(--space-1); }
+.login-link { border: 0; background: transparent; color: var(--color-primary); font-weight: 700; font-size: var(--font-sm); cursor: pointer; padding: var(--space-1) var(--space-2); }
+.login-link.secondary { color: var(--color-on-surface-variant); }
+.user-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: var(--space-2-5); }
+.user-card { display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-3-5) var(--space-2); border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-sm); background: var(--color-background); cursor: pointer; transition: box-shadow .15s; }
+.user-card:hover { box-shadow: var(--shadow-card); border-color: var(--color-primary-container); }
+.user-avatar { width: var(--size-btn-large); height: var(--size-btn-large); display: grid; place-items: center; border-radius: 50%; background: var(--color-surface-container); color: var(--color-primary); font-weight: 800; font-size: var(--font-lg); }
+.user-card-name { font-size: var(--font-sm); font-weight: 500; color: var(--color-on-surface); }
+.login-divider { display: flex; align-items: center; gap: var(--space-3); color: var(--color-on-surface-variant); font-size: var(--font-sm); }
+.login-divider::before, .login-divider::after { content: ''; flex: 1; height: var(--space-xs); background: var(--color-outline-variant); }
+.login-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4-5); }
+.login-section { display: grid; align-content: start; gap: var(--space-3); padding: var(--space-4); border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-panel); }
+.user-list { display: grid; gap: var(--space-2); max-height: 220px; overflow: auto; }
+.user-select { min-height: var(--size-btn-large); border: var(--space-xs) solid var(--color-outline-variant); border-radius: var(--radius-sm); background: var(--color-background); color: var(--color-on-surface); font-weight: 700; text-align: left; padding: 0 var(--space-3); }
+.inline-form { display: flex; gap: var(--space-2); align-items: center; }
+.inline-form.compact .input { min-width: 120px; min-height: 38px; }
+

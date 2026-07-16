@@ -1,0 +1,336 @@
+@media (prefers-reduced-motion: reduce) {
+  .stats-collapsed-pill { animation: none; }
+}
+
+/* Desktop map HUD refinement */
+@media (min-width: 768px) {
+  .map-controls.glass {
+    background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface));
+    backdrop-filter: none;
+    border: var(--space-xs) solid var(--color-outline-variant);
+    box-shadow: var(--elevation-low);
+  }
+  /* 2026-06-20: .topbar原本和.map-controls共用这条规则，在768px+视口把玻璃
+     效果换成纯色背景。但用户要的"顶部条混入主题色"如果只改299行附近那条
+     基础规则，会在这里被覆盖掉(这条规则源码顺序更靠后，且选择器优先级
+     相同)——桌面端实际上完全没有玻璃效果，是这条规则换成的纯色背景。
+     拆开成独立规则，桌面端同样用color-mix混入主题色，不再是纯--color-surface。
+     2026-06-20再次修复: 选择器从.topbar.glass改成:root .topbar.glass——
+     247-249行有几条:root[data-theme=...] .glass规则，特异性(0,1,1,0)比
+     单纯.topbar.glass(0,0,2,0)更高，会把这里的混色覆盖掉(这正是Stripe主题
+     "调到80%紫色完全没有任何迹象"这个bug的真正原因，而不是比例数值问题)。
+     这条规则也要加:root前缀提到同等特异性(0,1,2,0)，否则会被334行新加的
+     移动端那条(也是:root .topbar.glass，但在media query外部分声明)反过来
+     覆盖，导致桌面端错误显示移动端的玻璃背景效果。 */
+  :root .topbar.glass {
+    background: color-mix(in srgb, var(--color-primary) var(--topbar-tint-pct), var(--color-surface));
+    backdrop-filter: none;
+    border: var(--space-xs) solid var(--color-outline-variant);
+    box-shadow: var(--elevation-low);
+  }
+
+  .map-controls {
+    left: auto;
+    right: var(--space-4-5);
+    top: var(--space-4-5);
+    display: grid;
+    grid-auto-flow: row;
+    grid-auto-rows: var(--size-icon);
+    align-items: stretch;
+    gap: 0;
+    width: max-content;
+    max-width: 150px;
+    padding: var(--space-1);
+    overflow: hidden;
+    border-radius: var(--radius-md);
+  }
+
+  .map-controls .btn-outline,
+  .map-controls .icon-btn {
+    width: 100%;
+    min-width: var(--size-icon);
+    height: var(--size-icon);
+    min-height: var(--size-icon);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .map-controls .btn-outline + .btn-outline,
+  .map-controls .btn-outline + .icon-btn,
+  .map-controls .icon-btn + .icon-btn {
+    border-top: var(--space-xs) solid var(--color-outline-variant);
+  }
+
+  .map-controls .btn-outline {
+    justify-content: center;
+    padding: 0 var(--space-3);
+    font-size: var(--font-sm);
+    white-space: nowrap;
+  }
+
+  .map-controls .icon-btn {
+    font-size: var(--font-lg);
+    font-weight: 800;
+  }
+
+  .map-level {
+    left: var(--space-4-5);
+    top: var(--space-4-5);
+    max-width: calc(100vw - 220px);
+    min-height: var(--size-btn-large);
+    display: inline-flex;
+    align-items: center;
+    padding: 0 var(--space-3-5);
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface));
+    box-shadow: 0 var(--space-2-5) 30px color-mix(in srgb, var(--shadow-color) 10%, transparent);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .map-color-mode {
+    left: var(--space-4-5);
+    top: var(--topbar-height);
+    max-width: calc(100vw - 220px);
+    background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface));
+    border-color: var(--color-outline-variant);
+  }
+
+  .stats-panel {
+    right: var(--space-4-5);
+    bottom: var(--space-4-5);
+    width: 300px;
+    padding: var(--space-3-5);
+    background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface));
+    border-color: var(--color-outline-variant);
+    box-shadow: var(--elevation-medium);
+  }
+
+  .stats-collapsed-pill {
+    left: auto;
+    right: var(--space-4-5);
+    top: auto;
+    bottom: var(--space-4-5);
+    transform: none;
+
+    width: min(320px, calc(100vw - 36px));
+    min-height: 50px;
+    justify-content: center;
+    padding: var(--space-2-5) var(--space-4-5) var(--space-2);
+    gap: var(--space-2);
+
+    border-radius: var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-sm);
+    background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface));
+    border: var(--space-xs) solid var(--color-outline-variant);
+    box-shadow: var(--elevation-medium);
+
+    backdrop-filter: none;
+    animation: floatUp .24s ease-out;
+  }
+
+  .stats-collapsed-pill::before {
+    content: '';
+    position: absolute;
+    top: var(--space-1-5);
+    left: 50%;
+    width: 34px;
+    height: var(--space-1);
+    border-radius: var(--radius-full);
+    background: var(--color-outline-variant);
+    transform: translateX(-50%);
+  }
+
+  .stats-collapsed-pill:hover {
+    transform: translateY(calc(var(--space-0) * -1));
+    border-color: var(--color-primary-container);
+    box-shadow: var(--elevation-high);
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --topbar-height: 56px;
+  }
+  .topbar { height: auto; grid-template-columns: 1fr auto; align-items: center; gap: var(--space-1-5); padding: var(--space-1-5) var(--space-2-5); border-radius: var(--radius-md); }
+  .topbar .logo { font-size: var(--font-15); }
+  .topbar .logo-mark { font-size: var(--font-xl); }
+  .topbar .logo-slogan { display: none; } /* 移动端屏幕窄，隐藏slogan只保留图标+标题，避免和右侧用户区域挤在一起 */
+  .topbar .current-user { gap: var(--space-1-5); }
+  .topbar .btn-outline { min-height: var(--size-btn-default); padding: 0 var(--space-3-5); font-size: var(--font-sm); }
+  .login-grid { grid-template-columns: 1fr; }
+  .account-menu { min-width: 0; }
+  .user-dropdown { left: auto; right: 0; width: min(320px, calc(100vw - 36px)); }
+  .search { grid-column: 1 / -1; order: 3; }
+  .topbar-actions, .top-actions { grid-column: 1 / -1; order: 4; justify-content: flex-start; overflow-x: auto; }
+  .icon-actions, .current-user { order: 2; }
+  .mode-pill button { flex: 1; }
+  /* 2026-06-20重设计: 原方块堆叠（直角矩形+实心分隔线背景块）跟旁边.map-level
+     的圆角悬浮胶囊风格冲突，用户反馈"傻大粗笨"。改为同款圆角胶囊（背景/阴影
+     与.map-level一致：color-mix(--color-surface 90%, --color-background)，
+     不用.glass的backdrop-filter），四个按钮（返回省级/重置/放大/缩小）统一
+     收窄成纯图标按钮（JSX里文字用.map-controls-label包裹，这里隐藏），
+     分隔线改用更柔和的半透明色而非生硬的--color-outline-variant。 */
+  .map-controls {
+    left: auto;
+    right: max(var(--space-3), env(safe-area-inset-right));
+    top: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    width: max-content;
+    padding: var(--space-1);
+    overflow: hidden;
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-background));
+    backdrop-filter: none;
+    border: none;
+    box-shadow: 0 var(--space-2-5) 30px color-mix(in srgb, var(--shadow-color) 14%, transparent);
+  }
+  .map-controls-label { display: none; }
+  .map-controls .btn-outline,
+  .map-controls .icon-btn {
+    width: var(--size-btn-default);
+    min-width: var(--size-btn-default);
+    height: var(--size-btn-default);
+    min-height: var(--size-btn-default);
+    border: 0;
+    border-radius: var(--radius-full);
+    background: transparent;
+    box-shadow: none;
+    justify-content: center;
+    padding: 0;
+  }
+  .map-controls .btn-outline + .btn-outline,
+  .map-controls .btn-outline + .icon-btn,
+  .map-controls .icon-btn + .icon-btn {
+    border-top: 1px solid color-mix(in srgb, var(--color-on-surface-variant) 20%, transparent);
+  }
+  .map-controls .icon-btn {
+    font-size: var(--font-lg);
+    font-weight: 700;
+  }
+  .map-level {
+    left: max(var(--space-3), env(safe-area-inset-left));
+    top: var(--space-4);
+    max-width: calc(100vw - 176px);
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-background));
+    box-shadow: 0 var(--space-2-5) 30px color-mix(in srgb, var(--shadow-color) 10%, transparent);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .map-color-mode {
+    left: max(var(--space-3), env(safe-area-inset-left));
+    top: 66px;
+    max-width: calc(100vw - var(--space-5));
+  }
+  .map-color-mode button {
+    min-width: 0;
+    padding: var(--space-2) var(--space-2-5);
+    font-size: var(--font-xs);
+    white-space: nowrap;
+  }
+  .city-drawer { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 76vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; animation: slideUp .2s ease-out; }
+  /* 2026-06-21: .admin-stats已从这条规则移除（详见上方.admin-stats定义
+     处的注释），不再随表单输入框一起被改成单列。 */
+  .visit-form .form-grid-2, .form-grid-2 { grid-template-columns: 1fr; }
+  /* 数字卡片移动端紧凑化：保持横排三栏，只收紧内边距让三个卡片在窄屏下
+     不会太挤，字号不变(--font-xl的20px在三栏布局下完全够用)。 */
+  .admin-stats .stat { padding: var(--space-2) var(--space-1-5); }
+  /* 桌面/移动端结构切换：767px以下隐藏桌面表格、显示移动端卡片列表。 */
+  /* 2026-06-26补一处重大遗漏(导致移动端用户列表完全消失)：
+     上轮修复PC端断点失效问题时，把默认态(桢位时)的
+     .mobile-only改为了display:none!important，但忘记考虑这个!important在
+     移动端断点内也依然生效(它不在任何@media限制范围内，是
+     全局默认规则)，移动端断点内只写了desktop-only隐藏、没有
+     任何规则去解除mobile-only这个!important，导致移动端下
+     .admin-user-cards{display:grid}永远被!important压住、用户列表一直是隐藏
+     状态。补上两条明确的复合选择器规则，取代之前"交还给业务
+     class自决定"这个不成立的假设(!important是全局生效、不跟视口宽度
+     区分)：按每个实际用途分别明确补出该class本身需要的display值，
+     不再依赖"跨.mobile-only通用规则自动回退"这个不可靠机制。 */
+  .desktop-only { display: none !important; }
+  .admin-user-cards.mobile-only { display: grid !important; }
+  .mb-16.mobile-only { display: block !important; }
+  .visit-editor { grid-template-columns: 1fr; }
+  .inline-form { align-items: stretch; flex-direction: column; }
+  .stats-panel { --stats-panel-pad-x: var(--space-3); --stats-panel-pad-y: var(--space-2-5); left: var(--space-2); right: var(--space-2); bottom: var(--space-2); width: auto; max-height: 42vh; overflow: auto; padding: var(--stats-panel-pad-y) var(--stats-panel-pad-x); }
+  .stats-panel::before { display: none; }
+  .stats-panel .stats-grid { gap: var(--space-1-5); }
+  .stats-panel .stat { padding: var(--space-2) var(--space-2-5); }
+  .stats-panel .stat strong { font-size: 17px; }
+  .stats-panel .achievement-grid { grid-template-columns: repeat(4, minmax(var(--size-icon-large), 1fr)); gap: var(--space-1-5); margin-top: var(--space-2); }
+  .stats-panel .achievement-icon { width: var(--size-input); height: var(--size-input); font-size: var(--font-icon); }
+  .stats-minimize { border: 0; background: var(--color-surface-container-low); color: var(--color-on-surface-variant); border-radius: var(--radius-sm); padding: var(--space-0) var(--space-2); font-size: var(--font-xs); cursor: pointer; }
+  .stats-collapsed-pill {
+    left: var(--space-3);
+    right: var(--space-3);
+    top: auto;
+    bottom: max(var(--space-3), env(safe-area-inset-bottom));
+    transform: none;
+    justify-content: center;
+    min-height: var(--size-icon-large);
+    max-width: none;
+    padding: 0 var(--space-4);
+    gap: var(--space-2);
+    font-size: var(--font-base);
+    border-radius: var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-sm);
+    box-shadow: var(--elevation-medium);
+    animation: floatUp .24s ease-out;
+  }
+  .stats-collapsed-pill::before {
+    content: '';
+    position: absolute;
+    top: var(--space-1-5);
+    left: 50%;
+    width: var(--size-btn-default);
+    height: var(--space-1);
+    border-radius: var(--radius-full);
+    background: var(--color-outline-variant);
+    transform: translateX(-50%);
+  }
+  .stats-collapsed-pill:hover { transform: translateY(calc(var(--space-0) * -1)); }
+  .stats-pill-icon { font-size: var(--font-md); }
+  .stats-pill-text strong { font-size: var(--font-15); }
+  .stats-pill-arrow { width: 10px; height: 10px; }
+  /* 2026-06-20: 桌面端这个气泡漂浮在地图正中间留白区域，主题色边框+呼吸发光
+     （见374行statsPillGlow）是有功能目的的——提示"这是个可点击的次要入口"。
+     移动端贴底横条本身位置已经足够显眼（屏幕最下方、左右几乎撑满），不需要
+     再靠主题色边框去抢注意力，用户反馈"傻大粗笨"（注：移动端本来就没有
+     呼吸发光动画，只有弹出动画floatUp，这点不受影响）。改为跟项目其他.card
+     一致的中性边框+静态阴影，只覆盖border/box-shadow两处，桌面端不受影响。 */
+  .stats-collapsed-pill { border: var(--space-xs) solid var(--color-card-border); box-shadow: var(--shadow-card); }
+  .stats-collapsed-pill:hover { border-color: var(--color-card-border); box-shadow: var(--shadow-card); }
+  .achievement-grid { grid-template-columns: repeat(4, minmax(var(--size-icon-large), 1fr)); overflow-x: auto; gap: var(--space-1-5); }
+  .input { min-height: var(--size-icon-large); font-size: var(--font-md); }
+  .btn-primary, .btn-outline, .btn-danger { min-height: var(--size-btn-default); font-size: var(--font-sm); padding: 0 var(--space-3-5); }
+  .modal { padding: var(--space-4-5) var(--space-3-5); border-radius: var(--radius-panel); }
+  .modal h2 { font-size: var(--font-xl); }
+  .modal-xl { min-height: min(560px, 80vh); }
+  /* 2026-06-21: 桌面端.modal-admin固定height:620px在矮屏手机上会撑爆
+     视口（同样的道理参照.modal-xl的min(固定值, 80vh)处理方式），改用
+     视口相对值。注意：这里改的是.modal-admin的总高度，不是
+     .admin-tab-viewport——viewport现在用flex:1自动占据剩余空间，不应
+     再单独给它设height，否则会重演"flex:1与固定height混用冲突"的问题
+     （第二次修复时已踩过这个坑）。 */
+  .modal-admin { height: min(620px, 75vh); }
+  /* 2026-06-20: 移动端屏幕普遍偏矮，560px固定最小高度可能导致弹窗过高甚至溢出，
+     改为取560px和80vh中较小者，保证不会超出视口太多；80vh而非90vh是留出一些
+     呼吸空间，避免和.modal自身的max-height:90vh贴得太近。 */
+  .label-sm { font-size: var(--font-sm); }
+  .login-panel { padding: var(--space-7) var(--space-5-5); }
+  .login-header h1 { font-size: var(--font-display-mobile); }
+}
+@media (min-width: 768px) and (max-width: 1024px) {
+  .stats-panel { width: 260px; }
+}
+
