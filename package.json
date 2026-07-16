@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint src --max-warnings 0",
     "lint:fix": "eslint src --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
+    "setup:shared-ui": "bash scripts/setup-shared-ui.sh"
   },
   "dependencies": {
     "clsx": "^2.1.1",
