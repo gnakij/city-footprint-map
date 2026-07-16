@@ -4,6 +4,12 @@ import { useStore } from '../store/useStore';
 import type { SortMode } from '../types';
 import { visitDays } from '../utils/date';
 import Modal from './Modal';
+import { Tabs } from './ui';
+
+const SORT_TABS: Array<{ id: SortMode; label: string }> = [
+  { id: 'days', label: '按天数' },
+  { id: 'name', label: '按名称' },
+];
 
 export default function DrillDownStats({ embedded = false }: { embedded?: boolean }) {
   const visits = useStore((state) => state.visits);
@@ -48,10 +54,7 @@ export default function DrillDownStats({ embedded = false }: { embedded?: boolea
         </div>
       )}
       {!embedded && (province || cityId) && <button className="back-btn mb-12" onClick={() => cityId ? setCityId(null) : setProvince(null)}>← 返回</button>}
-      <div className="mode-pill sort-pill">
-        <button className={sort === 'days' ? 'active' : ''} onClick={() => setSort('days')}>按天数</button>
-        <button className={sort === 'name' ? 'active' : ''} onClick={() => setSort('name')}>按名称</button>
-      </div>
+      <Tabs items={SORT_TABS} value={sort} onChange={setSort} className="sort-pill" />
 
       {!province && !cityId && provinceRows.map((row) => (
         <button key={row.name} className="list-button" onClick={() => setProvince(row.name)}>

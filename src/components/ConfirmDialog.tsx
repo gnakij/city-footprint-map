@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Modal from './Modal';
+import { Button } from './ui';
 
 interface ConfirmDialogProps {
   title: string;
@@ -26,8 +27,8 @@ export default function ConfirmDialog({
     <Modal title={title} className="modal-sm" onClose={onCancel}>
       {children ?? (message ? <p className="mb-16">{message}</p> : null)}
       <div className="flex-end gap-8">
-        <button className="btn-outline" onClick={onCancel}>{cancelLabel}</button>
-        <button className={danger ? 'btn-danger' : 'btn-primary'} onClick={onConfirm}>{confirmLabel}</button>
+        <Button variant="outline" onClick={onCancel}>{cancelLabel}</Button>
+        <Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm}>{confirmLabel}</Button>
       </div>
     </Modal>
   );

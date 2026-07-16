@@ -3,6 +3,7 @@ import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import { fuzzySearch } from '../utils/search';
 import type { CityData } from '../types';
+import { Input } from './ui';
 
 export default function SearchDropdown() {
   const query = useStore((state) => state.searchQuery);
@@ -36,8 +37,7 @@ export default function SearchDropdown() {
 
   return (
     <div className="search">
-      <input
-        className="input"
+      <Input
         value={query}
         onChange={(event) => {
           setQuery(event.target.value);

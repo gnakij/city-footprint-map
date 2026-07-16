@@ -7,7 +7,16 @@ import AdminUsersPanel from './AdminUsersPanel';
 import ChangelogModal, { type ChangelogEntry } from './ChangelogModal';
 import ConfirmDialog from './ConfirmDialog';
 import Modal from './Modal';
+import { Button, FormField, Input, Tabs } from './ui';
 import type { User } from '../types';
+
+type AdminTab = 'users' | 'data' | 'docs';
+
+const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
+  { id: 'users', label: '用户管理' },
+  { id: 'data', label: '数据管理' },
+  { id: 'docs', label: '系统文档' },
+];
 
 export default function AdminPanel({ embedded = false }: { embedded?: boolean }) {
   const users = useStore((state) => state.users);
@@ -45,7 +54,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
   const [newPassword, setNewPassword] = useState('');
   const [stats, setStats] = useState({ totalUsers: users.length, totalVisits: 0, adminUsers: 0 });
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [adminTab, setAdminTab] = useState<'users' | 'data' | 'docs'>('users');
+  const [adminTab, setAdminTab] = useState<AdminTab>('users');
   const [showChangelog, setShowChangelog] = useState(false);
   const [changelog, setChangelog] = useState<ChangelogEntry[]>([]);
 
@@ -243,11 +252,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
 
   const content = (
     <>
-      <div className="mode-pill mb-20">
-        <button className={adminTab === 'users' ? 'active' : ''} onClick={() => setAdminTab('users')}>用户管理</button>
-        <button className={adminTab === 'data' ? 'active' : ''} onClick={() => setAdminTab('data')}>数据管理</button>
-        <button className={adminTab === 'docs' ? 'active' : ''} onClick={() => setAdminTab('docs')}>系统文档</button>
-      </div>
+      <Tabs items={ADMIN_TABS} value={adminTab} onChange={setAdminTab} className="mb-20" />
 
       {/* 2026-06-21: 数字卡片(总用户/管理员/总访问)和"新增用户"按钮挪到
          .admin-tab-viewport外面，固定在顶部不随下方用户列表滚动——用户
@@ -331,18 +336,16 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       {pendingReset && (
         <Modal title={`重置密码 · ${pendingReset.name}`} className="modal-sm" onClose={() => setPendingReset(null)}>
           <div className="stack gap-10 mb-16">
-            <div className="form-row">
-              <span className="label-sm">新密码</span>
-              <input className="input" type="password" autoFocus value={resetPw} onChange={(e) => setResetPw(e.target.value)} placeholder="至少6位" />
-            </div>
-            <div className="form-row">
-              <span className="label-sm">确认密码</span>
-              <input className="input" type="password" value={resetConfirm} onChange={(e) => setResetConfirm(e.target.value)} placeholder="再次输入" onKeyDown={(e) => { if (e.key === 'Enter') void handleResetPassword(); }} />
-            </div>
+            <FormField label="新密码">
+              <Input type="password" autoFocus value={resetPw} onChange={(e) => setResetPw(e.target.value)} placeholder="至少6位" />
+            </FormField>
+            <FormField label="确认密码">
+              <Input type="password" value={resetConfirm} onChange={(e) => setResetConfirm(e.target.value)} placeholder="再次输入" onKeyDown={(e) => { if (e.key === 'Enter') void handleResetPassword(); }} />
+            </FormField>
           </div>
           <div className="flex-end gap-8">
-            <button className="btn-outline" onClick={() => setPendingReset(null)}>取消</button>
-            <button className="btn-primary" onClick={() => void handleResetPassword()}>确认重置</button>
+            <Button variant="outline" onClick={() => setPendingReset(null)}>取消</Button>
+            <Button onClick={() => void handleResetPassword()}>确认重置</Button>
           </div>
         </Modal>
       )}

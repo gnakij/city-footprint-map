@@ -8,6 +8,7 @@ import DrillDownStats from './DrillDownStats';
 import ConfirmDialog from './ConfirmDialog';
 import Modal from './Modal';
 import Icon from './Icon';
+import { Tabs } from './ui';
 
 // 仅管理员可见，按需加载，避免普通用户打开个人资料时也下载这部分代码
 import { CITIES } from '../data/cities';
@@ -253,11 +254,15 @@ export default function UserProfile() {
 
   return (
     <Modal title={currentUser.name} className="modal-xl" onClose={() => setProfileOpen(false)}>
-        <div className="mode-pill profile-tabs mb-20">
-          {tabs.map((item) => (
-            <button key={item.id} className={tab === item.id ? 'active' : ''} onClick={() => { setTab(item.id); setShowStats(false); }}>{item.label}</button>
-          ))}
-        </div>
+        <Tabs
+          items={tabs}
+          value={tab}
+          onChange={(nextTab) => {
+            setTab(nextTab);
+            setShowStats(false);
+          }}
+          className="profile-tabs mb-20"
+        />
 
         {tab === 'profile' && (
           <div className="stack">
