@@ -5,6 +5,7 @@ import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import type { ImportVisitRow, User } from '../types';
 import { formatLocalDate, isValidDateText } from '../utils/date';
+import { GIFT_MODE } from '../config';
 import FuzzySelect from './ui/FuzzySelect';
 import Icon from './Icon';
 import ImportPreviewTable from './ImportPreviewTable';
@@ -360,12 +361,16 @@ export default function AdminDataPanel({ users, onStatsRefresh }: { users: User[
           >
             <Icon name="search" /> 查询
           </button>
-          <button className="btn-outline" onClick={() => void downloadCurrentLedger()}><Icon name="upload" /> 导出当前视图</button>
-          <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
+          {!GIFT_MODE && (
+            <>
+              <button className="btn-outline" onClick={() => void downloadCurrentLedger()}><Icon name="upload" /> 导出当前视图</button>
+              <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
+            </>
+          )}
         </div>
       </div>
 
-      {showImportTools && (
+      {!GIFT_MODE && showImportTools && (
         <div className="card import-tools-card">
           <div className="panel-title">
             <strong>数据导入</strong>
@@ -385,7 +390,7 @@ export default function AdminDataPanel({ users, onStatsRefresh }: { users: User[
         </div>
       )}
 
-      {importPreview.length > 0 && (
+      {!GIFT_MODE && importPreview.length > 0 && (
         <div className="import-preview card">
           <div className="panel-title">
             <strong>导入预览</strong>

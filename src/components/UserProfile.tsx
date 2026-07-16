@@ -16,6 +16,7 @@ import { useStore } from '../store/useStore';
 import { updateMe } from '../store/api';
 import type { ImportVisitRow, VisitRecord } from '../types';
 import { formatLocalDate, isValidDateText, visitDays } from '../utils/date';
+import { GIFT_MODE } from '../config';
 
 type ProfileTab = 'profile' | 'visits';
 const FUZZY_SELECT_CLASSES = { dropdown: 'card', option: 'btn-outline small', activeOption: 'active' };
@@ -357,13 +358,17 @@ export default function UserProfile() {
             {/* 操作按钮行 */}
             <div className="actions">
               <button className="btn-primary" onClick={() => setShowForm(true)}><Icon name="plus" /> 添加访问</button>
-              <button className="btn-outline" onClick={() => void download()}><Icon name="upload" /> 导出当前数据</button>
-              <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
+              {!GIFT_MODE && (
+                <>
+                  <button className="btn-outline" onClick={() => void download()}><Icon name="upload" /> 导出当前数据</button>
+                  <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="download" /> 导入数据</button>
+                </>
+              )}
               <button className="btn-danger" onClick={() => setClearConfirmOpen(true)}>清空所有数据</button>
               <button className="btn-outline" onClick={() => setShowStats(true)} style={{ marginLeft: 'auto' }}><Icon name="chart" /> 统计</button>
             </div>
 
-            {showImportTools && (
+            {!GIFT_MODE && showImportTools && (
               <div className="card import-tools-card">
                 <div className="panel-title">
                   <strong>数据导入</strong>
@@ -377,7 +382,7 @@ export default function UserProfile() {
               </div>
             )}
 
-            {preview.length > 0 && (
+            {!GIFT_MODE && preview.length > 0 && (
               <div className="import-preview card">
                 <div className="panel-title">
                   <strong>导入预览</strong>
