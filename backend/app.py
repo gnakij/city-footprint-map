@@ -1,6 +1,5 @@
 import os
 import sqlite3
-import uuid
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
@@ -17,7 +16,10 @@ from .config import (
 )
 from .db import get_db, initialize_database
 from .serializers import row_to_user
+from .services.achievements import list_achievements, unlock_user_achievement
 from .services.data import clear_user_data, export_admin_data, export_user_data, import_admin_data, import_user_data
+from .services.settings import get_user_settings, save_user_settings
+from .services.stats import get_system_stats
 from .services.users import create_user_record, delete_user_record, list_user_records, update_user_record
 from .services.visits import create_visit_record, delete_visit_record, list_visit_records, update_visit_record
 from .schemas import (
@@ -203,48 +205,29 @@ def clear_data(user: sqlite3.Row = Depends(current_user)) -> Response:
 # ── 成就 ──────────────────────────────────────────────────────────────────
 @app.get("/api/achievements")
 def get_achievements(user: sqlite3.Row = Depends(current_user)) -> list[dict[str, Any]]:
-    with get_db() as conn:
-        rows = conn.execute("SELECT * FROM achievements WHERE user_id = ?", (user["id"],)).fetchall()
-    return [dict(row) for row in rows]
+    return list_achievements(user["id"])
 
 
 @app.post("/api/achievements", status_code=status.HTTP_201_CREATED)
 def unlock_achievement(payload: AchievementPayload, user: sqlite3.Row = Depends(current_user)) -> dict[str, Any]:
-    with get_db() as conn:
-        conn.execute(
-            "INSERT OR IGNORE INTO achievements (id, user_id, achievement_id, unlocked_at) VALUES (?, ?, ?, ?)",
-            (str(uuid.uuid4()), user["id"], payload.achievement_id, now_iso()),
-        )
-        row = conn.execute(
-            "SELECT * FROM achievements WHERE user_id = ? AND achievement_id = ?",
-            (user["id"], payload.achievement_id),
-        ).fetchone()
-    return dict(row)
+    return unlock_user_achievement(payload, user["id"])
 
 
 # ── 设置 ──────────────────────────────────────────────────────────────────
 @app.get("/api/settings")
 def get_settings(user: sqlite3.Row = Depends(current_user)) -> dict[str, str]:
-    with get_db() as conn:
-        row = conn.execute("SELECT theme FROM settings WHERE user_id = ?", (user["id"],)).fetchone()
-    return {"theme": row["theme"] if row else "rose"}
+    return get_user_settings(user["id"])
 
 
 @app.put("/api/settings")
 def save_settings(payload: SettingsPayload, user: sqlite3.Row = Depends(current_user)) -> dict[str, str]:
-    with get_db() as conn:
-        conn.execute("INSERT OR REPLACE INTO settings (user_id, theme) VALUES (?, ?)", (user["id"], payload.theme))
-    return {"theme": payload.theme}
+    return save_user_settings(payload, user["id"])
 
 
 # ── 管理统计 ──────────────────────────────────────────────────────────────
 @app.get("/api/stats/system")
 def system_stats(_: sqlite3.Row = Depends(admin_user)) -> dict[str, int]:
-    with get_db() as conn:
-        users = conn.execute("SELECT COUNT(*) AS count FROM users").fetchone()["count"]
-        admins = conn.execute("SELECT COUNT(*) AS count FROM users WHERE is_admin = 1").fetchone()["count"]
-        visits = conn.execute("SELECT COUNT(*) AS count FROM visits").fetchone()["count"]
-    return {"totalUsers": users, "adminUsers": admins, "totalVisits": visits}
+    return get_system_stats()
 
 
 # ── 健康检查 ──────────────────────────────────────────────────────────────
