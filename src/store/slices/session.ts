@@ -110,7 +110,6 @@ export function createSessionSlice(set: StoreSet, get: StoreGet): SessionSlice {
 
     logout: () => {
       clearToken();
-      document.documentElement.dataset.theme = 'rose';
       set({
         currentUser: null,
         visits: [],

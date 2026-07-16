@@ -17,13 +17,13 @@
   </head>
   <body>
     <div id="root"></div>
-    <div id="__loader" style="position:fixed;inset:0;z-index:99998;background:linear-gradient(160deg,#fffbfc,#fff2f5 35%,#fde8ed);display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif">
-      <div style="text-align:center">
-        <div style="font-size:56px;margin-bottom:12px;line-height:1">🗺️</div>
-        <div style="font-size:26px;font-weight:800;color:#2D1B24;margin-bottom:6px">城市足迹</div>
-        <div style="font-size:14px;color:#8C6C77">加载中...</div>
+    <div id="__loader" style="position:fixed;inset:0;z-index:99998;background:#FCFDFE;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif">
+      <div style="display:grid;gap:12px;place-items:center;text-align:center;color:#657386">
+        <div style="width:28px;height:28px;border:3px solid #D7E0EC;border-top-color:#166ADF;border-radius:999px;animation:cityprint-spin .8s linear infinite"></div>
+        <div style="font-size:14px;font-weight:700">正在加载...</div>
       </div>
     </div>
+    <style>@keyframes cityprint-spin{to{transform:rotate(360deg)}}</style>
     <div id="__err" style="display:none;position:fixed;inset:0;z-index:99999;background:#fff;padding:40px 20px;font-size:16px;color:#d00;overflow:auto;white-space:pre-wrap;font-family:monospace;line-height:1.6"></div>
     <script>
       /* 全局错误显示 */
