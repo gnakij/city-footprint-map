@@ -178,36 +178,32 @@
   .topbar-actions, .top-actions { grid-column: 1 / -1; order: 4; justify-content: flex-start; overflow-x: auto; }
   .icon-actions, .current-user { order: 2; }
   .mode-pill button { flex: 1; }
-  /* 2026-06-20重设计: 原方块堆叠（直角矩形+实心分隔线背景块）跟旁边.map-level
-     的圆角悬浮胶囊风格冲突，用户反馈"傻大粗笨"。改为同款圆角胶囊（背景/阴影
-     与.map-level一致：color-mix(--color-surface 90%, --color-background)，
-     不用.glass的backdrop-filter），四个按钮（返回省级/重置/放大/缩小）统一
-     收窄成纯图标按钮（JSX里文字用.map-controls-label包裹，这里隐藏），
-     分隔线改用更柔和的半透明色而非生硬的--color-outline-variant。 */
+  /* 移动端地图控件跟PC端保持同一种横向胶囊语言，只放大触控尺寸；
+     位置归入左侧地图控制组，避免右侧单独漂浮造成跨端心智不一致。 */
   .map-controls {
-    left: auto;
-    right: max(var(--space-3), env(safe-area-inset-right));
-    top: 118px;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    width: max-content;
+    left: max(var(--space-3), env(safe-area-inset-left));
+    right: auto;
+    top: 114px;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-0);
+    width: auto;
     padding: var(--space-1);
     overflow: hidden;
     border-radius: var(--radius-full);
-    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-background));
+    background: color-mix(in srgb, var(--color-primary) var(--card-tint-pct), var(--color-surface));
     backdrop-filter: none;
-    border: none;
-    box-shadow: 0 var(--space-2-5) 30px color-mix(in srgb, var(--shadow-color) 14%, transparent);
+    border: var(--space-xs) solid var(--color-outline-variant);
+    box-shadow: var(--elevation-low);
   }
   .map-controls-label { display: none; }
   .map-controls .btn-outline,
   .map-controls .icon-btn {
-    width: 34px;
-    min-width: 34px;
-    height: 34px;
-    min-height: 34px;
+    width: var(--size-btn-large);
+    min-width: var(--size-btn-large);
+    height: var(--size-btn-large);
+    min-height: var(--size-btn-large);
     border: 0;
     border-radius: var(--radius-full);
     background: transparent;
@@ -218,11 +214,16 @@
   .map-controls .btn-outline + .btn-outline,
   .map-controls .btn-outline + .icon-btn,
   .map-controls .icon-btn + .icon-btn {
-    border-top: 1px solid color-mix(in srgb, var(--color-on-surface-variant) 20%, transparent);
+    border-top: 0;
+  }
+  .map-controls .btn-outline:active,
+  .map-controls .icon-btn:active {
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-container-low));
+    color: var(--color-primary);
   }
   .map-controls .icon-btn {
-    font-size: var(--font-md);
-    font-weight: 700;
+    font-size: var(--font-lg);
+    font-weight: 800;
   }
   .map-controls .btn-outline .icon { width: 16px; height: 16px; margin-right: 0; }
   .map-level {
