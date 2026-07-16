@@ -26,9 +26,16 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // 只拆 React，它是纯同步且稳定
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+        manualChunks(id) {
+          if (id.includes('/node_modules/react/') || id.includes('/node_modules/react-dom/') || id.includes('/node_modules/react-router-dom/')) {
+            return 'vendor-react'
+          }
+          if (id.includes('/node_modules/echarts/') || id.includes('/node_modules/zrender/')) {
+            return 'vendor-echarts'
+          }
+          if (id.includes('/node_modules/xlsx/')) {
+            return 'vendor-xlsx'
+          }
         },
       },
     },

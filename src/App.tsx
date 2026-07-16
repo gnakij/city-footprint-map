@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoginPage from './components/LoginPage';
 import StatsPanel from './components/StatsPanel';
@@ -31,6 +31,23 @@ function MapFallback() {
   );
 }
 
+function DeferredMapView() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setReady(true), 180);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (!ready) return <MapFallback />;
+
+  return (
+    <Suspense fallback={<MapFallback />}>
+      <MapView />
+    </Suspense>
+  );
+}
+
 function AppContent() {
   const load = useStore((state) => state.load);
   const hydrated = useStore((state) => state.hydrated);
@@ -43,14 +60,6 @@ function AppContent() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  // 应用加载完后就预取地图组件，不等到登录后
-  useEffect(() => {
-    if (hydrated) {
-      // 后台静默预加载 ECharts 地图 chunk
-      import('./components/MapView');
-    }
-  }, [hydrated]);
 
   if (!hydrated) return <Loading />;
 
@@ -67,9 +76,7 @@ function AppContent() {
     <div className="app">
       <TopBar />
       <main className="map-stage" id="capture-area">
-        <Suspense fallback={<MapFallback />}>
-          <MapView />
-        </Suspense>
+        <DeferredMapView />
       </main>
       <StatsPanel />
       {drawerOpen && selectedCity && (
