@@ -15,7 +15,7 @@ import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import { updateMe } from '../store/api';
 import type { ImportVisitRow, VisitRecord } from '../types';
-import { visitDays } from '../utils/date';
+import { formatLocalDate, isValidDateText, visitDays } from '../utils/date';
 
 type ProfileTab = 'profile' | 'visits';
 const FUZZY_SELECT_CLASSES = { dropdown: 'card', option: 'btn-outline small', activeOption: 'active' };
@@ -29,7 +29,7 @@ function normalize(value: unknown) {
 }
 
 function dateValue(value: unknown, xlsx: XlsxModule) {
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (value instanceof Date) return formatLocalDate(value);
   if (typeof value === 'number') {
     const parsed = xlsx.SSF.parse_date_code(value);
     if (parsed) return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`;
@@ -40,12 +40,6 @@ function dateValue(value: unknown, xlsx: XlsxModule) {
 function numberValue(value: unknown) {
   const n = Number(normalize(value));
   return Number.isFinite(n) ? n : NaN;
-}
-
-function isValidDateText(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const date = new Date(`${value}T00:00:00`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 function findCity(province: string, city: string) {

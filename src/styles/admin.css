@@ -317,7 +317,7 @@
 /* sticky表头背景需要完全不透明（不能是带tint的混色变量），否则滚动时
    下方内容的文字会透过表头隐约可见，sticky的视觉效果大打折扣。 */
 .data-table { background: var(--color-background); }
-.data-table th { position: sticky; top: 0; background: var(--color-background); z-index: 1; }
+.data-table th { position: sticky; top: 0; background: var(--color-surface-container-low); z-index: 1; }
 .data-table td { background: var(--color-background); }
 .data-table tbody tr:hover td { background: var(--color-surface-container-low); }
 /* 2026-06-21: 用户名+用户名(@username)合并为同一行展示（参照移动端
