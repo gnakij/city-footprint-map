@@ -1,7 +1,6 @@
 import os
 import sqlite3
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
@@ -10,7 +9,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from .auth import admin_count, admin_user, create_access_token, current_user, get_user_by_id, hash_password, verify_password
+from .auth import admin_count, admin_user, create_access_token, current_user, verify_password
 from .cities import load_cities
 from .config import (
     DEFAULT_ALLOWED_ORIGINS,
@@ -18,6 +17,7 @@ from .config import (
 )
 from .db import get_db, initialize_database
 from .serializers import row_to_user, row_to_visit
+from .services.users import create_user_record, delete_user_record, list_user_records, update_user_record
 from .schemas import (
     AchievementPayload,
     AdminDataExportPayload,
@@ -31,31 +31,8 @@ from .schemas import (
     VisitCreate,
     VisitUpdate,
 )
+from .utils import now_iso
 from .validation import normalize_import_visit, validate_theme
-
-
-def now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-# ── 用户创建辅助 ──────────────────────────────────────────────────────────
-def create_user_record(username: str, password: str, name: str, is_admin: bool) -> dict[str, Any]:
-    user_id = str(uuid.uuid4())
-    timestamp = now_iso()
-    password_hash = hash_password(password)
-    try:
-        with get_db() as conn:
-            conn.execute(
-                "INSERT INTO users (id, username, password_hash, name, is_admin, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-                (user_id, username.strip(), password_hash, name.strip(), int(is_admin), timestamp),
-            )
-            conn.execute("INSERT INTO settings (user_id, theme) VALUES (?, ?)", (user_id, "rose"))
-    except sqlite3.IntegrityError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists") from exc
-    user = get_user_by_id(user_id)
-    assert user is not None
-    return row_to_user(user)
-
 
 # ── DB 初始化 ─────────────────────────────────────────────────────────────
 def init_db() -> None:
@@ -142,14 +119,12 @@ def users_me(user: sqlite3.Row = Depends(current_user)) -> dict[str, Any]:
 
 @app.put("/api/users/me")
 def update_me(payload: UserUpdate, user: sqlite3.Row = Depends(current_user)) -> dict[str, Any]:
-    return _update_user_record(user["id"], payload, allow_admin_change=False)
+    return update_user_record(user["id"], payload, allow_admin_change=False)
 
 
 @app.get("/api/users")
 def list_users(_: sqlite3.Row = Depends(admin_user)) -> list[dict[str, Any]]:
-    with get_db() as conn:
-        rows = conn.execute("SELECT * FROM users ORDER BY is_admin DESC, created_at ASC").fetchall()
-    return [row_to_user(row) for row in rows]
+    return list_user_records()
 
 
 @app.post("/api/users", status_code=status.HTTP_201_CREATED)
@@ -159,43 +134,12 @@ def create_managed_user(payload: UserCreate, _: sqlite3.Row = Depends(admin_user
 
 @app.put("/api/users/{user_id}")
 def update_user(user_id: str, payload: UserUpdate, _: sqlite3.Row = Depends(admin_user)) -> dict[str, Any]:
-    return _update_user_record(user_id, payload, allow_admin_change=True)
-
-
-def _update_user_record(user_id: str, payload: UserUpdate, allow_admin_change: bool) -> dict[str, Any]:
-    user = get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    username = payload.username.strip() if payload.username is not None else user["username"]
-    name = payload.name.strip() if payload.name is not None else user["name"]
-    is_admin = int(payload.is_admin) if allow_admin_change and payload.is_admin is not None else user["is_admin"]
-    password_hash = hash_password(payload.password) if payload.password else user["password_hash"]
-    try:
-        with get_db() as conn:
-            conn.execute(
-                "UPDATE users SET username = ?, name = ?, is_admin = ?, password_hash = ? WHERE id = ?",
-                (username, name, is_admin, password_hash, user_id),
-            )
-    except sqlite3.IntegrityError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists") from exc
-    updated = get_user_by_id(user_id)
-    assert updated is not None
-    return row_to_user(updated)
+    return update_user_record(user_id, payload, allow_admin_change=True)
 
 
 @app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_id: str, admin: sqlite3.Row = Depends(admin_user)) -> Response:
-    if user_id == admin["id"]:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete yourself")
-    with get_db() as conn:
-        target = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-        if not target:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-        if target["is_admin"]:
-            admin_count = conn.execute("SELECT COUNT(*) AS count FROM users WHERE is_admin = 1").fetchone()["count"]
-            if admin_count <= 1:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one admin is required")
-        conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    delete_user_record(user_id, admin["id"])
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
