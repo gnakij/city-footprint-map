@@ -76,4 +76,5 @@ export interface ImportVisitRow {
   notes?: string;
   city_id?: string;
   error?: string;
+  notice?: string;
 }

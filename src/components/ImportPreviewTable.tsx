@@ -11,17 +11,14 @@
  * src/components/ui/——同样的原因：重度绑定项目专属CSS class和Icon组件，
  * 不是行为通用、可以脱离单个项目使用的组件。
  *
- * 注意：这里只统一"表格怎么展示"，不改变两处各自的导入校验逻辑——
- * AdminPanel 的批量导入会产生"文件内重复"这个错误值，UserProfile 单用户
- * 导入不会产生这个值，两边的 row.error 来源完全独立，这个组件只是按
- * error 的值决定展示成"警告"还是"错误"样式，对从未出现过的错误值类型
- * 天然不会有任何影响。
+ * 注意：这里只统一"表格怎么展示"。error 表示不能导入，notice 表示仍可
+ * 导入但需要提示用户（例如同城记录会新增一条，而不是被前端误判为失败）。
  */
 import Table, { type TableColumn } from './Table';
 import Icon from './Icon';
 import type { ImportVisitRow } from '../types';
 
-const DUPLICATE_ERRORS = new Set(['城市已存在', '文件内重复']);
+const SKIPPED_WARNINGS = new Set(['文件内重复']);
 
 interface ImportPreviewTableProps {
   rows: ImportVisitRow[];
@@ -43,10 +40,11 @@ export default function ImportPreviewTable({ rows, showUser = false }: ImportPre
       key: 'status',
       header: '状态',
       render: (row) => {
-        if (row.error && !DUPLICATE_ERRORS.has(row.error)) {
+        if (row.error && !SKIPPED_WARNINGS.has(row.error)) {
           return <span className="danger-text">{row.error}</span>;
         }
         if (row.error) return row.error;
+        if (row.notice) return row.notice;
         return (
           <>
             <Icon name="check" /> 可导入
@@ -65,7 +63,8 @@ export default function ImportPreviewTable({ rows, showUser = false }: ImportPre
       maxHeight={220}
       rowClassName={(row) => {
         if (!row.error) return undefined;
-        return DUPLICATE_ERRORS.has(row.error) ? 'is-row-warning' : 'is-row-error';
+        if (row.notice) return 'is-row-warning';
+        return SKIPPED_WARNINGS.has(row.error) ? 'is-row-warning' : 'is-row-error';
       }}
     />
   );

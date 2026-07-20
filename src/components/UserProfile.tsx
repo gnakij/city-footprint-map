@@ -15,40 +15,15 @@ import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import { updateMe } from '../store/api';
 import type { ImportVisitRow, VisitRecord } from '../types';
-import { formatLocalDate, isValidDateText, todayLocalDateText, visitDays } from '../utils/date';
+import { isValidDateText, todayLocalDateText, visitDays } from '../utils/date';
+import { findImportCity, importDateText, importDuplicateKey, importNumber, normalizeImportCell } from '../utils/importVisits';
 import { GIFT_MODE } from '../config';
 
 type ProfileTab = 'profile' | 'visits';
 const FUZZY_SELECT_CLASSES = { dropdown: 'card', option: 'btn-outline small', activeOption: 'active' };
 const VISIT_PAGE_SIZE = 10;
-type XlsxModule = typeof import('xlsx');
 
 const todayStr = () => todayLocalDateText();
-
-function normalize(value: unknown) {
-  return String(value ?? '').trim();
-}
-
-function dateValue(value: unknown, xlsx: XlsxModule) {
-  if (value instanceof Date) return formatLocalDate(value);
-  if (typeof value === 'number') {
-    const parsed = xlsx.SSF.parse_date_code(value);
-    if (parsed) return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`;
-  }
-  return normalize(value).replace(/\//g, '-');
-}
-
-function numberValue(value: unknown) {
-  const n = Number(normalize(value));
-  return Number.isFinite(n) ? n : NaN;
-}
-
-function findCity(province: string, city: string) {
-  const shortProvince = province.replace(/省|市|自治区|特别行政区|壮族|回族|维吾尔/g, '');
-  const shortCity = city.replace(/市|地区|自治州|盟/g, '');
-  return CITIES.find((item) => item.province === shortProvince && item.city_name === shortCity)
-    ?? CITIES.find((item) => item.province === shortProvince && (item.city_name.includes(shortCity) || shortCity.includes(item.city_name)));
-}
 
 async function writeWorkbook(filename: string, rows: Array<Record<string, string | number | undefined>>) {
   const xlsx = await import('xlsx');
@@ -217,19 +192,30 @@ export default function UserProfile() {
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const records = xlsx.utils.sheet_to_json<Record<string, unknown>>(sheet);
     const existingCityIds = new Set(visits.map((visit) => visit.city_id));
+    const seenRows = new Set<string>();
     setPreview(records.map((record) => {
-      const province = normalize(record['省份']);
-      const city = normalize(record['城市']);
-      const duration_days = numberValue(record['停留天数']);
-      const last_stay_date = dateValue(record['最后停留日期'], xlsx);
-      const notesValue = normalize(record['备注']);
-      const matched = city ? findCity(province, city) : undefined;
+      const province = normalizeImportCell(record['省份']);
+      const city = normalizeImportCell(record['城市']);
+      const duration_days = importNumber(record['停留天数']);
+      const last_stay_date = importDateText(record['最后停留日期'], xlsx);
+      const notesValue = normalizeImportCell(record['备注']);
+      const matched = city ? findImportCity(province, city) : undefined;
       const row: ImportVisitRow = { province, city, duration_days, last_stay_date, notes: notesValue || undefined, city_id: matched?.city_id };
       if (!city) row.error = '城市必填';
       else if (!matched) row.error = '城市未匹配';
       else if (!Number.isFinite(duration_days) || !Number.isInteger(duration_days) || duration_days < 1) row.error = '停留天数无效';
       else if (!isValidDateText(last_stay_date)) row.error = '日期无效';
-      else if (existingCityIds.has(matched.city_id)) row.error = '城市已存在';
+      else {
+        const duplicateKey = importDuplicateKey({
+          cityId: matched.city_id,
+          durationDays: duration_days,
+          lastStayDate: last_stay_date,
+          notes: notesValue || undefined,
+        });
+        if (seenRows.has(duplicateKey)) row.error = '文件内重复';
+        else if (existingCityIds.has(matched.city_id)) row.notice = '同城记录，将新增';
+        seenRows.add(duplicateKey);
+      }
       return row;
     }));
     event.target.value = '';
@@ -391,7 +377,7 @@ export default function UserProfile() {
                 <div className="panel-title">
                   <strong>导入预览</strong>
                   <span className="muted">
-                    ✅ 有效 {preview.filter((row) => !row.error).length} 行 / ⚠️ 跳过 {preview.filter((row) => row.error === '城市已存在').length} 行 / ❌ 错误 {preview.filter((row) => row.error && row.error !== '城市已存在').length} 行
+                    ✅ 可导入 {preview.filter((row) => !row.error).length} 行 / ⚠️ 提醒 {preview.filter((row) => row.notice).length} 行 / ❌ 跳过 {preview.filter((row) => row.error).length} 行
                   </span>
                 </div>
                 {/* 2026-06-27: 改用通用ImportPreviewTable组件，跟AdminPanel.tsx
