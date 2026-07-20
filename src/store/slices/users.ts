@@ -12,8 +12,8 @@ type UsersSlice = Pick<
 
 export function createUsersSlice(set: StoreSet, get: StoreGet): UsersSlice {
   return {
-    createRegularUser: async (name) => {
-      const user = await createManagedUser(name);
+    createRegularUser: async (name, credentials) => {
+      const user = await createManagedUser(name, credentials);
       set({ users: await getUsers(), toast: { icon: '✓', message: '用户已创建' } });
       return user;
     },

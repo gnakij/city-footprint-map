@@ -48,6 +48,19 @@ async function mockApi(page: Page) {
       return;
     }
     if (path === '/users') {
+      if (method === 'POST') {
+        const body = route.request().postDataJSON() as { username: string; password: string; name: string; is_admin: boolean };
+        await route.fulfill({
+          json: {
+            id: 'created-user',
+            username: body.username,
+            name: body.name,
+            is_admin: body.is_admin,
+            created_at: '2026-07-20T00:00:00Z',
+          },
+        });
+        return;
+      }
       await route.fulfill({ json: [adminUser] });
       return;
     }
@@ -118,4 +131,35 @@ test('admin panel tabs render without empty lazy gaps', async ({ page }) => {
   await page.getByRole('button', { name: '数据管理' }).click();
   await expect(page.getByRole('button', { name: '查询' })).toBeVisible();
   await expect(page.getByRole('button', { name: '导入数据' })).toBeVisible();
+});
+
+test('admin create user starts empty and sends explicit credentials', async ({ page }) => {
+  await loginAsAdmin(page);
+
+  await page.getByRole('button', { name: /管理员/ }).click();
+  await page.getByRole('menuitem', { name: '系统管理' }).click();
+  await page.getByRole('button', { name: '新增用户' }).first().click();
+
+  const usernameInput = page.getByPlaceholder('请输入用户名');
+  const nicknameInput = page.getByPlaceholder('请输入昵称');
+  const passwordInput = page.getByPlaceholder('请输入密码（至少6位）');
+  await expect(usernameInput).toHaveValue('');
+  await expect(nicknameInput).toHaveValue('');
+  await expect(passwordInput).toHaveValue('');
+
+  await usernameInput.fill('friend');
+  await nicknameInput.fill('朋友');
+  await passwordInput.fill('friend123');
+
+  const requestPromise = page.waitForRequest((request) => {
+    return request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/cityprint/api/users');
+  });
+  await page.getByRole('button', { name: '确认创建' }).click();
+  const request = await requestPromise;
+  expect(request.postDataJSON()).toMatchObject({
+    username: 'friend',
+    password: 'friend123',
+    name: '朋友',
+    is_admin: false,
+  });
 });

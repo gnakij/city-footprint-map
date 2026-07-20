@@ -70,6 +70,13 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
   const [showChangelog, setShowChangelog] = useState(false);
   const [changelog, setChangelog] = useState<ChangelogEntry[]>([]);
 
+  const closeCreateModal = () => {
+    setShowCreateModal(false);
+    setNewUsername('');
+    setNewNickname('');
+    setNewPassword('');
+  };
+
   useEffect(() => {
     void getSystemStats().then(setStats);
   }, [getSystemStats, users.length]);
@@ -86,10 +93,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       return;
     }
     await createManagedUser(name, { username, password: newPassword, is_admin: false });
-    setNewUsername('');
-    setNewNickname('');
-    setNewPassword('');
-    setShowCreateModal(false);
+    closeCreateModal();
     const refreshed = await getUsers();
     useStore.setState({ users: refreshed, toast: { icon: '✓', message: '用户已创建' } });
     void getSystemStats().then(setStats);
@@ -391,14 +395,14 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       )}
 
       {showCreateModal && (
-        <Modal title="新增用户" onClose={() => setShowCreateModal(false)}>
+        <Modal title="新增用户" onClose={closeCreateModal}>
           <div className="form-grid-2 mb-16">
-            <input className="input editing-input" value={newUsername} onChange={(event) => setNewUsername(event.target.value)} placeholder="用户名" />
-            <input className="input editing-input" value={newNickname} onChange={(event) => setNewNickname(event.target.value)} placeholder="昵称" />
-            <input className="input editing-input" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="密码" />
+            <input className="input editing-input" value={newUsername} onChange={(event) => setNewUsername(event.target.value)} placeholder="请输入用户名" autoComplete="off" />
+            <input className="input editing-input" value={newNickname} onChange={(event) => setNewNickname(event.target.value)} placeholder="请输入昵称" autoComplete="off" />
+            <input className="input editing-input" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="请输入密码（至少6位）" autoComplete="new-password" />
           </div>
           <div className="flex-end gap-8">
-            <button className="btn-outline" onClick={() => { setShowCreateModal(false); setNewUsername(''); setNewNickname(''); setNewPassword(''); }}>取消</button>
+            <button className="btn-outline" onClick={closeCreateModal}>取消</button>
             <button className="btn-primary" onClick={() => void handleCreateUser()}>确认创建</button>
           </div>
         </Modal>

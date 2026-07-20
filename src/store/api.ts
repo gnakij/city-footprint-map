@@ -86,9 +86,9 @@ export async function getUsers() {
   return request<User[]>('/users');
 }
 
-export async function createUser(name: string, options?: { username?: string; password?: string; is_admin?: boolean }) {
-  const username = options?.username?.trim() || name.trim();
-  const password = options?.password || 'changeme123';
+export async function createUser(name: string, options: { username: string; password: string; is_admin?: boolean }) {
+  const username = options.username.trim();
+  const password = options.password;
   return request<User>('/auth/register', {
     method: 'POST',
     body: JSON.stringify({
@@ -99,9 +99,9 @@ export async function createUser(name: string, options?: { username?: string; pa
   });
 }
 
-export async function createManagedUser(name: string, options?: { username?: string; password?: string; is_admin?: boolean }) {
-  const username = options?.username?.trim() || name.trim();
-  const password = options?.password || 'changeme123';
+export async function createManagedUser(name: string, options: { username: string; password: string; is_admin?: boolean }) {
+  const username = options.username.trim();
+  const password = options.password;
   return request<User>('/users', {
     method: 'POST',
     body: JSON.stringify({

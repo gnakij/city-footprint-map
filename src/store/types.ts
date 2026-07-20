@@ -34,7 +34,7 @@ export interface StoreState {
   loginUser: (username: string, password: string) => Promise<boolean>;
   switchUser: (user: User) => Promise<void>;
   logout: () => void;
-  createRegularUser: (name: string) => Promise<User>;
+  createRegularUser: (name: string, credentials: { username: string; password: string }) => Promise<User>;
   deleteUserAndData: (id: string) => Promise<void>;
   resetUserPassword: (id: string, password: string) => Promise<void>;
   setSelectedCity: (city?: CityData) => void;
