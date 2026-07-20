@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/useStore';
 import Icon from './Icon';
 
@@ -28,6 +28,8 @@ export default function TopBar() {
   // 这样以后增加主题只需要在THEME_OPTIONS里加一项，不需要改变交互形式。
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -41,6 +43,64 @@ export default function TopBar() {
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    window.requestAnimationFrame(() => {
+      dropdownRef.current?.querySelector<HTMLButtonElement>('.account-dropdown-item')?.focus();
+    });
+  }, [menuOpen]);
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setThemeMenuOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const focusMenuItem = (direction: 1 | -1) => {
+    const items = Array.from(dropdownRef.current?.querySelectorAll<HTMLButtonElement>('.account-dropdown-item') ?? [])
+      .filter((item) => !item.disabled);
+    if (items.length === 0) return;
+    const currentIndex = items.findIndex((item) => item === document.activeElement);
+    const nextIndex = currentIndex === -1
+      ? 0
+      : (currentIndex + direction + items.length) % items.length;
+    items[nextIndex]?.focus();
+  };
+
+  const handleTriggerKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    setMenuOpen(true);
+  };
+
+  const handleDropdownKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeMenu();
+      return;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      focusMenuItem(1);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      focusMenuItem(-1);
+      return;
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      dropdownRef.current?.querySelector<HTMLButtonElement>('.account-dropdown-item')?.focus();
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      const items = dropdownRef.current?.querySelectorAll<HTMLButtonElement>('.account-dropdown-item');
+      items?.[items.length - 1]?.focus();
+    }
+  };
+
   return (
     <header className="topbar glass">
       <div className="logo-group">
@@ -52,8 +112,10 @@ export default function TopBar() {
       </div>
       <div className="current-user account-menu" ref={menuRef}>
         <button
+          ref={triggerRef}
           className="account-trigger"
           onClick={() => setMenuOpen((value) => !value)}
+          onKeyDown={handleTriggerKeyDown}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
         >
@@ -63,7 +125,7 @@ export default function TopBar() {
           </svg>
         </button>
         {menuOpen && (
-          <div className="account-dropdown card" role="menu">
+          <div ref={dropdownRef} className="account-dropdown card" role="menu" onKeyDown={handleDropdownKeyDown}>
             <button
               className="account-dropdown-item"
               role="menuitem"
