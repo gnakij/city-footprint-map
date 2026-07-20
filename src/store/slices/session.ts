@@ -42,7 +42,7 @@ export function createSessionSlice(set: StoreSet, get: StoreGet): SessionSlice {
         const users = currentUser.is_admin ? await getUsers() : [];
         set({ users, adminSetupRequired: false, currentUser, hydrated: true, ...data });
       } catch (error) {
-        console.error('Failed to load app data', error);
+        if (import.meta.env.DEV) console.error('Failed to load app data', error);
         clearToken();
         set({
           users: [],

@@ -9,6 +9,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint src --max-warnings 0",
+    "test:e2e": "playwright test",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "setup:shared-ui": "bash scripts/setup-shared-ui.sh"
@@ -27,6 +28,7 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@types/uuid": "^10.0.0",

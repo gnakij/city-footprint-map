@@ -1,28 +1,5 @@
-// @ts-nocheck
-
 const GEO_BASE = '/cityprint/geojson';
 const cache = new Map<string, unknown>();
-
-/** 全国省级地图（仅省界轮廓，用于判断某个点击位置属于哪个省，及作为兜底） */
-export async function loadChinaGeoJSON() {
-  if (cache.has('china')) return cache.get('china');
-  try {
-    const response = await fetch(`${GEO_BASE}/100000.json`);
-    if (!response.ok) throw new Error(`GeoJSON request failed: ${response.status}`);
-    const data = await response.json();
-    cache.set('china', data);
-    return data;
-  } catch (error) {
-    // 动态 import：兜底数据（约570KB）只在 fetch 真正失败时才加载，
-    // 不会像静态 import 那样把这份 JSON 打包进 MapView 主 chunk
-    // （之前是 MapView chunk 体积偏大的主因之一）
-    console.warn('Using bundled China GeoJSON fallback', error);
-    const fallbackModule = await import('./china.json');
-    const fallbackChinaGeoJSON = fallbackModule.default;
-    cache.set('china', fallbackChinaGeoJSON);
-    return fallbackChinaGeoJSON;
-  }
-}
 
 /**
  * 全国市级地图：合并了 369 个地级市/直辖市的边界，用于首页直接展示到城市粒度。

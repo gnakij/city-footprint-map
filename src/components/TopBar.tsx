@@ -20,12 +20,7 @@ export default function TopBar() {
   const settings = useStore((state) => state.settings);
   const updateSettings = useStore((state) => state.updateSettings);
   const [menuOpen, setMenuOpen] = useState(false);
-  // 2026-06-20: "主题选择"原是个人资料弹窗里"系统设置"tab下唯一的一项内容
-  // （只有一个下拉框），用户要求改名"主题选择"并移到账号下拉菜单的"个人资料"
-  // 和"系统管理"之间。考虑到用户提到"未来还想多做几个主题"，不用独立弹窗
-  // （太重，当前内容量配不上一个弹窗），改为原地展开的二级列表：点击"主题
-  // 选择"这一行不关闭账号下拉菜单本身，而是在原地展开/收起主题选项列表，
-  // 这样以后增加主题只需要在THEME_OPTIONS里加一项，不需要改变交互形式。
+  // 主题选择保留在账号菜单内原地展开，便于后续继续增加主题。
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);

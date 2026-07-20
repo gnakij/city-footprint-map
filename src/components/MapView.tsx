@@ -60,20 +60,8 @@ const WHEEL_STEP = 0.15;       // 鼠标滚轮每格步长
 // 拖拽判定阈值（像素）：移动超过这个距离才算"拖拽"，否则视为点击
 const DRAG_THRESHOLD = 6;
 
-// 点亮/未点亮省份的标签颜色：2026-06-20 之前是固定字面量(#8C2540/#B7A2AA)，
-// 不跟随主题切换。用户明确要求"已点亮统一用品牌主色，未点亮用项目已有的灰色
-// 文字变量"，不要新造颜色，也不要衍生深浅变体——直接复用 --color-primary 和
-// --color-on-surface-variant，三个主题各自天然就有协调的专属值。
-// 改为函数而非常量，确保每次 renderMap 执行时都重新读取当前生效的CSS变量
-// (主题切换后能跟着变)，与 getDurationColor/getPreviewColor 保持同一模式。
-
-// 全国视图下的两个 series 下标：0 = 主图层（市级色块），1 = 省界轮廓层（粗边框+
-// 省名标注）。2026-06-20 曾尝试"给两层广播完全相同的 zoom/dx/dy，让它们各自
-// 独立计算"的方案，多轮真实设备录屏验证后发现这种方式在连续操作后仍会产生
-// 肉眼可见的像素级偏移（具体内部机制未查实，但现象本身被反复证实）。现已改为
-// 单向同步：只驱动 series 0，再用 syncOutlineToMainLayer 读取它的真实渲染
-// 状态原样复制给 series 1，这个下标数组现在只用于 resetView 等需要同时显式
-// 设置两层绝对初始值的场景，不再用于"同时广播增量"。
+// 全国视图两个 series：0 = 城市色块，1 = 省界轮廓。交互时只驱动主图层，
+// 再把真实 zoom/center 同步给轮廓层，避免两个坐标系独立累计误差。
 const NATIONAL_VIEW_SERIES_INDICES = [0, 1];
 
 function provinceViewFromAdcode(adcode: number): ProvinceView | undefined {
@@ -112,13 +100,7 @@ export default function MapView() {
   const showToast = useStore(s => s.showToast);
   const colorMode = useStore(s => s.colorMode);
   const setColorMode = useStore(s => s.setColorMode);
-  // 2026-06-20: 主题颜色（地图色块/标签）通过getComputedStyle实时读取CSS变量，
-  // 不是React state驱动；主题切换只改document.documentElement.dataset.theme这个
-  // DOM属性，不触发任何React重渲染。renderMap之前没有把theme放进依赖数组，导致
-  // 切主题后地图颜色不会自动刷新，要等用户操作触发了别的依赖变化（如点击改变
-  // previewCity）renderMap才被迫重跑，颜色才"顺带"更新——表现为"双击才生效"。
-  // 订阅theme仅为了让renderMap在主题切换时重新执行，函数内部仍然用
-  // getComputedStyle取真实颜色值，不直接使用这个变量。
+  // 地图颜色从 CSS 变量读取；订阅 theme 只用于触发重新渲染。
   const theme = useStore(s => s.settings.theme);
 
   const cityDays = useMemo(() => {
@@ -171,14 +153,7 @@ export default function MapView() {
 
   useEffect(() => { activeProvinceRef.current = activeProvince; }, [activeProvince]);
 
-  // ── 强制把省界轮廓层(series 1)的视图状态，原样同步成主图层(series 0)的真实状态 ──
-  // 之前的方案是给两个 series 各自独立广播相同的 zoom/dx/dy 增量，让它们"各自算账"。
-  // 排查多轮真实设备录屏后发现，即使输入完全相同，两个独立坐标系在连续多次缩放/
-  // 平移操作后仍会产生肉眼可见的像素级偏移（具体内部机制未能100%查证，但现象
-  // 本身被录屏反复证实存在）。这次改为更直接、不依赖"为什么会分叉"这一假设的
-  // 方式：每次操作后，不再让 series 1 自己算，而是读取 series 0 坐标系的真实
-  // zoom/center（ECharts 公开 API），把这个真实值原样设置给 series 1。
-  // 这样 series 1 永远是 series 0 的"镜像"，不存在两边各自独立计算导致分叉的可能。
+  // 轮廓层跟随主图层真实 zoom/center，避免两层 map 坐标系缩放后错位。
   const syncOutlineToMainLayer = useCallback(() => {
     const chart = chartRef.current;
     if (!chart || activeProvinceRef.current) return; // 省级视图下没有轮廓层，不需要同步
@@ -359,31 +334,9 @@ export default function MapView() {
         trigger: 'item',
         enterable: false,
         confine: true,
-        // ECharts tooltip 默认渲染模式是 'html'（不是早先误以为的 canvas内绘制），
-        // 是真实的 <div>，默认挂载在 ECharts 容器(api.getDom())内部——不是
-        // document.body，这是之前长期存在的错误认知。该 <div> 的 z-index 由
-        // ECharts 库内部硬编码为 9999999（见 echarts/lib/component/tooltip/
-        // TooltipHTMLContent.js 的 gCssText），完全不读取任何配置项，之前写的
-        // `z: 35` 在 html 渲染模式下从未真正生效，只是被误以为生效了。
-        //
-        // 真正的问题：pinch 缩放期间会给地图容器加 CSS transform（见下方
-        // applyCssTransform），任何非 none 的 transform 都会给该元素建立新的
-        // CSS 层叠上下文，导致挂在容器内部的 tooltip 不管 z-index 多大，都
-        // 无法越过容器本身去压在管理员面板等外部模态框之上——这才是"打开
-        // 管理员面板时地图标签浮在面板上方"的真正根因，且只在地图容器带有
-        // transform 的窗口期内出现，与缩放程度本身无关（不需要查清楚精确的
-        // 触发时间窗口，只要让 tooltip 不再被装在这个容器里就能从机制上根治）。
-        //
-        // 修复：appendTo: 'body' 让 tooltip 挂载到 document.body，脱离容器
-        // 及其可能存在的 transform；同时用 className 配合 .map-tooltip 这个
-        // CSS class（定义在 index.css，用 !important 覆盖库内联的 9999999），
-        // 把层级压回项目自己的语义化体系（与 .user-dropdown 同级，低于
-        // --z-modal，不会再盖住管理员面板等弹窗）。
+        // tooltip 挂到 body，并用 .map-tooltip 把层级压回项目 z-index 体系。
         appendTo: 'body',
         className: 'map-tooltip',
-        // 固定使用主题色作边框，不再跟随被点击数据项的填充色变化（默认行为
-        // 是取 tooltipDataParams.color，城市按停留天数染色后若落在某些中间
-        // 档会呈现蓝色等不符合主题的颜色，用户反馈"边框颜色很奇怪"）。
         borderColor: getTooltipBorderColor(),
         formatter: (params: { name: string; seriesIndex?: number }) => {
           if (params.seriesIndex === 1) return params.name; // 省界轮廓层，不需要额外信息
