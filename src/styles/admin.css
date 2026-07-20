@@ -169,6 +169,7 @@
    链接那几个字才能点，移动端点击区域更大，误触率更低；链接自身仍保留
    onClick但加stopPropagation，避免和卡片整体点击重复触发。 */
 .changelog-list { display: grid; gap: var(--space-2-5); }
+.admin-docs-list { align-content: start; }
 .changelog-modal {
   display: flex;
   flex-direction: column;

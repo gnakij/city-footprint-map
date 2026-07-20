@@ -13,7 +13,7 @@ const DOC_LIST = adminDocs as DocItem[];
 
 export default function AdminDocsPanel({ onOpenChangelog }: { onOpenChangelog: () => void }) {
   return (
-    <div className="changelog-list">
+    <div className="changelog-list admin-docs-list">
       {DOC_LIST.map((doc, index) => {
         const handleEntryClick = () => {
           if (doc.action === 'changelog') {

@@ -121,18 +121,17 @@
 .visit-modal { width: min(1120px, 100%); }
 .stats-modal { width: min(620px, 100%); }
 .modal-xl { width: min(1180px, 100%); min-height: 560px; }
-/* 2026-07-16: 管理员面板改回内容自适应高度。此前为了避免tab切换跳动，
-   给整个弹窗固定620px高；用户少时会在"用户管理"下方留下大片空白，看起来
-   像没加载完。现在由各表格自己控制最大高度和内部滚动，外层只限制最大视口
-   高度，少内容不硬撑，多内容仍在.admin-tab-viewport里滚动。 */
-.modal-admin { display: flex; flex-direction: column; overflow: hidden; max-height: min(720px, 86vh); height: auto; }
+/* 2026-07-20: 管理员面板保留稳定的内容视口，而不是让每个页签按内容量
+   撑出不同高度。这样用户管理/数据管理/系统文档之间切换时弹窗不跳动；
+   少内容的页签只在内容视口里留白，多内容仍由表格或视口内部滚动承接。 */
+.modal-admin { display: flex; flex-direction: column; overflow: hidden; max-height: min(720px, 86vh); }
 .modal-admin > .modal-head,
 .modal-admin > .mode-pill,
 .modal-admin > .admin-stats,
 .modal-admin > .mb-16 {
   flex-shrink: 0;
 }
-.admin-tab-viewport { display: flex; flex-direction: column; min-height: 0; max-height: min(460px, 58vh); overflow-y: auto; }
+.admin-tab-viewport { display: flex; flex-direction: column; min-height: 0; height: min(460px, 58vh); overflow-y: auto; }
 /* 2026-06-20: 新增min-height。这个modal内部有4个tab(个人信息/访问记录/系统管理/
    系统设置)，内容量差异很大("个人信息"只有两个输入框，"系统管理"嵌套了完整的
    表格管理界面)，.modal本身只有max-height没有min-height，导致切换tab时modal

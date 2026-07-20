@@ -329,7 +329,7 @@
   .modal h2 { font-size: var(--font-xl); }
   .modal-xl { min-height: min(560px, 80vh); }
   .modal-admin { max-height: 84vh; }
-  .admin-tab-viewport { max-height: 54vh; }
+  .admin-tab-viewport { height: min(440px, 54vh); }
   /* 2026-06-20: 移动端屏幕普遍偏矮，560px固定最小高度可能导致弹窗过高甚至溢出，
      改为取560px和80vh中较小者，保证不会超出视口太多；80vh而非90vh是留出一些
      呼吸空间，避免和.modal自身的max-height:90vh贴得太近。 */
