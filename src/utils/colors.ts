@@ -78,3 +78,27 @@ export function getTooltipBorderColor(): string {
 export function getHaloColor(): string {
   return cssVar('--color-background', '#FFFBFC');
 }
+
+export function getMapUnvisitedColor(): string {
+  return cssVar('--color-dur-l0', '#F0F0F0');
+}
+
+export function getMapCityBorderColor(): string {
+  return cssVar('--color-outline-variant', '#D8C3CB');
+}
+
+export function getMapProvinceBorderColor(): string {
+  return cssVar('--color-on-surface-variant', '#666666');
+}
+
+export function getMapActiveCityBorderColor(): string {
+  return cssVar('--color-background', '#FFFFFF');
+}
+
+export function getMapEmphasisLabelColor(): string {
+  return cssVar('--color-on-surface', '#131B2E');
+}
+
+export function getMapEmphasisAreaColor(): string {
+  return cssVar('--color-primary-container', '#B7D4FF');
+}

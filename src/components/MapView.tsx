@@ -7,11 +7,25 @@ import { MapChart } from 'echarts/charts';
 import { TooltipComponent, MarkPointComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { loadChinaCitiesGeoJSON, loadChinaGeoJSON, loadProvinceGeoJSON, loadProvinceOutlineGeoJSON } from '../data/china-geojson';
+import { loadChinaCitiesGeoJSON, loadProvinceGeoJSON, loadProvinceOutlineGeoJSON } from '../data/china-geojson';
 import { CITIES } from '../data/cities';
 import { useStore } from '../store/useStore';
 import type { CityData } from '../types';
-import { getDurationColor, getLastDepartureColor, getPreviewColor, getLitLabelColor, getUnlitLabelColor, getTooltipBorderColor, getHaloColor } from '../utils/colors';
+import {
+  getDurationColor,
+  getLastDepartureColor,
+  getMapActiveCityBorderColor,
+  getMapCityBorderColor,
+  getMapEmphasisAreaColor,
+  getMapEmphasisLabelColor,
+  getMapProvinceBorderColor,
+  getMapUnvisitedColor,
+  getPreviewColor,
+  getLitLabelColor,
+  getUnlitLabelColor,
+  getTooltipBorderColor,
+  getHaloColor,
+} from '../utils/colors';
 import { daysSinceDate, visitDays } from '../utils/date';
 import { findCityForFeature, municipalities, PROVINCE_CENTROIDS, shortName } from '../utils/mapHelpers';
 import Icon from './Icon';
@@ -62,11 +76,17 @@ const DRAG_THRESHOLD = 6;
 // 设置两层绝对初始值的场景，不再用于"同时广播增量"。
 const NATIONAL_VIEW_SERIES_INDICES = [0, 1];
 
+function provinceViewFromAdcode(adcode: number): ProvinceView | undefined {
+  const provinceCode = Math.floor(adcode / 10000);
+  const city = CITIES.find((item) => item.adcode && Math.floor(item.adcode / 10000) === provinceCode);
+  if (!city) return undefined;
+  return { name: city.province, short: city.province, adcode };
+}
+
 export default function MapView() {
   const elRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts>();
   const activeProvinceRef = useRef<ProvinceView | null>(null);
-  const chinaGeoRef = useRef<GeoJson | null>(null);
   const chinaCitiesGeoRef = useRef<GeoJson | null>(null);
   const provinceOutlineGeoRef = useRef<GeoJson | null>(null);
   const provinceGeoRef = useRef<GeoJson | null>(null);
@@ -118,13 +138,14 @@ export default function MapView() {
   }, [visits]);
 
   const cityFillColor = useCallback((city?: CityData) => {
-    if (!city) return '#F0F0F0';
+    const unvisitedColor = getMapUnvisitedColor();
+    if (!city) return unvisitedColor;
     if (colorMode === 'lastDeparture') {
       const daysAgo = cityLastDepartureDays.get(city.city_id);
-      return daysAgo === undefined ? '#F0F0F0' : getLastDepartureColor(daysAgo);
+      return daysAgo === undefined ? unvisitedColor : getLastDepartureColor(daysAgo);
     }
     const days = cityDays.get(city.city_id) ?? 0;
-    return days > 0 ? getDurationColor(days) : '#F0F0F0';
+    return days > 0 ? getDurationColor(days) : unvisitedColor;
   }, [cityDays, cityLastDepartureDays, colorMode]);
 
   const cityTooltipText = useCallback((city?: CityData, emptyText = '点击添加访问记录') => {
@@ -263,6 +284,12 @@ export default function MapView() {
     const previewColor = getPreviewColor();
     const litLabelColor = getLitLabelColor();
     const unlitLabelColor = getUnlitLabelColor();
+    const mapUnvisitedColor = getMapUnvisitedColor();
+    const mapCityBorderColor = getMapCityBorderColor();
+    const mapProvinceBorderColor = getMapProvinceBorderColor();
+    const mapActiveCityBorderColor = getMapActiveCityBorderColor();
+    const mapEmphasisLabelColor = getMapEmphasisLabelColor();
+    const mapEmphasisAreaColor = getMapEmphasisAreaColor();
 
     if (activeProvince) {
       // 省级视图：城市级 data，点击直接打开录入抽屉
@@ -378,7 +405,7 @@ export default function MapView() {
           scaleLimit: { min: 0.5, max: 12 },
           ...(provinceChanged ? { zoom: activeProvince ? 1 : 1.1, center: undefined as never } : {}),
           selectedMode: false,
-          emphasis: { label: { show: true, color: '#131B2E' }, itemStyle: { areaColor: '#B7D4FF' } },
+          emphasis: { label: { show: true, color: mapEmphasisLabelColor }, itemStyle: { areaColor: mapEmphasisAreaColor } },
           // 市级视图标签维持原有较小字号；全国视图下城市色块本身不显示文字（避免369个标签拥挤），
           // 省名标注由独立的第二个 series 承载（markPoint）
           label: activeProvince
@@ -387,8 +414,8 @@ export default function MapView() {
           // 全国视图下市与市之间用纤细浅色边框，作为色块内部的精细分界；
           // 省界的粗线由第二个系列单独叠加，两者叠加后呈现"省界明显、市内分界纤细"的效果
           itemStyle: activeProvince
-            ? { areaColor: '#F0F0F0', borderColor: '#FFFFFF', borderWidth: 1 }
-            : { areaColor: '#F0F0F0', borderColor: '#D8C3CB', borderWidth: 0.6 },
+            ? { areaColor: mapUnvisitedColor, borderColor: mapActiveCityBorderColor, borderWidth: 1 }
+            : { areaColor: mapUnvisitedColor, borderColor: mapCityBorderColor, borderWidth: 0.6 },
           data,
         },
         // 省界轮廓层：独立的 33 省级行政区 GeoJSON，只在全国视图显示。
@@ -407,7 +434,7 @@ export default function MapView() {
           // 从这一刻起两层产生实际差异且持续累积——这正是"放大到一定程度才分离"的根因。
           scaleLimit: { min: 0.5, max: 12 },
           ...(provinceChanged ? { zoom: 1.1, center: undefined as never } : {}),
-          itemStyle: { areaColor: 'transparent', borderColor: '#666666', borderWidth: 0.5 },
+          itemStyle: { areaColor: 'transparent', borderColor: mapProvinceBorderColor, borderWidth: 0.5 },
           emphasis: { disabled: true },
           label: { show: false },
           data: provinceOutlineData,
@@ -447,17 +474,13 @@ export default function MapView() {
     const cleanups: (() => void)[] = [];
 
     const init = async () => {
-      const [geoJson, citiesGeoJson, outlineGeoJson] = await Promise.all([
-        loadChinaGeoJSON() as Promise<GeoJson>,
+      const [citiesGeoJson, outlineGeoJson] = await Promise.all([
         loadChinaCitiesGeoJSON() as Promise<GeoJson>,
         loadProvinceOutlineGeoJSON() as Promise<GeoJson>,
       ]);
       if (disposed || !elRef.current) return;
-      chinaGeoRef.current = geoJson;
       chinaCitiesGeoRef.current = citiesGeoJson;
       provinceOutlineGeoRef.current = outlineGeoJson;
-      // 注册全国省级图（用于点击判断省份归属的兜底、及取省份中心点坐标）
-      echarts.registerMap('china-footprint', geoJson as never);
       // 注册全国市级图（首页主渲染：369 个地级市/直辖市边界）
       echarts.registerMap('china-cities-footprint', citiesGeoJson as never);
       // 注册省界轮廓图（33 个省级行政区合并轮廓，用于叠加粗边框强调省界）
@@ -516,10 +539,9 @@ export default function MapView() {
           }
 
           if (!provinceAdcode) return;
-          const provinceFeat = chinaGeoRef.current?.features?.find(f => f.properties.adcode === provinceAdcode);
-          if (!provinceFeat) return;
-          const short = shortName(provinceFeat.properties.name);
-          setActiveProvince({ name: provinceFeat.properties.name, short, adcode: provinceAdcode });
+          const provinceView = provinceViewFromAdcode(provinceAdcode);
+          if (!provinceView) return;
+          setActiveProvince(provinceView);
           setPreviewCity(undefined);
           return;
         }
