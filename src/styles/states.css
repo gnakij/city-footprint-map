@@ -58,6 +58,26 @@
   animation: spin 0.8s linear infinite;
 }
 
+.lazy-surface-fallback {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--space-2-5);
+  min-height: 180px;
+  text-align: center;
+}
+
+.lazy-surface-fallback strong {
+  color: var(--color-on-surface);
+  font-size: var(--font-md);
+}
+
+.lazy-surface-fallback span {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
