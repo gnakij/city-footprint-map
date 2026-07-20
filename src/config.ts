@@ -1,1 +1,1 @@
-export const GIFT_MODE = import.meta.env.VITE_GIFT_MODE === 'true';
+export const PUBLIC_MODE = __PUBLIC_MODE__;

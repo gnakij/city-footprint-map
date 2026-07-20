@@ -4,11 +4,14 @@ import path from 'path'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
-  const giftMode = env.VITE_GIFT_MODE === 'true'
+  const publicMode = env.VITE_PUBLIC_MODE === 'true'
 
   return {
   plugins: [react()],
   base: '/cityprint/',
+  define: {
+    __PUBLIC_MODE__: JSON.stringify(publicMode),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -23,7 +26,7 @@ export default defineConfig(({ mode }) => {
         rewrite: (path) => path.replace(/^\/cityprint\/api/, '/api'),
       },
     },
-    allowedHosts: ['www.gnakij.top'],
+    allowedHosts: [],
   },
   build: {
     outDir: 'dist',
@@ -37,7 +40,7 @@ export default defineConfig(({ mode }) => {
           if (id.includes('/node_modules/echarts/') || id.includes('/node_modules/zrender/')) {
             return 'vendor-echarts'
           }
-          if (!giftMode && id.includes('/node_modules/xlsx/')) {
+          if (!publicMode && id.includes('/node_modules/xlsx/')) {
             return 'vendor-xlsx'
           }
         },

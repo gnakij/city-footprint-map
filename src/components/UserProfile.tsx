@@ -17,7 +17,7 @@ import { updateMe } from '../store/api';
 import type { ImportVisitRow, VisitRecord } from '../types';
 import { isValidDateText, todayLocalDateText, visitDays } from '../utils/date';
 import { findImportCity, importDateText, importDuplicateKey, importNumber, normalizeImportCell } from '../utils/importVisits';
-import { GIFT_MODE } from '../config';
+import { PUBLIC_MODE } from '../config';
 
 type ProfileTab = 'profile' | 'visits';
 const FUZZY_SELECT_CLASSES = { dropdown: 'card', option: 'btn-outline small', activeOption: 'active' };
@@ -89,7 +89,7 @@ export default function UserProfile() {
   }, [rows, visitPage]);
 
   useEffect(() => {
-    if (GIFT_MODE && showStats) setShowStats(false);
+    if (PUBLIC_MODE && showStats) setShowStats(false);
   }, [showStats]);
 
   useEffect(() => {
@@ -348,17 +348,17 @@ export default function UserProfile() {
             {/* 操作按钮行 */}
             <div className="actions">
               <button className="btn-primary" onClick={() => setShowForm(true)}><Icon name="plus" /> 添加访问</button>
-              {!GIFT_MODE && (
+              {!PUBLIC_MODE && (
                 <>
                   <button className="btn-outline" onClick={() => void download()}><Icon name="download" /> 导出当前数据</button>
                   <button className="btn-outline" onClick={() => setShowImportTools((value) => !value)}><Icon name="upload" /> 导入数据</button>
                 </>
               )}
               <button className="btn-danger" onClick={() => setClearConfirmOpen(true)}>清空所有数据</button>
-              {!GIFT_MODE && <button className="btn-outline" onClick={() => setShowStats(true)} style={{ marginLeft: 'auto' }}><Icon name="chart" /> 统计</button>}
+              {!PUBLIC_MODE && <button className="btn-outline" onClick={() => setShowStats(true)} style={{ marginLeft: 'auto' }}><Icon name="chart" /> 统计</button>}
             </div>
 
-            {!GIFT_MODE && showImportTools && (
+            {!PUBLIC_MODE && showImportTools && (
               <div className="card import-tools-card">
                 <div className="panel-title">
                   <strong>数据导入</strong>
@@ -372,7 +372,7 @@ export default function UserProfile() {
               </div>
             )}
 
-            {!GIFT_MODE && preview.length > 0 && (
+            {!PUBLIC_MODE && preview.length > 0 && (
               <div className="import-preview card">
                 <div className="panel-title">
                   <strong>导入预览</strong>
@@ -519,7 +519,7 @@ export default function UserProfile() {
           </div>
         )}
 
-        {!GIFT_MODE && tab === 'visits' && showStats && (
+        {!PUBLIC_MODE && tab === 'visits' && showStats && (
           <>
             <button className="back-btn mb-12" onClick={() => setShowStats(false)}>← 返回访问列表</button>
             <DrillDownStats embedded />

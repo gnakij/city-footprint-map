@@ -22,8 +22,6 @@ MAX_NOTES_LENGTH = 500
 DEFAULT_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://www.gnakij.top",
-    "https://gnakij.top",
 ]
 
 
