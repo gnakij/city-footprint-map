@@ -3,21 +3,21 @@
     "category": "设计文档",
     "title": "设计系统文档",
     "url": "docs/设计系统-2026-06-20.md",
-    "last_updated": "2026-07-12",
-    "description": "完整设计 token 体系、组件规范"
+    "last_updated": "2026-07-20",
+    "description": "界面原则、主题规范与后续扩展约定"
   },
   {
     "category": "功能文档",
     "title": "功能现状文档",
     "url": "docs/功能现状-2026-06-19.md",
-    "last_updated": "2026-07-12",
-    "description": "项目功能清单与现状说明"
+    "last_updated": "2026-07-20",
+    "description": "功能说明、数据边界与日常维护指南"
   },
   {
     "category": "升级记录",
     "title": "系统升级记录",
     "action": "changelog",
-    "last_updated": "2026-07-16",
-    "description": "历次更新内容与变更记录"
+    "last_updated": "2026-07-20",
+    "description": "面向使用者的版本变化说明"
   }
 ]

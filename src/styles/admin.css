@@ -60,6 +60,9 @@
 .admin-user-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); gap: var(--space-2); }
 .admin-user-card-name-row { display: flex; align-items: center; gap: var(--space-1-5); min-width: 0; }
 .admin-user-card-name { font-size: var(--font-lg); font-weight: 700; color: var(--color-on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-user-edit { width: var(--size-btn-small); min-width: var(--size-btn-small); height: var(--size-btn-small); border: 0; background: transparent; color: var(--color-on-surface-variant); }
+.admin-user-edit:hover { color: var(--color-primary); background: var(--color-surface-container-low); }
+.admin-user-reset .icon { width: 15px; height: 15px; }
 /* 2026-06-21: "管理员"(2字)和"普通用户"(4字)文字长度不同，原来背景框
    完全靠padding撑开，两个标签宽度参差不齐。加min-width统一最小宽度+
    text-align:center让文字在框内居中，视觉上两个标签长度一致更好看。 */

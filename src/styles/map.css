@@ -131,7 +131,7 @@
 .modal-admin > .mb-16 {
   flex-shrink: 0;
 }
-.admin-tab-viewport { display: flex; flex-direction: column; min-height: 0; height: min(460px, 58vh); overflow-y: auto; }
+.admin-tab-viewport { display: flex; flex-direction: column; min-height: 0; height: clamp(360px, 50vh, 420px); overflow-y: auto; }
 /* 2026-06-20: 新增min-height。这个modal内部有4个tab(个人信息/访问记录/系统管理/
    系统设置)，内容量差异很大("个人信息"只有两个输入框，"系统管理"嵌套了完整的
    表格管理界面)，.modal本身只有max-height没有min-height，导致切换tab时modal

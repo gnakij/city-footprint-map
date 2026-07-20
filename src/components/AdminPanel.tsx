@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore';
 import AdminUsersPanel from './AdminUsersPanel';
 import ChangelogModal, { type ChangelogEntry } from './ChangelogModal';
 import ConfirmDialog from './ConfirmDialog';
+import Icon from './Icon';
 import Modal from './Modal';
 import { Button, FormField, Input, Tabs } from './ui';
 import type { User } from '../types';
@@ -300,7 +301,7 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
                 </button>
               </div>
             ) : (
-              <button className="btn-primary" onClick={() => setShowCreateModal(true)}>+ 新增用户</button>
+              <button className="btn-primary" onClick={() => setShowCreateModal(true)}><Icon name="plus" /> 新增用户</button>
             )}
           </div>
         </>

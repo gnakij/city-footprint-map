@@ -329,7 +329,15 @@
   .modal h2 { font-size: var(--font-xl); }
   .modal-xl { min-height: min(560px, 80vh); }
   .modal-admin { max-height: 84vh; }
-  .admin-tab-viewport { height: min(440px, 54vh); }
+  .admin-tab-viewport { height: min(360px, 46vh); }
+  .toast {
+    top: auto;
+    bottom: max(var(--space-4), env(safe-area-inset-bottom));
+    width: max-content;
+    max-width: calc(100vw - var(--space-5));
+    justify-content: center;
+    text-align: center;
+  }
   /* 2026-06-20: 移动端屏幕普遍偏矮，560px固定最小高度可能导致弹窗过高甚至溢出，
      改为取560px和80vh中较小者，保证不会超出视口太多；80vh而非90vh是留出一些
      呼吸空间，避免和.modal自身的max-height:90vh贴得太近。 */

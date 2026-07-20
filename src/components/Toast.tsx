@@ -17,7 +17,7 @@ export default function Toast() {
   const iconName = toast.icon === '!' ? 'info' : 'check';
 
   return (
-    <div className="toast glass">
+    <div className="toast glass" role="status" aria-live="polite">
       <strong><Icon name={iconName} /></strong>
       <span>{toast.message}</span>
     </div>

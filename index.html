@@ -4,11 +4,10 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/cityprint/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0066FF" />
+    <meta name="theme-color" content="#F8FAFC" />
     <meta name="description" content="城市足迹地图 - 记录你走过的每一座城市" />
     <title>城市足迹地图</title>
     <style>
-      /* 系统字体 — 不依赖 Google Fonts */
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
           'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -17,50 +16,80 @@
   </head>
   <body>
     <div id="root"></div>
-    <div id="__loader" style="position:fixed;inset:0;z-index:99998;background:#FCFDFE;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif">
-      <div style="display:grid;gap:12px;place-items:center;text-align:center;color:#657386">
-        <div style="width:28px;height:28px;border:3px solid #D7E0EC;border-top-color:#166ADF;border-radius:999px;animation:cityprint-spin .8s linear infinite"></div>
+    <div id="__loader" style="position:fixed;inset:0;z-index:99998;background:#F8FAFC;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif">
+      <div style="display:grid;gap:12px;place-items:center;text-align:center;color:#64748B">
+        <div style="width:28px;height:28px;border:3px solid #D9E0E8;border-top-color:#475569;border-radius:999px;animation:cityprint-spin .8s linear infinite"></div>
         <div style="font-size:14px;font-weight:700">正在加载...</div>
       </div>
     </div>
     <style>@keyframes cityprint-spin{to{transform:rotate(360deg)}}</style>
-    <div id="__err" style="display:none;position:fixed;inset:0;z-index:99999;background:#fff;padding:40px 20px;font-size:16px;color:#d00;overflow:auto;white-space:pre-wrap;font-family:monospace;line-height:1.6"></div>
+    <div id="__err" style="display:none;position:fixed;inset:0;z-index:99999;background:#F8FAFC;padding:24px;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;color:#172033">
+      <div style="width:min(420px,100%);padding:28px;border:1px solid #D9E0E8;border-radius:12px;background:#fff;box-shadow:0 18px 50px rgba(15,23,42,.12)">
+        <div id="__err_title" style="font-size:20px;font-weight:700;margin-bottom:10px">页面暂时无法打开</div>
+        <div id="__err_message" style="font-size:14px;line-height:1.7;color:#64748B;margin-bottom:20px">请检查网络连接后重新加载。</div>
+        <button id="__err_retry" type="button" style="min-height:38px;padding:0 18px;border:0;border-radius:8px;background:#334155;color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer">重新加载</button>
+        <details id="__err_details" style="margin-top:18px;color:#64748B;font-size:12px">
+          <summary style="cursor:pointer">技术信息</summary>
+          <pre id="__err_detail" style="margin:10px 0 0;overflow:auto;white-space:pre-wrap;font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace"></pre>
+        </details>
+      </div>
+    </div>
     <script>
-      /* 全局错误显示 */
       var _e = document.getElementById('__err');
       var _l = document.getElementById('__loader');
-      function _show(msg, detail) {
+      var _em = document.getElementById('__err_message');
+      var _ed = document.getElementById('__err_detail');
+      var _eds = document.getElementById('__err_details');
+
+      document.getElementById('__err_retry').addEventListener('click', function() {
+        location.reload();
+      });
+
+      function _bootPending() {
+        return document.getElementById('root').children.length === 0;
+      }
+
+      function _show(message, detail) {
         _l.style.display = 'none';
-        _e.style.display = 'block';
-        _e.textContent = msg + '\n\n' + (detail || '');
+        _e.style.display = 'flex';
+        _em.textContent = message;
+        _ed.textContent = detail || '';
+        _eds.hidden = !detail;
         document.getElementById('root').style.display = 'none';
       }
-      /* React 渲染后隐藏 loader */
+
       var _ro = new MutationObserver(function() {
-        if (document.getElementById('root').children.length > 0) {
+        if (!_bootPending()) {
           _l.style.display = 'none';
           _ro.disconnect();
         }
       });
       _ro.observe(document.getElementById('root'), { childList: true });
-      /* 30s 超时（大 JS 包慢网下需要更久） */
+
       setTimeout(function() {
         if (_l.style.display !== 'none') {
-          _show('加载超时', '页面加载超过30秒，请检查网络连接后刷新重试。\\nUA: ' + navigator.userAgent);
+          _show('加载时间超过预期，请检查网络连接后重新加载。', '浏览器：' + navigator.userAgent);
         }
       }, 30000);
+
       window.addEventListener('error', function(e) {
+        if (!_bootPending()) return;
         var info = [];
         if (e.message) info.push('Message: ' + e.message);
         if (e.filename) info.push('File: ' + e.filename + ':' + e.lineno + ':' + e.colno);
-        info.push('UA: ' + navigator.userAgent);
+        info.push('Browser: ' + navigator.userAgent);
         info.push('Screen: ' + screen.width + 'x' + screen.height);
-        _show('JS Error', info.join('\n'));
+        _show('页面启动时遇到问题，请重新加载后再试。', info.join('\n'));
       });
+
       window.addEventListener('unhandledrejection', function(e) {
-        _show('Promise Error: ' + (e.reason && e.reason.message || e.reason));
+        if (!_bootPending()) return;
+        _show(
+          '页面启动时遇到问题，请重新加载后再试。',
+          String(e.reason && e.reason.message || e.reason || 'Unknown error')
+        );
       });
-      /* localStorage 安全封装 */
+
       window.__ls = {
         get: function(k) { try { return localStorage.getItem(k); } catch(e) { return null; } },
         set: function(k,v) { try { localStorage.setItem(k,v); } catch(e) {} },

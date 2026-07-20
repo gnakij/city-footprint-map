@@ -149,7 +149,14 @@ export default function AdminUsersPanel({
                   <div className="admin-user-card-head">
                     <div className="admin-user-card-name-row">
                       <span className="admin-user-card-name">{names[user.id] ?? user.name}</span>
-                      <button className="btn-tertiary" onClick={() => onNameEdit(user.id)}>修改</button>
+                      <button
+                        className="icon-btn admin-user-edit"
+                        onClick={() => onNameEdit(user.id)}
+                        aria-label={`修改${user.name}的昵称`}
+                        title="修改昵称"
+                      >
+                        <Icon name="edit" />
+                      </button>
                     </div>
                     <span className={`admin-user-card-tag${user.is_admin ? ' is-admin' : ''}`}>{user.is_admin ? '管理员' : '普通用户'}</span>
                   </div>
@@ -157,7 +164,9 @@ export default function AdminUsersPanel({
                     {user.username && `@${user.username} · `}创建于 {user.created_at.slice(0, 10)}
                   </div>
                   <div className="admin-user-card-footer">
-                    <button className="btn-tertiary" onClick={() => onResetPassword(user.id, user.name)}>重置密码</button>
+                    <button className="btn-outline compact admin-user-reset" onClick={() => onResetPassword(user.id, user.name)}>
+                      <Icon name="key" /> 重置密码
+                    </button>
                     {!user.is_admin && <span className="admin-user-card-hint">长按可批量删除</span>}
                   </div>
                 </>

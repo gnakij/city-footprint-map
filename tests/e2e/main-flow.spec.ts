@@ -109,6 +109,7 @@ test('admin panel tabs render without empty lazy gaps', async ({ page }) => {
   await page.getByRole('button', { name: /管理员/ }).click();
   await page.getByRole('menuitem', { name: '系统管理' }).click();
   await expect(page.getByRole('heading', { name: '管理员面板' })).toBeVisible();
+  await expect(page.getByText('已登录管理员')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '用户管理' })).toBeVisible();
 
   await page.getByRole('button', { name: '系统文档' }).click();
