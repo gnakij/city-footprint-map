@@ -1,8 +1,6 @@
-import { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent, useEffect, useRef, useState } from 'react';
+import { lazy, MouseEvent as ReactMouseEvent, Suspense, TouchEvent as ReactTouchEvent, useEffect, useRef, useState } from 'react';
 import { createManagedUser, getUsers } from '../api';
 import { useStore } from '../store/useStore';
-import AdminDataPanel from './AdminDataPanel';
-import AdminDocsPanel from './AdminDocsPanel';
 import AdminUsersPanel from './AdminUsersPanel';
 import ChangelogModal, { type ChangelogEntry } from './ChangelogModal';
 import ConfirmDialog from './ConfirmDialog';
@@ -17,6 +15,19 @@ const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
   { id: 'data', label: '数据管理' },
   { id: 'docs', label: '系统文档' },
 ];
+
+const AdminDataPanel = lazy(() => import('./AdminDataPanel'));
+const AdminDocsPanel = lazy(() => import('./AdminDocsPanel'));
+
+function AdminTabFallback({ label }: { label: string }) {
+  return (
+    <div className="lazy-surface-fallback admin-tab-fallback" role="status" aria-live="polite">
+      <div className="loading-spinner" aria-hidden="true" />
+      <strong>{label}加载中…</strong>
+      <span>正在准备对应功能</span>
+    </div>
+  );
+}
 
 export default function AdminPanel({ embedded = false }: { embedded?: boolean }) {
   const users = useStore((state) => state.users);
@@ -326,11 +337,15 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean })
       )}
 
       {adminTab === 'data' && (
-        <AdminDataPanel users={users} onStatsRefresh={() => void getSystemStats().then(setStats)} />
+        <Suspense fallback={<AdminTabFallback label="数据管理" />}>
+          <AdminDataPanel users={users} onStatsRefresh={() => void getSystemStats().then(setStats)} />
+        </Suspense>
       )}
 
       {adminTab === 'docs' && (
-        <AdminDocsPanel onOpenChangelog={() => void openChangelog()} />
+        <Suspense fallback={<AdminTabFallback label="系统文档" />}>
+          <AdminDocsPanel onOpenChangelog={() => void openChangelog()} />
+        </Suspense>
       )}
 
       {pendingReset && (

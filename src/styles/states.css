@@ -78,6 +78,10 @@
   line-height: 1.5;
 }
 
+.admin-tab-fallback {
+  min-height: 100%;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
